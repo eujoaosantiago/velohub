@@ -55,11 +55,11 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ customer, onClose
                     </div>
                     <div>
                         <label className="text-xs text-slate-400 block mb-1">CPF (Chave)</label>
-                        <input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                        <input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))} inputMode="numeric" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
                     </div>
                     <div>
                         <label className="text-xs text-slate-400 block mb-1">Telefone</label>
-                        <input value={phone} onChange={e => setPhone(maskPhone(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                        <input value={phone} onChange={e => setPhone(maskPhone(e.target.value))} inputMode="tel" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
                     </div>
                     <div>
                         <label className="text-xs text-slate-400 block mb-1">Email</label>

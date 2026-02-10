@@ -109,6 +109,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
           v.expenses.forEach(e => {
               flat.push({ ...e, vehicleName: `${v.make} ${v.model}`, vehiclePlate: v.plate || 'S/ Placa', type: 'expense' });
           });
+          // Synthetic expense for Sale Commission
           if (v.status === 'sold' && v.saleCommission && v.saleCommission > 0) {
               flat.push({
                   id: `comm-${v.id}`,
@@ -172,7 +173,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
                             <h3 className="text-sm font-medium text-slate-400">Total Gasto em Reformas</h3>
                         </div>
                         <p className="text-2xl font-bold text-white">
-                            {formatCurrency(allVehicleExpenses.reduce((acc, e) => acc + (e.category !== 'salary' ? e.amount : 0), 0))}
+                            {formatCurrency(allVehicleExpenses.reduce((acc, e) => acc + (e.category !== 'salary' && e.type !== 'commission' ? e.amount : 0), 0))}
                         </p>
                     </Card>
                     <Card>
@@ -181,7 +182,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
                             <h3 className="text-sm font-medium text-slate-400">Total em Comissões</h3>
                         </div>
                         <p className="text-2xl font-bold text-white">
-                            {formatCurrency(allVehicleExpenses.reduce((acc, e) => acc + (e.category === 'salary' ? e.amount : 0), 0))}
+                            {formatCurrency(allVehicleExpenses.reduce((acc, e) => acc + (e.category === 'salary' || e.type === 'commission' ? e.amount : 0), 0))}
                         </p>
                     </Card>
                 </div>
@@ -267,6 +268,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
                                 <input 
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm font-bold" 
                                     placeholder="R$ 0,00"
+                                    inputMode="decimal"
                                     value={newOpex.amount}
                                     onChange={e => setNewOpex({...newOpex, amount: maskCurrencyInput(e.target.value)})}
                                 />
