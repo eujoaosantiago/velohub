@@ -66,8 +66,6 @@
             },
             colors: {
               // --- VARIÁVEIS SEMÂNTICAS PARA TEMA CLARO/ESCURO ---
-              // A estratégia aqui é inverter os valores RGB nas variáveis CSS
-              // Assim, 'bg-slate-950' será escuro no Dark Mode e claro no Light Mode.
               
               slate: {
                 50: 'rgb(var(--color-slate-50) / <alpha-value>)',
@@ -112,7 +110,6 @@
       /* --- DEFINIÇÃO DAS CORES (RGB) --- */
       :root {
         /* MODO CLARO (LIGHT) - Padrão se .dark não estiver presente */
-        /* Inversão: slate-950 vira claro, text-white vira escuro */
         
         --color-slate-50: 30 30 30;    /* Invertido */
         --color-slate-100: 43 42 42;   /* Texto vira escuro */
@@ -191,11 +188,11 @@
   <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+    "recharts": "https://esm.sh/recharts@2.12.0",
     "crypto-js": "https://esm.sh/crypto-js@4.2.0",
     "dompurify": "https://esm.sh/dompurify@3.0.6",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
