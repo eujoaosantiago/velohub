@@ -43,7 +43,7 @@ export const AuthService = {
     };
   },
 
-  login: async (email: string, password: string): Promise<User> => {
+  login: async (email: string, password: string): Promise<User | null> => {
     if (!supabase) throw new Error("Sistema não configurado.");
 
     // 1. Autenticação (Email/Senha)
@@ -55,8 +55,8 @@ export const AuthService = {
     if (error) throw new Error("Credenciais inválidas.");
     
     // 2. Busca Perfil Inicial
-    // Nota: Se o perfil não existir (ex: trigger lento), retornamos null aqui
-    // e o Contexto fará o polling (tentativas repetidas) para garantir.
+    // Nota: Retornamos null se o perfil não existir ainda (race condition do trigger).
+    // O Contexto fará o polling (tentativas repetidas) para garantir.
     const { data: profile } = await supabase
         .from('users')
         .select('*')
@@ -69,18 +69,8 @@ export const AuthService = {
         return mappedUser;
     }
 
-    // Se logou no Auth mas não tem perfil ainda, retornamos um objeto parcial
-    // O Contexto vai identificar isso e tentar buscar o perfil completo novamente
-    return {
-        id: data.user.id,
-        email: data.user.email || '',
-        name: '', 
-        role: 'owner',
-        storeId: '',
-        plan: 'free',
-        createdAt: '',
-        updatedAt: ''
-    };
+    // Retorna null para sinalizar ao contexto que precisa tentar de novo
+    return null;
   },
 
   logout: () => {
@@ -113,6 +103,7 @@ export const AuthService = {
     
     if (error) throw new Error(error.message);
     
+    // Retorna objeto parcial apenas para feedback visual imediato
     return {
         id: data.user?.id || '',
         name,
