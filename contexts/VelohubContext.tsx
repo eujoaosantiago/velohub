@@ -46,9 +46,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     );
 
     const checkSession = async () => {
-        // Se estiver processando um link de email, NÃO fazemos checkSession manual.
-        // Deixamos o onAuthStateChange (abaixo) capturar o evento 'SIGNED_IN' automaticamente.
-        // Isso evita que o isLoading vire false antes da hora.
+        // Se estiver processando um link, NÃO finalize o loading ainda. 
+        // Deixe o onAuthStateChange capturar.
         if (isHandlingRedirect) {
             console.log("🔄 Processando link de autenticação...");
             return; 
@@ -73,6 +72,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
+            // Em caso de login manual, o fetch já pode ter ocorrido via função login()
+            // Mas o evento dispara mesmo assim. Vamos garantir que temos os dados.
             await fetchUserProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
             setUser(null);
@@ -87,7 +88,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, retryCount = 0) => {
       try {
           if (!supabase) return;
           
@@ -138,9 +139,16 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
           }
 
           if (error || !profile) {
+              // Retry Logic: Se falhar (ex: rede), tenta mais uma vez após 1.5s
+              if (retryCount < 1) {
+                  console.log("Tentando buscar perfil novamente em 1.5s...");
+                  setTimeout(() => fetchUserProfile(userId, retryCount + 1), 1500);
+                  return;
+              }
+
               console.error("Erro crítico de perfil:", error);
               if (error?.code !== 'PGRST116') {
-                  // Só desloga se for um erro real, não apenas "não encontrado" (que tentamos tratar acima)
+                  // Só desloga se for um erro real e persistente
                   supabase.auth.signOut();
               }
               setIsLoading(false);
