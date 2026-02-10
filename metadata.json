@@ -1,0 +1,7 @@
+{
+  "name": "VELOHUB",
+  "description": "Plataforma premium de gestão de estoque automotivo para lojistas de alta performance.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

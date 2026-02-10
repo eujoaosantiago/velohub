@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VELOHUB | Gestão Automotiva Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Montserrat', 'sans-serif'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-out',
+              'slide-in-right': 'slideInRight 0.5s ease-out',
+              'slide-in-top': 'slideInTop 0.5s ease-out',
+              'shrink-width': 'shrinkWidth 5s linear forwards',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'gradient-x': 'gradientX 15s ease infinite',
+              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+              'pop-in': 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              'shine': 'shine 1.5s ease-in-out infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideInRight: {
+                '0%': { transform: 'translateX(100%)', opacity: '0' },
+                '100%': { transform: 'translateX(0)', opacity: '1' },
+              },
+              slideInTop: {
+                '0%': { transform: 'translate(-50%, -100%)', opacity: '0' },
+                '100%': { transform: 'translate(-50%, 0)', opacity: '1' },
+              },
+              shrinkWidth: {
+                '0%': { width: '100%' },
+                '100%': { width: '0%' },
+              },
+              gradientX: {
+                '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+              },
+              shake: {
+                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              },
+              popIn: {
+                '0%': { opacity: '0', transform: 'scale(0.8)' },
+                '100%': { opacity: '1', transform: 'scale(1)' }
+              },
+              shine: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' }
+              }
+            },
+            colors: {
+              // --- VARIÁVEIS SEMÂNTICAS PARA TEMA CLARO/ESCURO ---
+              // A estratégia aqui é inverter os valores RGB nas variáveis CSS
+              // Assim, 'bg-slate-950' será escuro no Dark Mode e claro no Light Mode.
+              
+              slate: {
+                50: 'rgb(var(--color-slate-50) / <alpha-value>)',
+                100: 'rgb(var(--color-slate-100) / <alpha-value>)', 
+                200: 'rgb(var(--color-slate-200) / <alpha-value>)',
+                300: 'rgb(var(--color-slate-300) / <alpha-value>)',
+                400: 'rgb(var(--color-slate-400) / <alpha-value>)',
+                500: 'rgb(var(--color-slate-500) / <alpha-value>)', 
+                600: 'rgb(var(--color-slate-600) / <alpha-value>)',
+                700: 'rgb(var(--color-slate-700) / <alpha-value>)',
+                800: 'rgb(var(--color-slate-800) / <alpha-value>)',
+                850: 'rgb(var(--color-slate-850) / <alpha-value>)',
+                900: 'rgb(var(--color-slate-900) / <alpha-value>)', // Cards
+                950: 'rgb(var(--color-slate-950) / <alpha-value>)', // Fundo Principal
+              },
+              white: 'rgb(var(--color-text-main) / <alpha-value>)', // Inverte para preto no light mode
+              
+              // Velo Orange (Identidade)
+              indigo: {
+                50: '#fff5f2',
+                100: '#ffe8e1',
+                200: '#ffd4c6',
+                300: '#ffb29b',
+                400: '#ff8363',
+                500: '#ff6035', // Velo Orange (Base)
+                600: '#ed4618', // Hover
+                700: '#c5340d',
+                800: '#a32d0f',
+                900: '#832811',
+                950: '#471104',
+              },
+              primary: {
+                500: '#ff6035', // Velo Orange
+                600: '#ed4618',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* --- DEFINIÇÃO DAS CORES (RGB) --- */
+      :root {
+        /* MODO CLARO (LIGHT) - Padrão se .dark não estiver presente */
+        /* Inversão: slate-950 vira claro, text-white vira escuro */
+        
+        --color-slate-50: 30 30 30;    /* Invertido */
+        --color-slate-100: 43 42 42;   /* Texto vira escuro */
+        --color-slate-200: 70 70 70;
+        --color-slate-300: 100 116 139; /* Muted text */
+        --color-slate-400: 100 116 139;
+        --color-slate-500: 117 116 116;
+        --color-slate-600: 148 163 184;
+        --color-slate-700: 203 213 225; /* Bordas */
+        --color-slate-800: 226 232 240; /* Elementos secundários */
+        --color-slate-850: 241 245 249;
+        --color-slate-900: 255 255 255; /* Cards viram brancos */
+        --color-slate-950: 248 250 252; /* Fundo vira off-white */
+        
+        --color-text-main: 26 25 25;    /* text-white vira Velo Black */
+      }
+
+      .dark {
+        /* MODO ESCURO (DARK) - Identidade Original */
+        
+        --color-slate-50: 251 250 250;
+        --color-slate-100: 236 232 232; /* Velo Platinum */
+        --color-slate-200: 220 216 216;
+        --color-slate-300: 186 184 184;
+        --color-slate-400: 148 146 146;
+        --color-slate-500: 117 116 116; /* Velo Jet */
+        --color-slate-600: 92 91 91;
+        --color-slate-700: 70 69 69;
+        --color-slate-800: 54 53 53;
+        --color-slate-850: 47 46 46;
+        --color-slate-900: 43 42 42;    /* Velo Black (Cards) */
+        --color-slate-950: 26 25 25;    /* Fundo */
+        
+        --color-text-main: 255 255 255; /* text-white puro */
+      }
+
+      body {
+        background-color: rgb(var(--color-slate-950));
+        color: rgb(var(--color-slate-100));
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgb(var(--color-slate-950)); 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgb(var(--color-slate-800)); /* Adaptativo */
+        border-radius: 4px;
+        border: 1px solid rgb(var(--color-slate-700));
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgb(var(--color-slate-600));
+      }
+
+      /* CONFETTI ANIMATION */
+      @keyframes confetti-fall {
+        0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+      }
+      
+      .confetti-piece {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background-color: #ff6035;
+        top: -10%;
+        z-index: 9999;
+        animation: confetti-fall linear forwards;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "crypto-js": "https://esm.sh/crypto-js@4.2.0",
+    "dompurify": "https://esm.sh/dompurify@3.0.6",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
