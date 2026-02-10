@@ -31,34 +31,43 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Initial Boot
   useEffect(() => {
+    // 1. SAFETY TIMEOUT: Garante que o loading desapareça após 5s
+    // Isso impede o bug do "Carregando infinito" se o Supabase demorar ou falhar.
+    const safetyTimer = setTimeout(() => {
+        setIsLoading((prev) => {
+            if (prev) {
+                console.warn("⚠️ Loading timeout: Forçando liberação da tela.");
+                return false;
+            }
+            return prev;
+        });
+    }, 5000);
+
     if (!supabase) {
         setIsLoading(false);
         return;
     }
 
-    // --- LÓGICA DE REDIRECIONAMENTO DE EMAIL ---
-    // Verifica se a URL contém dados de autenticação (ex: clique no email de confirmação)
-    const isHandlingRedirect = window.location.hash && (
-        window.location.hash.includes('access_token') || 
-        window.location.hash.includes('type=recovery') || 
-        window.location.hash.includes('type=signup') ||
-        window.location.hash.includes('type=invite')
-    );
+    // 2. DETECÇÃO DE RETORNO DO STRIPE
+    // Se a URL tem ?success=true, tentamos limpar para ficar limpo
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+        console.log("✅ Retorno de pagamento detectado.");
+        window.history.replaceState({}, '', window.location.pathname);
+    }
 
     const checkSession = async () => {
-        // Se estiver processando um link, NÃO finalize o loading ainda. 
-        // Deixe o onAuthStateChange capturar.
-        if (isHandlingRedirect) {
-            console.log("🔄 Processando link de autenticação...");
-            return; 
-        }
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            await fetchUserProfile(session.user.id);
-        } else {
-            setUser(null);
-            setCurrentPage(Page.LANDING);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                await fetchUserProfile(session.user.id);
+            } else {
+                setUser(null);
+                setCurrentPage(Page.LANDING);
+                setIsLoading(false);
+            }
+        } catch (error) {
+            console.error("Erro ao verificar sessão:", error);
             setIsLoading(false);
         }
     };
@@ -72,8 +81,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-            // Em caso de login manual, o fetch já pode ter ocorrido via função login()
-            // Mas o evento dispara mesmo assim. Vamos garantir que temos os dados.
+            // Em caso de login manual ou redirecionamento OAuth
             await fetchUserProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
             setUser(null);
@@ -84,6 +92,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
 
     return () => {
+        clearTimeout(safetyTimer);
         subscription.unsubscribe();
     };
   }, []);
@@ -97,12 +106,12 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             .from('users')
             .select('*')
             .eq('id', userId)
-            .single();
+            .maybeSingle(); // Usa maybeSingle para evitar erro 406
 
           // --- SELF-HEALING (AUTO-CURA) ---
-          // Se o usuário existe no Auth mas não no Banco (Erro PGRST116 = row not found),
+          // Se o usuário existe no Auth mas não no Banco (Erro PGRST116 ou null),
           // vamos criar o perfil agora mesmo.
-          if (error && error.code === 'PGRST116') {
+          if (!profile) {
               console.warn("Perfil não encontrado. Tentando recriar automaticamente...");
               
               const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -147,11 +156,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
               }
 
               console.error("Erro crítico de perfil:", error);
-              if (error?.code !== 'PGRST116') {
-                  // Só desloga se for um erro real e persistente
-                  supabase.auth.signOut();
-              }
-              setIsLoading(false);
+              // Não desloga forçado para não prender o usuário em loop, 
+              // apenas libera a tela (o timeout cuidará do loading state se travar)
               return;
           }
 
@@ -160,8 +166,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
           await loadVehicles(mappedUser.storeId);
           
           // Redirecionamento Inteligente Pós-Login
-          // Se estiver na Landing ou Login, joga pro Dashboard
           setCurrentPage(prev => {
+              // Se estava na landing/login/registro, vai pro app
               if (prev === Page.LANDING || prev === Page.LOGIN || prev === Page.REGISTER) {
                   return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
               }
