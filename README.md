@@ -1,56 +1,77 @@
 
-# 🏎️ Manual do Pequeno Dono de Loja (Velohub)
+# 🏎️ VELOHUB - Plataforma de Gestão Automotiva
 
-Oi! 👋 Bem-vindo ao **Velohub**.
-
-Imagina que você tem uma caixa de LEGO gigante para montar sua própria loja de carros na internet. Esse guia é o manual de instruções para juntar as peças e fazer tudo funcionar!
+Bem-vindo ao repositório oficial do **Velohub**. Este é um sistema SaaS (Software as a Service) completo para gestão de estoque de veículos, financeiro e contratos para lojas de carros.
 
 ---
 
-## 🎒 O que você precisa na mochila
+## 📋 Índice
 
-Antes de começar, veja se você tem isso instalado no computador (peça ajuda para um adulto se precisar):
-
-1.  **Node.js:** É o motor do nosso carro. [Baixe aqui](https://nodejs.org/).
-2.  **VS Code:** É o caderno onde escrevemos os códigos. [Baixe aqui](https://code.visualstudio.com/).
-3.  **Git:** É o carteiro que busca os arquivos. [Baixe aqui](https://git-scm.com/).
+1.  [Pré-requisitos](#-pré-requisitos)
+2.  [Instalação Local](#-instalação-local)
+3.  [Configuração do Banco de Dados (Supabase)](#-configuração-do-banco-de-dados-supabase)
+4.  [Configuração de Pagamentos (Stripe)](#-configuração-de-pagamentos-stripe)
+5.  [Configuração de Emails (Resend)](#-configuração-de-emails-resend)
+6.  [🚀 DEPLOY (Colocar no Ar)](#-deploy-colocando-no-ar)
+7.  [Ajustes Finais (Pós-Deploy)](#-ajustes-finais-pós-deploy)
 
 ---
 
-## 👣 Passo 1: Pegando as Peças (Download)
+## 🎒 Pré-requisitos
 
-Abra o seu **Terminal** (aquela tela preta de hacker) e digite esses comandos. Aperte `ENTER` depois de cada linha:
+Para rodar este projeto, você precisa ter instalado:
 
-1.  **Trazer o código para o seu computador:**
+*   **Node.js** (Versão 18 ou superior) - [Baixar](https://nodejs.org/)
+*   **Git** - [Baixar](https://git-scm.com/)
+*   **VS Code** - Editor de código recomendado.
+
+---
+
+## 👣 Instalação Local
+
+1.  **Clone o repositório** (ou baixe os arquivos):
     ```bash
-    git clone https://github.com/seu-usuario/velohub.git
-    ```
-
-2.  **Entrar na pasta do jogo:**
-    ```bash
+    git clone https://github.com/SEU_USUARIO/velohub.git
     cd velohub
     ```
 
-3.  **Instalar os robôs ajudantes:**
+2.  **Instale as dependências**:
     ```bash
     npm install
     ```
-    *(Espere as barrinhas carregarem... demora um pouquinho! 🥤)*
+
+3.  **Crie o arquivo de variáveis de ambiente**:
+    Crie um arquivo chamado `.env` na raiz do projeto e cole o seguinte (preencheremos os valores nos próximos passos):
+
+    ```env
+    # Supabase (Project Settings > API)
+    VITE_SUPABASE_URL=
+    VITE_SUPABASE_ANON_KEY=
+
+    # Stripe (Developers > API Keys)
+    VITE_STRIPE_PUBLIC_KEY=
+    ```
+
+4.  **Inicie o servidor local**:
+    ```bash
+    npm run dev
+    ```
+    O site rodará em `http://localhost:5173`.
 
 ---
 
-## 🧠 Passo 2: Criando o Cérebro (Supabase)
+## 🧠 Configuração do Banco de Dados (Supabase)
 
-O sistema precisa de um lugar para guardar a lista de carros e quem são os donos. Usamos o **Supabase**.
+O Velohub usa o Supabase para Autenticação, Banco de Dados e Armazenamento de Fotos.
 
-1.  Entre em [supabase.com](https://supabase.com) e crie uma conta (é grátis!).
-2.  Crie um "Novo Projeto" e dê um nome (tipo `Minha-Loja-Velohub`). Crie uma senha e guarde ela!
-3.  Quando o projeto criar, procure no menu da esquerda um ícone que parece uma folha de papel (**SQL Editor**).
-4.  Clique em **New Query** (Nova Consulta).
-5.  **Copie e cole** todo o código mágico abaixo na caixa branca e aperte o botão verde **RUN**:
+1.  Crie uma conta em [supabase.com](https://supabase.com) e crie um novo projeto.
+2.  No painel do projeto, vá em **Project Settings > API**.
+    *   Copie a `Project URL` e cole em `VITE_SUPABASE_URL` no seu arquivo `.env`.
+    *   Copie a `anon` `public` key e cole em `VITE_SUPABASE_ANON_KEY` no seu arquivo `.env`.
+3.  Vá em **SQL Editor**, clique em **New Query**, cole o código abaixo e clique em **RUN**:
 
 ```sql
--- Criando a tabela de Usuários
+-- TABELA DE USUÁRIOS (LOJAS)
 create table public.users (
   id uuid references auth.users not null primary key,
   email text,
@@ -73,7 +94,7 @@ create table public.users (
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- Criando a tabela de Carros
+-- TABELA DE VEÍCULOS
 create table public.vehicles (
   id uuid default gen_random_uuid() primary key,
   store_id text not null,
@@ -109,7 +130,7 @@ create table public.vehicles (
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- Criando a tabela de Gastos da Loja
+-- TABELA DE DESPESAS DA LOJA (OPEX)
 create table public.store_expenses (
   id uuid default gen_random_uuid() primary key,
   store_id text not null,
@@ -121,117 +142,122 @@ create table public.store_expenses (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- Protegendo os dados (Segurança)
+-- SEGURANÇA (RLS - Row Level Security)
 alter table users enable row level security;
 alter table vehicles enable row level security;
 alter table store_expenses enable row level security;
 
--- Regras
+-- POLÍTICAS DE ACESSO
 create policy "Ver dados da propria loja (Vehicles)" on vehicles for all using (store_id in (select store_id from users where id = auth.uid()));
 create policy "Ver dados da propria loja (Users)" on users for all using (store_id in (select store_id from users where id = auth.uid()));
 create policy "Ver dados da propria loja (Expenses)" on store_expenses for all using (store_id in (select store_id from users where id = auth.uid()));
 create policy "Permitir Criar Usuario" on users for insert with check (auth.uid() = id);
 create policy "Permitir Update Usuario" on users for update using (auth.uid() = id);
 
--- Criando o Balde de Fotos
+-- ARMAZENAMENTO DE FOTOS (STORAGE)
 insert into storage.buckets (id, name, public) values ('vehicles', 'vehicles', true);
 create policy "Imagens Publicas" on storage.objects for select using ( bucket_id = 'vehicles' );
 create policy "Upload Permitido" on storage.objects for insert with check ( bucket_id = 'vehicles' and auth.role() = 'authenticated' );
+
+-- GATILHO AUTOMÁTICO (CRIAÇÃO DE PERFIL)
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.users (id, email, name, store_id, store_name, role, plan, cnpj, phone, city, state)
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'name',
+    coalesce(new.raw_user_meta_data->>'store_id', gen_random_uuid()::text),
+    new.raw_user_meta_data->>'store_name',
+    coalesce(new.raw_user_meta_data->>'role', 'owner'),
+    coalesce(new.raw_user_meta_data->>'plan', 'free'),
+    new.raw_user_meta_data->>'cnpj',
+    new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'city',
+    new.raw_user_meta_data->>'state'
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
 ```
 
 ---
 
-## 💳 Passo 3: Criando os Produtos no Stripe (Importante!)
+## 💳 Configuração de Pagamentos (Stripe)
 
-Para vender assinaturas, você precisa criar os "brinquedos" na loja do Stripe.
+Necessário para vender os planos Starter e Pro.
 
-1.  Entre em [stripe.com](https://stripe.com) e crie sua conta.
-2.  No painel, vá em **Catálogo de Produtos** (Product Catalog).
-3.  Clique em **Adicionar Produto**.
-
-### 3.1 Criando o Plano "Starter"
-1.  **Nome:** Velohub Starter
-2.  **Preço:** 39.90 BRL / Mês (Recorrente)
-3.  Depois de salvar, procure o botão **Criar Link de Pagamento** (Payment Link).
-4.  Crie o link (certifique-se de marcar "Permitir códigos promocionais" e "Coletar endereço do cliente" se quiser).
-5.  **Copie o Link** (ex: `https://buy.stripe.com/test_...`) e **Copie o ID do Preço** (ex: `price_1Pxyz...`).
-    *   *Dica:* O ID do preço fica na página do produto, parecida com `price_1PoJ...`.
-
-### 3.2 Criando o Plano "Pro"
-1.  Repita o processo acima, mas com o nome **Velohub Pro** e preço **89.90**.
-2.  Gere o Link de Pagamento.
-3.  Guarde o **Link** e o **ID do Preço**.
+1.  Crie uma conta em [stripe.com](https://stripe.com).
+2.  Vá em **Developers > API Keys**.
+    *   Copie a `Publishable key` (pk_test...) e cole em `VITE_STRIPE_PUBLIC_KEY` no `.env`.
+3.  Vá em **Product Catalog** e crie os produtos:
+    *   **Velohub Starter** (R$ 39,90/mês). Crie um Link de Pagamento.
+    *   **Velohub Pro** (R$ 89,90/mês). Crie um Link de Pagamento.
+4.  No VS Code, abra `lib/plans.ts` e cole os Links de Pagamento gerados nas propriedades `stripePaymentLink`.
+5.  No painel do Stripe, vá em **Settings > Customer Portal**, ative-o, copie o link e cole no arquivo `services/payment.ts`.
 
 ---
 
-## 🔌 Passo 4: Conectando os Fios (Configuração)
+## 📧 Configuração de Emails (Resend)
 
-Agora vamos colocar esses links e chaves no código.
+Necessário para enviar convites de equipe e receber mensagens de suporte.
 
-### 4.1 Arquivo `.env` (Chaves Secretas)
-Crie um arquivo `.env` na pasta do projeto e cole isso:
-
-```env
-# Supabase (Project Settings > API)
-VITE_SUPABASE_URL=sua_url_supabase
-VITE_SUPABASE_ANON_KEY=sua_chave_anon
-
-# Stripe (Developers > API Keys)
-VITE_STRIPE_PUBLIC_KEY=pk_test_sua_chave_publica
-```
-
-### 4.2 Arquivo `lib/plans.ts` (Botões de Compra)
-Abra esse arquivo no VS Code e cole os **Links de Pagamento** (aqueles que começam com `https://buy.stripe.com...`) nos lugares indicados:
-
-```typescript
-// Dentro de lib/plans.ts
-export const PLAN_CONFIG = {
-  starter: {
-    // ...
-    stripePaymentLink: 'COLE_AQUI_SEU_LINK_STARTER' 
-  },
-  pro: {
-    // ...
-    stripePaymentLink: 'COLE_AQUI_SEU_LINK_PRO'
-  }
-}
-```
-
-### 4.3 Arquivo `supabase/functions/stripe-webhook/index.ts` (Automação)
-Para o sistema liberar o acesso automaticamente quando o cliente pagar, você precisa colocar os **IDs de Preço** (`price_...`) aqui:
-
-```typescript
-const PLAN_MAP = {
-    'price_SEU_ID_DO_STARTER': 'starter',
-    'price_SEU_ID_DO_PRO': 'pro',
-}
-```
+1.  Crie uma conta em [resend.com](https://resend.com).
+2.  Crie uma API Key e copie-a.
+3.  Vá no Painel do **Supabase > Project Settings > Edge Functions**.
+4.  Adicione um novo segredo (Secret):
+    *   Nome: `RESEND_API_KEY`
+    *   Valor: `re_123...` (sua chave).
+5.  Implante as funções (Se estiver usando Supabase CLI) ou copie o conteúdo de `supabase/functions` para criar as funções manualmente se necessário. *Nota: Para simplificar, o frontend já está preparado para chamar estas funções.*
 
 ---
 
-## 🎮 Passo 5: Ligar o Motor!
+## 🚀 DEPLOY (Colocar no Ar)
 
-Volte para a tela preta (Terminal) e digite:
+Para resolver problemas de redirecionamento e tornar o site profissional, vamos publicá-lo na **Vercel**.
 
-```bash
-npm run dev
-```
+1.  **Suba o código no GitHub**:
+    ```bash
+    git init
+    git add .
+    git commit -m "Deploy inicial"
+    # Crie um repo no GitHub e siga as instruções para dar push
+    git remote add origin https://github.com/SEU_USUARIO/velohub.git
+    git push -u origin main
+    ```
 
-Vai aparecer um link mágico (geralmente `http://localhost:5173`). Clique nele.
-**Pronto! O site está vivo!** 🎉
+2.  **Crie conta na Vercel**:
+    *   Acesse [vercel.com](https://vercel.com) e faça login com o GitHub.
+
+3.  **Importe o Projeto**:
+    *   Clique em **Add New > Project**.
+    *   Selecione o repositório `velohub`.
+
+4.  **Configure as Variáveis (IMPORTANTE!)**:
+    *   Na tela de configuração da Vercel, procure a seção **Environment Variables**.
+    *   Adicione as mesmas variáveis do seu `.env` local:
+        *   `VITE_SUPABASE_URL`
+        *   `VITE_SUPABASE_ANON_KEY`
+        *   `VITE_STRIPE_PUBLIC_KEY`
+
+5.  **Clique em Deploy**:
+    *   Aguarde alguns minutos. Quando terminar, você receberá um link (ex: `https://velohub-123.vercel.app`).
 
 ---
 
-## 👑 Passo 6: Virando o Chefe Supremo (Plano Enterprise)
+## 🔧 Ajustes Finais (Pós-Deploy)
 
-Se quiser testar tudo sem pagar:
+Agora que seu site tem um endereço real (`https://...`), você precisa avisar ao Supabase para aceitar logins vindos de lá.
 
-1.  Vá no site do **Supabase > Table Editor > users**.
-2.  Ache seu usuário.
-3.  Mude a coluna `plan` de `free` para `enterprise`.
+1.  Vá no Painel do Supabase > **Authentication > URL Configuration**.
+2.  Em **Site URL**, apague `localhost` e coloque o link da Vercel (ex: `https://velohub-123.vercel.app`).
+3.  Em **Redirect URLs**, adicione:
+    *   `https://velohub-123.vercel.app/**`
 4.  Clique em **Save**.
-5.  Dê F5 no site. Agora você é o dono do jogo! 🚀
 
----
-
-**Divirta-se vendendo muito!** 🏎️💨
+**Pronto!** Agora o login por email, o reset de senha e os convites funcionarão perfeitamente sem voltar para a Landing Page.
