@@ -105,105 +105,97 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
       setError('');
       setIsSubmitting(true);
 
-      let saleValue = parseCurrencyInput(price);
-      const tradeInVal = parseCurrencyInput(tradeInValue);
-
-      if (saleValue <= 0 && paymentMethod !== 'Troca + Volta') {
-          setError('O valor da venda é obrigatório.');
-          setIsSubmitting(false);
-          return;
-      }
-      if (!buyerName.trim()) {
-          setError('Nome do comprador é obrigatório.');
-          setIsSubmitting(false);
-          return;
-      }
-      // Validação básica de CPF se preenchido
-      if (buyerCpf) {
-          if (!isValidCPF(buyerCpf)) {
-              setError('CPF inválido.');
-              setIsSubmitting(false);
-              return;
-          }
-      }
-
-      // --- LOGICA DE SOMA (Troca + Volta) ---
-      // Se for troca, assume que o input principal é o valor da "Volta" (Dinheiro)
-      // O valor total da venda será: Volta + Valor da Troca.
-      let finalSalePrice = saleValue;
-      if (paymentMethod === 'Troca + Volta') {
-          finalSalePrice = saleValue + tradeInVal;
-      }
-
-      // Validação da Troca
-      let tradeInVehicle: Vehicle | undefined;
-      if (paymentMethod === 'Troca + Volta') {
-           if (!tradeInMake || !tradeInModel || !tradeInVal) {
-               setError('Preencha os dados do veículo de troca (Marca, Modelo e Valor).');
-               setIsSubmitting(false);
-               return;
-           }
-
-           tradeInVehicle = {
-                id: Math.random().toString(), 
-                storeId: vehicle.storeId,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                make: sanitizeInput(tradeInMake),
-                model: sanitizeInput(tradeInModel),
-                version: 'Entrada via Troca',
-                year: parseInt(tradeInYear),
-                plate: maskPlate(tradeInPlate),
-                km: 0,
-                fuel: 'Flex',
-                transmission: 'Automático',
-                color: '',
-                status: 'available',
-                purchasePrice: tradeInVal,
-                purchaseDate: date,
-                expectedSalePrice: tradeInVal * 1.2, 
-                fipePrice: 0,
-                photos: [],
-                expenses: []
-           };
-      }
-
-      const buyer: Buyer = {
-          name: sanitizeInput(buyerName),
-          cpf: sanitizeInput(buyerCpf),
-          phone: sanitizeInput(buyerPhone)
-      };
-
-      const saleData: Partial<Vehicle> = {
-          status: 'sold',
-          soldPrice: finalSalePrice, // Save total price
-          soldDate: date,
-          paymentMethod,
-          saleCommission: commission ? parseCurrencyInput(commission) : 0,
-          saleCommissionTo: commissionTo, // Save employee name
-          buyer,
-          warrantyDetails: {
-              time: warrantyTime,
-              km: warrantyKm
-          }
-      };
-
-      // Adiciona info de troca no registro do carro vendido
-      if (paymentMethod === 'Troca + Volta') {
-          saleData.tradeInInfo = {
-              make: sanitizeInput(tradeInMake),
-              model: sanitizeInput(tradeInModel),
-              plate: maskPlate(tradeInPlate),
-              value: tradeInVal
-          };
-      }
-
       try {
+          let saleValue = parseCurrencyInput(price);
+          const tradeInVal = parseCurrencyInput(tradeInValue);
+
+          if (saleValue <= 0 && paymentMethod !== 'Troca + Volta') {
+              throw new Error('O valor da venda é obrigatório.');
+          }
+          if (!buyerName.trim()) {
+              throw new Error('Nome do comprador é obrigatório.');
+          }
+          // Validação básica de CPF se preenchido
+          if (buyerCpf) {
+              if (!isValidCPF(buyerCpf)) {
+                  throw new Error('CPF inválido.');
+              }
+          }
+
+          // --- LOGICA DE SOMA (Troca + Volta) ---
+          // Se for troca, assume que o input principal é o valor da "Volta" (Dinheiro)
+          // O valor total da venda será: Volta + Valor da Troca.
+          let finalSalePrice = saleValue;
+          if (paymentMethod === 'Troca + Volta') {
+              finalSalePrice = saleValue + tradeInVal;
+          }
+
+          // Validação da Troca
+          let tradeInVehicle: Vehicle | undefined;
+          if (paymentMethod === 'Troca + Volta') {
+               if (!tradeInMake || !tradeInModel || !tradeInVal) {
+                   throw new Error('Preencha os dados do veículo de troca (Marca, Modelo e Valor).');
+               }
+
+               tradeInVehicle = {
+                    id: Math.random().toString(), 
+                    storeId: vehicle.storeId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    make: sanitizeInput(tradeInMake),
+                    model: sanitizeInput(tradeInModel),
+                    version: 'Entrada via Troca',
+                    year: parseInt(tradeInYear),
+                    plate: maskPlate(tradeInPlate),
+                    km: 0,
+                    fuel: 'Flex',
+                    transmission: 'Automático',
+                    color: '',
+                    status: 'available',
+                    purchasePrice: tradeInVal,
+                    purchaseDate: date,
+                    expectedSalePrice: tradeInVal * 1.2, 
+                    fipePrice: 0,
+                    photos: [],
+                    expenses: []
+               };
+          }
+
+          const buyer: Buyer = {
+              name: sanitizeInput(buyerName),
+              cpf: sanitizeInput(buyerCpf),
+              phone: sanitizeInput(buyerPhone)
+          };
+
+          const saleData: Partial<Vehicle> = {
+              status: 'sold',
+              soldPrice: finalSalePrice, // Save total price
+              soldDate: date,
+              paymentMethod,
+              saleCommission: commission ? parseCurrencyInput(commission) : 0,
+              saleCommissionTo: commissionTo, // Save employee name
+              buyer,
+              warrantyDetails: {
+                  time: warrantyTime,
+                  km: warrantyKm
+              }
+          };
+
+          // Adiciona info de troca no registro do carro vendido
+          if (paymentMethod === 'Troca + Volta') {
+              saleData.tradeInInfo = {
+                  make: sanitizeInput(tradeInMake),
+                  model: sanitizeInput(tradeInModel),
+                  plate: maskPlate(tradeInPlate),
+                  value: tradeInVal
+              };
+          }
+
           // AWAIT the parent action to ensure DB is updated properly
           await onConfirmSale(vehicle.id, saleData, tradeInVehicle);
           setSaleComplete(true);
-      } catch (err) {
-          setError("Erro ao salvar. Tente novamente.");
+      } catch (err: any) {
+          setError(err.message || "Erro ao salvar. Tente novamente.");
       } finally {
           setIsSubmitting(false);
       }
@@ -335,7 +327,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-slate-400 mb-1">Data da Venda</label>
                             <div className="relative">

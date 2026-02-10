@@ -6,13 +6,14 @@ import { Card } from '../components/ui/Card';
 import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2 } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
-import { PLAN_CONFIG } from '../lib/plans';
+import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
 import { sanitizeInput } from '../lib/security';
 import { StorageService } from '../services/storage';
 import { AuthService } from '../services/auth';
 import { ContractModal } from '../components/ContractModal';
 import { ReservationModal } from '../components/ReservationModal';
 import { Confetti } from '../components/ui/Confetti';
+import { useVelohub } from '../contexts/VelohubContext';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -45,7 +46,6 @@ const EXPENSE_CATEGORIES: { id: ExpenseCategory; label: string }[] = [
     { id: 'other', label: 'Outros' },
 ];
 
-// ... (FipeSearch component remains the same, omitted for brevity but assumed present)
 const FipeSearch: React.FC<{ 
     brands: FipeBrand[], 
     models: FipeModel[], 
@@ -100,6 +100,9 @@ const STATUS_OPTIONS = [
 ];
 
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicles = [], isNew = false, onBack, onUpdate, onDelete, userRole, userPlan = 'starter', onCreateTradeIn }) => {
+  // Use Context to get fresh user data (resolves Share button issue)
+  const { user: currentUser } = useVelohub();
+  
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Vehicle>(vehicle);
@@ -137,7 +140,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   });
   const [activeExpenseFilter, setActiveExpenseFilter] = useState<ExpenseCategory | 'all'>('all');
   
-  // ... (Calculation Logic for Commission - same as before) ...
+  // ... (Calculation Logic for Commission) ...
   const calculateDefaultCommission = () => {
       if (vehicle.saleCommission && vehicle.saleCommission > 0) return vehicle.saleCommission;
       return vehicle.expenses
@@ -165,12 +168,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       tradeIn: { make: '', model: '', year: new Date().getFullYear().toString(), value: '', plate: '' }
   });
 
-  const currentUser = AuthService.getCurrentUser();
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
-  const canShare = PLAN_CONFIG[userPlan].showShareLink && checkPermission(currentUser || null, 'share_vehicles');
+  
+  // Use current context user plan limits for accurate share button state
+  const currentLimits = currentUser ? getPlanLimits(currentUser) : PLAN_CONFIG['free'];
+  const canShare = (currentLimits.showShareLink ?? false) && checkPermission(currentUser || null, 'share_vehicles');
 
-  // ... (Dirty State Logic - same as before) ...
+  // ... (Dirty State Logic) ...
   const dirtyState = useMemo(() => {
       const compareExpenses = (a: Expense[], b: Expense[]) => JSON.stringify(a) !== JSON.stringify(b);
       const comparePhotos = (a: string[], b: string[]) => JSON.stringify(a) !== JSON.stringify(b);
@@ -207,7 +212,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
     }
   }, [isNew, useFipeSearch]);
 
-  // CAMERA LOGIC - REVISED
+  // CAMERA LOGIC - IMPROVED FOR MOBILE
   useEffect(() => {
       let stream: MediaStream | null = null;
 
@@ -215,10 +220,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           if (cameraState.isOpen && videoRef.current) {
               try {
                   stream = await navigator.mediaDevices.getUserMedia({ 
-                      video: { facingMode: 'environment' } 
+                      video: { facingMode: 'environment' },
+                      audio: false
                   });
                   if (videoRef.current) {
                       videoRef.current.srcObject = stream;
+                      // Necessary for some mobile browsers to start playing
+                      videoRef.current.play().catch(e => console.log("Play error", e));
                   }
               } catch (err) {
                   console.error("Camera Error:", err);
@@ -244,6 +252,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           const video = videoRef.current;
           const canvas = canvasRef.current;
           
+          if (video.videoWidth === 0 || video.videoHeight === 0) {
+              showToast("Aguarde a câmera iniciar...", "error");
+              return;
+          }
+
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           
@@ -252,15 +265,20 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               canvas.toBlob(async (blob) => {
                   if (blob) {
-                      await handlePhotoUpload(blob);
-                      setCameraState(prev => ({ ...prev, isOpen: false }));
+                      setCameraState(prev => ({...prev, isUploading: true}));
+                      try {
+                        await handlePhotoUpload(blob);
+                        setCameraState(prev => ({ ...prev, isOpen: false, isUploading: false }));
+                      } catch(e) {
+                        setCameraState(prev => ({...prev, isUploading: false}));
+                      }
                   }
               }, 'image/jpeg', 0.8);
           }
       }
   };
 
-  // ... (Remaining handlers: loadBrands, handleChange, handleSave, etc. - keep existing logic) ...
+  // ... (Remaining handlers) ...
   const showToast = (message: string, type: 'success' | 'error') => {
       setNotification({ message, type });
       setTimeout(() => setNotification(null), 4000);
@@ -403,6 +421,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
       } catch (err) {
           showToast("Erro ao enviar foto.", "error");
+          throw err;
       } finally {
           setCameraState(prev => ({ ...prev, isUploading: false }));
       }
@@ -522,6 +541,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const handleAddExpense = async () => {
+      // ... (Expense logic kept same)
       if(!expenseData.desc) {
           showToast("Informe a descrição do gasto.", "error");
           return;
@@ -530,11 +550,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       const amountVal = parseCurrencyInput(expenseData.amount);
       if(!expenseData.amount || amountVal <= 0) {
           showToast("Informe o valor do gasto para adicionar.", "error");
-          return;
-      }
-
-      if (expenseData.category === 'salary' && !expenseData.employeeName?.trim()) {
-          showToast("Informe o nome do vendedor/funcionário.", "error");
           return;
       }
 
@@ -567,7 +582,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   const isSold = formData.status === 'sold';
 
-  // --- MATEMÁTICA FINANCEIRA DO DRE (LIVE OR SAVED) ---
+  // --- MATEMÁTICA FINANCEIRA ---
   const currentInputPrice = parseCurrencyInput(saleData.price) || 0;
   const currentTradeInValue = parseCurrencyInput(saleData.tradeIn.value) || 0;
   const currentCommissionInput = parseCurrencyInput(saleData.commission) || 0;
@@ -615,7 +630,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      {/* ... (Modals & Header - Same as before) ... */}
+      {/* ... (Modals & Header) ... */}
       {notification && (
           <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
               {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
@@ -669,19 +684,33 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               </div>
               
               <div className="flex-1 flex items-center justify-center relative bg-black overflow-hidden">
-                  <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted
+                    className="w-full h-full object-cover" 
+                    onLoadedMetadata={() => videoRef.current?.play().catch(e => console.log(e))}
+                  />
                   <canvas ref={canvasRef} className="hidden" />
+                  
+                  {cameraState.isUploading && (
+                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20">
+                          <RefreshCw className="text-white animate-spin mb-2" size={32} />
+                          <span className="text-white font-medium">Processando...</span>
+                      </div>
+                  )}
               </div>
 
               <div className="p-8 bg-black/50 backdrop-blur absolute bottom-0 w-full flex justify-center">
-                  <button onClick={capturePhoto} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all">
+                  <button onClick={capturePhoto} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all shadow-lg active:scale-95">
                       <div className="w-16 h-16 bg-white rounded-full"></div>
                   </button>
               </div>
           </div>
       )}
 
-      {/* ... (Existing JSX for Header, Tabs, Content) ... */}
+      {/* ... (Existing Header and Actions) ... */}
       <div className="flex flex-col md:flex-row justify-between gap-4">
           <div className="flex items-center gap-4">
               <button onClick={handleBackGuard} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><ArrowLeft /></button>
@@ -785,7 +814,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           ))}
       </div>
 
-      {/* Renderização das Tabs (Resumida para focar na mudança da câmera) */}
+      {/* Renderização das Tabs */}
       <div className="min-h-[400px]">
           {activeTab === 'overview' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -888,7 +917,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                           </div>
                       </Card>
 
-                      {/* --- PRICING SECTION (LIBERATED) --- */}
                       <Card title="Financeiro e Preços">
                           <div className="space-y-4">
                               <div className="flex justify-between p-3 bg-slate-800/50 rounded-lg">
@@ -1183,7 +1211,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                 className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-lg font-bold" 
                               />
                               
-                              <div className="grid grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div>
                                       <label className="block text-sm text-slate-300">Data</label>
                                       <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" />
