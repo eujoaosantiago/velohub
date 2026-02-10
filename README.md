@@ -148,11 +148,17 @@ alter table vehicles enable row level security;
 alter table store_expenses enable row level security;
 
 -- POLÍTICAS DE ACESSO
-create policy "Ver dados da propria loja (Vehicles)" on vehicles for all using (store_id in (select store_id from users where id = auth.uid()));
-create policy "Ver dados da propria loja (Users)" on users for all using (store_id in (select store_id from users where id = auth.uid()));
-create policy "Ver dados da propria loja (Expenses)" on store_expenses for all using (store_id in (select store_id from users where id = auth.uid()));
-create policy "Permitir Criar Usuario" on users for insert with check (auth.uid() = id);
-create policy "Permitir Update Usuario" on users for update using (auth.uid() = id);
+-- 1. Usuário sempre vê seu próprio perfil (Evita bloqueio no login)
+create policy "Ver proprio perfil" on users for select using (auth.uid() = id);
+create policy "Editar proprio perfil" on users for update using (auth.uid() = id);
+create policy "Criar proprio perfil" on users for insert with check (auth.uid() = id);
+
+-- 2. Ver dados da equipe (mesma loja)
+create policy "Ver time" on users for select using (store_id in (select store_id from users where id = auth.uid()));
+
+-- 3. Ver veículos e despesas da loja
+create policy "Ver veiculos da loja" on vehicles for all using (store_id in (select store_id from users where id = auth.uid()));
+create policy "Ver despesas da loja" on store_expenses for all using (store_id in (select store_id from users where id = auth.uid()));
 
 -- ARMAZENAMENTO DE FOTOS (STORAGE)
 insert into storage.buckets (id, name, public) values ('vehicles', 'vehicles', true);
@@ -184,6 +190,23 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+```
+
+---
+
+## 🔧 Correção de Erros (Se já criou o banco antes)
+
+Se você já rodou o SQL antigo e está tendo problemas de login, **rode este comando no SQL Editor do Supabase** para corrigir as regras de segurança:
+
+```sql
+drop policy if exists "Ver dados da propria loja (Users)" on users;
+drop policy if exists "Ver proprio perfil" on users;
+drop policy if exists "Ver time" on users;
+
+create policy "Ver proprio perfil" on users for select using (auth.uid() = id);
+create policy "Ver time" on users for select using (store_id in (select store_id from users where id = auth.uid()));
+create policy "Editar proprio perfil" on users for update using (auth.uid() = id);
+create policy "Criar proprio perfil" on users for insert with check (auth.uid() = id);
 ```
 
 ---

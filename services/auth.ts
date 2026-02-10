@@ -54,13 +54,55 @@ export const AuthService = {
     });
     if (error) throw new Error("Credenciais inválidas ou erro de conexão.");
     
-    const { data: profile, error: profileError } = await supabase
+    // Using maybeSingle() instead of single() to avoid throwing error on empty result
+    // This allows us to detect "missing profile" cleanly
+    let { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
         
-    if (profileError) throw new Error("Erro ao carregar perfil de segurança.");
+    // --- SELF HEALING PARA LOGIN MANUAL ---
+    // Se o perfil não existe (null), tentamos criar
+    if (!profile) {
+        console.warn("Perfil não encontrado no login. Tentando criar automaticamente...");
+        const meta = data.user.user_metadata || {};
+        
+        const newProfile = {
+            id: data.user.id,
+            email: data.user.email,
+            name: meta.name || 'Usuário',
+            store_id: meta.store_id || crypto.randomUUID(),
+            store_name: meta.store_name || 'Minha Loja',
+            role: meta.role || 'owner',
+            plan: meta.plan || 'free',
+            cnpj: meta.cnpj || '',
+            phone: meta.phone || '',
+            city: meta.city || '',
+            state: meta.state || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabase
+            .from('users')
+            .insert(newProfile);
+
+        if (!insertError) {
+            profile = newProfile;
+        } else {
+            console.error("Falha na auto-cura (Login):", insertError);
+            // Se falhar por duplicidade, significa que o perfil existe mas está oculto por RLS
+            if (insertError.code === '23505') {
+                 throw new Error("Erro de Permissão: Seu usuário existe mas o sistema não consegue lê-lo. Verifique as Políticas RLS no Supabase (SQL de Correção).");
+            }
+        }
+    }
+
+    if (profileError || !profile) {
+        console.error("Erro crítico perfil:", profileError);
+        throw new Error("Erro ao carregar perfil de segurança. Verifique se o SQL de Correção foi executado no Supabase.");
+    }
 
     return AuthService.mapProfileToUser(profile);
   },
@@ -153,6 +195,7 @@ export const AuthService = {
       const { data: { user } } = await supabase.auth.getUser();
       if(!user) return [];
 
+      // Fetch current user store_id securely
       const { data: profile } = await supabase.from('users').select('store_id').eq('id', user.id).single();
       if(!profile) return [];
 
@@ -176,8 +219,6 @@ export const AuthService = {
     if (!profile) throw new Error("Perfil não encontrado");
 
     // Gera um token base64 do store_id para o link de convite
-    // Em produção, isso deveria ser um token temporário assinado no backend, 
-    // mas por enquanto removemos a criação automática de usuário local inseguro.
     const token = btoa(profile.store_id); 
     return `${window.location.origin}?invite=${token}&storeName=${encodeURIComponent(profile.store_name || '')}`;
   },
