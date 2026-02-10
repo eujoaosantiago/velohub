@@ -40,7 +40,7 @@ export const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
     showShareLink: true, 
     supportPriority: 'standard',
     price: 39.90,
-    stripePaymentLink: '' // <--- 🔴 COLE AQUI O LINK DO PLANO STARTER (ex: https://buy.stripe.com/test_123...)
+    stripePaymentLink: 'https://buy.stripe.com/test_4gMbJ1bOmbTt4Nha25aIM02' // <--- 🔴 COLE AQUI O LINK DO PLANO STARTER (ex: https://buy.stripe.com/test_123...)
   },
   pro: {
     maxVehicles: 50,
@@ -50,7 +50,7 @@ export const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
     showShareLink: true,
     supportPriority: 'high',
     price: 89.90,
-    stripePaymentLink: '' // <--- 🔴 COLE AQUI O LINK DO PLANO PRO
+    stripePaymentLink: 'https://buy.stripe.com/test_cNi4gzbOmcXx4Nh7TXaIM01' // <--- 🔴 COLE AQUI O LINK DO PLANO PRO
   },
   enterprise: {
     maxVehicles: Infinity,
