@@ -17,7 +17,6 @@ export const AuthService = {
   },
 
   getCurrentUser: (): User | null => {
-    // Legacy helper, main state is in Context
     const sessionStr = localStorage.getItem('velohub_session_user');
     return sessionStr ? JSON.parse(sessionStr) : null;
   },
@@ -45,7 +44,7 @@ export const AuthService = {
   },
 
   login: async (email: string, password: string): Promise<User> => {
-    if (!supabase) throw new Error("Sistema não configurado (Falta conexão segura).");
+    if (!supabase) throw new Error("Sistema não configurado.");
 
     // 1. Autenticação (Email/Senha)
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -53,56 +52,35 @@ export const AuthService = {
         password
     });
 
-    if (error) throw new Error("Credenciais inválidas ou erro de conexão.");
+    if (error) throw new Error("Credenciais inválidas.");
     
-    // 2. ACTIVE SYNC: Busca perfil, se falhar, cria imediatamente.
-    try {
-        let { data: profile, error: profileError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', data.user.id)
-            .maybeSingle();
+    // 2. Busca Perfil Inicial
+    // Nota: Se o perfil não existir (ex: trigger lento), retornamos null aqui
+    // e o Contexto fará o polling (tentativas repetidas) para garantir.
+    const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
-        // Se perfil não existe (Causa do erro no mobile/pc), recria agora.
-        if (!profile) {
-            console.log("Perfil ausente. Executando Active Sync...");
-            const meta = data.user.user_metadata || {};
-            
-            const newProfile = {
-                id: data.user.id,
-                email: data.user.email,
-                name: meta.name || 'Usuário',
-                store_id: meta.store_id || crypto.randomUUID(),
-                store_name: meta.store_name || 'Minha Loja',
-                role: meta.role || 'owner',
-                plan: meta.plan || 'free',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-
-            const { data: createdProfile, error: createError } = await supabase
-                .from('users')
-                .upsert(newProfile)
-                .select()
-                .single();
-
-            if (createError) throw createError;
-            profile = createdProfile;
-        }
-
-        if (!profile) throw new Error("Falha crítica ao carregar perfil do usuário.");
-
+    if (profile) {
         const mappedUser = AuthService.mapProfileToUser(profile);
-        
-        // Salva na sessão local como backup
         localStorage.setItem('velohub_session_user', JSON.stringify(mappedUser));
-        
         return mappedUser;
-
-    } catch (err: any) {
-        console.error("Erro no fluxo de login:", err);
-        throw new Error("Erro ao sincronizar dados do perfil. Tente novamente.");
     }
+
+    // Se logou no Auth mas não tem perfil ainda, retornamos um objeto parcial
+    // O Contexto vai identificar isso e tentar buscar o perfil completo novamente
+    return {
+        id: data.user.id,
+        email: data.user.email || '',
+        name: '', 
+        role: 'owner',
+        storeId: '',
+        plan: 'free',
+        createdAt: '',
+        updatedAt: ''
+    };
   },
 
   logout: () => {
@@ -114,8 +92,10 @@ export const AuthService = {
   },
 
   register: async (name: string, email: string, password: string, storeName: string, storeData?: any, inviteStoreId?: string): Promise<User> => {
-    if (!supabase) throw new Error("Registro indisponível: Backend desconectado.");
+    if (!supabase) throw new Error("Registro indisponível.");
 
+    // O Frontend cria a conta no Auth.
+    // A Trigger 'on_auth_user_created' no Postgres cria o perfil na tabela public.users.
     const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -133,7 +113,6 @@ export const AuthService = {
     
     if (error) throw new Error(error.message);
     
-    // Retorno otimista para UI imediata
     return {
         id: data.user?.id || '',
         name,
@@ -159,7 +138,6 @@ export const AuthService = {
       const { error } = await supabase.from('users').update(updates).eq('id', user.id);
       if (error) throw new Error(error.message);
       
-      // Sincroniza nome da loja para todos os usuários da mesma loja
       if (user.role === 'owner') {
           const sharedUpdates = {
               store_name: user.storeName,
@@ -171,15 +149,14 @@ export const AuthService = {
 
       if (newPassword) {
           const { error: pwdError } = await supabase.auth.updateUser({ password: newPassword });
-          if (pwdError) throw new Error("Erro ao atualizar senha. Tente novamente.");
+          if (pwdError) throw new Error("Erro ao atualizar senha.");
       }
       
       return user;
   },
 
   resetPassword: async (email: string) => {
-      if (!supabase) throw new Error("Serviço de email indisponível.");
-
+      if (!supabase) throw new Error("Serviço indisponível.");
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin, 
       });
@@ -188,7 +165,6 @@ export const AuthService = {
 
   getTeam: async (): Promise<User[]> => {
       if (!supabase) return [];
-
       const { data: { user } } = await supabase.auth.getUser();
       if(!user) return [];
 
@@ -206,21 +182,17 @@ export const AuthService = {
   },
 
   inviteEmployee: async (email: string, name: string): Promise<string> => {
-    if (!supabase) throw new Error("Função indisponível offline.");
-
+    if (!supabase) throw new Error("Função indisponível.");
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) throw new Error("Não autenticado");
-    
     const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single();
     if (!profile) throw new Error("Perfil não encontrado");
-
     const token = btoa(profile.store_id); 
     return `${window.location.origin}?invite=${token}&storeName=${encodeURIComponent(profile.store_name || '')}`;
   },
 
   updateUserPermissions: async (userId: string, permissions: UserPermissions) => {
       if (!supabase) throw new Error("Erro de conexão.");
-      
       const { error } = await supabase.from('users').update({ permissions }).eq('id', userId);
       if (error) throw new Error(error.message);
   }
