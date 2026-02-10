@@ -36,8 +36,24 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
     }
 
-    // --- CLOUD MODE INITIALIZATION ---
+    // --- LÓGICA DE REDIRECIONAMENTO DE EMAIL ---
+    // Verifica se a URL contém dados de autenticação (ex: clique no email de confirmação)
+    const isHandlingRedirect = window.location.hash && (
+        window.location.hash.includes('access_token') || 
+        window.location.hash.includes('type=recovery') || 
+        window.location.hash.includes('type=signup') ||
+        window.location.hash.includes('type=invite')
+    );
+
     const checkSession = async () => {
+        // Se estiver processando um link de email, NÃO fazemos checkSession manual.
+        // Deixamos o onAuthStateChange (abaixo) capturar o evento 'SIGNED_IN' automaticamente.
+        // Isso evita que o isLoading vire false antes da hora.
+        if (isHandlingRedirect) {
+            console.log("🔄 Processando link de autenticação...");
+            return; 
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
             await fetchUserProfile(session.user.id);
@@ -51,6 +67,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log("Auth Event:", event);
+        
         if (event === 'PASSWORD_RECOVERY') {
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
