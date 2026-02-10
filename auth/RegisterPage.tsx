@@ -4,7 +4,7 @@ import { AuthLayout } from './AuthLayout';
 import { Button } from '../components/ui/Button';
 import { AuthService } from '../services/auth';
 import { User } from '../types';
-import { Lock, Mail, User as UserIcon, Building2, Loader, ArrowLeft, CheckCircle2, UserPlus, Home, Inbox, Phone, MapPin, FileText, AlertTriangle, Check } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, Building2, Loader, ArrowLeft, CheckCircle2, UserPlus, Home, Inbox, Phone, MapPin, FileText, AlertTriangle, Check, RefreshCw } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { maskCNPJ, maskPhone } from '../lib/utils';
 
@@ -123,10 +123,16 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                          <Mail size={18} className="text-indigo-400" />
                          Verifique seu email
                      </h4>
-                     <p className="text-slate-300 text-sm leading-relaxed">
+                     <p className="text-slate-300 text-sm leading-relaxed mb-4">
                          Enviamos um link de confirmação para <strong>{email}</strong>. 
-                         Clique no link para ativar sua conta e iniciar seu período de teste.
+                         Clique no link para ativar sua conta.
                      </p>
+                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200 flex gap-2">
+                        <AlertTriangle size={16} className="shrink-0 text-amber-500" />
+                        <span>
+                            <strong>Não recebeu?</strong> Verifique sua pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>. O remetente pode ser "noreply" ou "Velohub".
+                        </span>
+                     </div>
                  </div>
                  
                  <Button onClick={onNavigateLogin} size="lg" className="w-full">
