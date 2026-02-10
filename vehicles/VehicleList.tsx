@@ -7,8 +7,7 @@ import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOf
 import { QuickSaleModal } from '../components/QuickSaleModal';
 import { ReservationModal } from '../components/ReservationModal';
 import { ShareModal } from '../components/ShareModal';
-import { AuthService } from '../services/auth';
-import { useVelohub } from '../contexts/VelohubContext';
+import { useVelohub } from '../contexts/VelohubContext'; // IMPORTANTE
 import { Page } from '../types';
 import { getPlanLimits } from '../lib/plans';
 
@@ -22,7 +21,7 @@ interface VehicleListProps {
 }
 
 export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehicle, onAddVehicle, userRole, onUpdateVehicle, onCreateTradeIn }) => {
-  const { navigateTo } = useVelohub();
+  const { navigateTo, user: currentUser } = useVelohub(); // USO DO CONTEXTO
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
@@ -31,7 +30,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   const [shareVehicle, setShareVehicle] = useState<Vehicle | null>(null); 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  const currentUser = AuthService.getCurrentUser();
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
   

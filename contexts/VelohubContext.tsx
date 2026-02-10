@@ -33,7 +33,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     let mounted = true;
 
-    // 1. SAFETY TIMEOUT: Garante que o loading desapareça após 3s (Reduzido para ser mais ágil)
+    // 1. SAFETY TIMEOUT: Garante que o loading desapareça após 3s
     const safetyTimer = setTimeout(() => {
         if (mounted) {
             setIsLoading((prev) => {
@@ -51,19 +51,23 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
     }
 
-    // 2. DETECÇÃO DE RETORNO DO STRIPE
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === 'true') {
-        window.history.replaceState({}, '', window.location.pathname);
-    }
-
     const checkSession = async () => {
         try {
+            // DETECÇÃO DE RETORNO DO STRIPE (Prioridade Alta)
+            const params = new URLSearchParams(window.location.search);
+            const isPaymentSuccess = params.get('success') === 'true';
+
             const { data: { session }, error } = await supabase.auth.getSession();
             if (error) throw error;
 
             if (session?.user) {
-                await fetchUserProfile(session.user.id);
+                // Se voltou do pagamento, forçamos um fetch fresco do banco
+                await fetchUserProfile(session.user.id, isPaymentSuccess);
+                
+                if (isPaymentSuccess) {
+                    // Limpa a URL
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
             } else {
                 if (mounted) {
                     setUser(null);
@@ -86,7 +90,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-            // Evita refetch se o usuário já estiver carregado
+            // Evita refetch se o usuário já estiver carregado e igual
             if (!user || user.id !== session.user.id) {
                 await fetchUserProfile(session.user.id);
             }
@@ -105,7 +109,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, forceRefresh = false) => {
       try {
           if (!supabase) return;
           
@@ -162,7 +166,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
           const mappedUser = AuthService.mapProfileToUser(profile);
           setUser(mappedUser);
           
-          // Carrega veículos em paralelo para não travar a UI
+          // Carrega veículos
           loadVehicles(mappedUser.storeId);
           
           // Redirecionamento Inteligente Pós-Login
@@ -191,7 +195,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const login = async (loggedUser: User) => {
     setUser(loggedUser);
-    setIsLoading(true); // Breve loading visual
+    setIsLoading(true);
     await loadVehicles(loggedUser.storeId);
     setIsLoading(false);
     setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
@@ -206,7 +210,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const refreshData = async () => {
       if (!user) return;
-      await loadVehicles(user.storeId);
+      // Recarrega perfil (importante para atualização de plano) e veículos
+      await fetchUserProfile(user.id, true);
   };
 
   const navigateTo = (page: Page) => {

@@ -6,7 +6,8 @@ import { Button } from '../components/ui/Button';
 import { AuthService } from '../services/auth';
 import { PaymentService } from '../services/payment';
 import { SubscriptionModal } from '../components/SubscriptionModal';
-import { User as UserIcon, Building2, Lock, Save, CheckCircle, Clock, Fingerprint, Crown, Zap, AlertCircle, FileText, RotateCcw, Share2, BarChart3, Users } from 'lucide-react';
+import { User as UserIcon, Building2, Lock, Save, CheckCircle, Clock, Fingerprint, Crown, Zap, AlertCircle, FileText, RotateCcw, Share2, BarChart3, Users, RefreshCw } from 'lucide-react';
+import { useVelohub } from '../contexts/VelohubContext'; // Importar contexto para refresh
 
 interface ProfilePageProps {
   user: User;
@@ -26,6 +27,7 @@ const DEFAULT_CONTRACT = `Pelo presente instrumento particular, de um lado a VEN
 5. PAGAMENTO: O pagamento será realizado conforme descrito no resumo da venda.`;
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) => {
+  const { refreshData } = useVelohub(); // Hook para refresh
   const [name, setName] = useState(user.name);
   const [storeName, setStoreName] = useState(user.storeName || '');
   const [cnpj, setCnpj] = useState(user.cnpj || '');
@@ -35,6 +37,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
   const [showSubModal, setShowSubModal] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshingPlan, setIsRefreshingPlan] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,6 +72,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
     }
   };
 
+  const handleManualRefresh = async () => {
+      setIsRefreshingPlan(true);
+      await refreshData();
+      setTimeout(() => setIsRefreshingPlan(false), 1000);
+  };
+
   const handleUpgrade = (plan: PlanType) => {
       if (plan === 'enterprise') {
           window.location.href = 'mailto:contato@velohub.com?subject=Interesse no Plano Enterprise';
@@ -88,7 +97,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
 
   const daysRemaining = getDaysRemaining();
 
-  // Mask CNPJ
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let v = e.target.value.replace(/\D/g, '');
       if (v.length > 14) v = v.slice(0, 14);
@@ -285,7 +293,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
                       <div className="space-y-6">
                           {/* Current Plan Status */}
                           <div className={`p-4 rounded-xl border ${user.plan === 'trial' ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-800 border-slate-700'}`}>
-                              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Plano Atual</p>
+                              <div className="flex justify-between items-center mb-1">
+                                  <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Plano Atual</p>
+                                  <button onClick={handleManualRefresh} className={`text-slate-400 hover:text-white transition-colors ${isRefreshingPlan ? 'animate-spin' : ''}`} title="Atualizar Status">
+                                      <RefreshCw size={14} />
+                                  </button>
+                              </div>
                               <div className="flex items-center justify-between">
                                   <span className="text-2xl font-bold text-white capitalize">{user.plan === 'trial' ? 'Teste Grátis' : user.plan === 'free' ? 'Gratuito' : user.plan}</span>
                                   {user.plan === 'trial' && (
