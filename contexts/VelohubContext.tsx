@@ -31,17 +31,20 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Initial Boot
   useEffect(() => {
-    // 1. SAFETY TIMEOUT: Garante que o loading desapareça após 5s
-    // Isso impede o bug do "Carregando infinito" se o Supabase demorar ou falhar.
+    let mounted = true;
+
+    // 1. SAFETY TIMEOUT: Garante que o loading desapareça após 3s (Reduzido para ser mais ágil)
     const safetyTimer = setTimeout(() => {
-        setIsLoading((prev) => {
-            if (prev) {
-                console.warn("⚠️ Loading timeout: Forçando liberação da tela.");
-                return false;
-            }
-            return prev;
-        });
-    }, 5000);
+        if (mounted) {
+            setIsLoading((prev) => {
+                if (prev) {
+                    console.warn("⚠️ Loading timeout: Forçando liberação da tela.");
+                    return false;
+                }
+                return prev;
+            });
+        }
+    }, 3000);
 
     if (!supabase) {
         setIsLoading(false);
@@ -49,40 +52,44 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     // 2. DETECÇÃO DE RETORNO DO STRIPE
-    // Se a URL tem ?success=true, tentamos limpar para ficar limpo
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
-        console.log("✅ Retorno de pagamento detectado.");
         window.history.replaceState({}, '', window.location.pathname);
     }
 
     const checkSession = async () => {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) throw error;
+
             if (session?.user) {
                 await fetchUserProfile(session.user.id);
             } else {
-                setUser(null);
-                setCurrentPage(Page.LANDING);
-                setIsLoading(false);
+                if (mounted) {
+                    setUser(null);
+                    setCurrentPage(Page.LANDING);
+                    setIsLoading(false);
+                }
             }
         } catch (error) {
             console.error("Erro ao verificar sessão:", error);
-            setIsLoading(false);
+            if (mounted) setIsLoading(false);
         }
     };
 
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log("Auth Event:", event);
+        if (!mounted) return;
         
         if (event === 'PASSWORD_RECOVERY') {
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-            // Em caso de login manual ou redirecionamento OAuth
-            await fetchUserProfile(session.user.id);
+            // Evita refetch se o usuário já estiver carregado
+            if (!user || user.id !== session.user.id) {
+                await fetchUserProfile(session.user.id);
+            }
         } else if (event === 'SIGNED_OUT') {
             setUser(null);
             setVehicles([]);
@@ -92,12 +99,13 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
 
     return () => {
+        mounted = false;
         clearTimeout(safetyTimer);
         subscription.unsubscribe();
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string, retryCount = 0) => {
+  const fetchUserProfile = async (userId: string) => {
       try {
           if (!supabase) return;
           
@@ -106,14 +114,11 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             .from('users')
             .select('*')
             .eq('id', userId)
-            .maybeSingle(); // Usa maybeSingle para evitar erro 406
+            .maybeSingle();
 
           // --- SELF-HEALING (AUTO-CURA) ---
-          // Se o usuário existe no Auth mas não no Banco (Erro PGRST116 ou null),
-          // vamos criar o perfil agora mesmo.
           if (!profile) {
               console.warn("Perfil não encontrado. Tentando recriar automaticamente...");
-              
               const { data: { user: authUser } } = await supabase.auth.getUser();
               
               if (authUser) {
@@ -139,35 +144,29 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
                       .insert(newProfile);
 
                   if (!insertError) {
-                      profile = newProfile; // Recuperado!
-                      error = null;
+                      profile = newProfile;
                   } else {
                       console.error("Falha na auto-cura:", insertError);
                   }
               }
           }
 
-          if (error || !profile) {
-              // Retry Logic: Se falhar (ex: rede), tenta mais uma vez após 1.5s
-              if (retryCount < 1) {
-                  console.log("Tentando buscar perfil novamente em 1.5s...");
-                  setTimeout(() => fetchUserProfile(userId, retryCount + 1), 1500);
-                  return;
-              }
-
-              console.error("Erro crítico de perfil:", error);
-              // Não desloga forçado para não prender o usuário em loop, 
-              // apenas libera a tela (o timeout cuidará do loading state se travar)
+          if (!profile) {
+              console.error("Impossível carregar perfil. Deslogando por segurança.");
+              await supabase.auth.signOut();
+              setUser(null);
+              setIsLoading(false);
               return;
           }
 
           const mappedUser = AuthService.mapProfileToUser(profile);
           setUser(mappedUser);
-          await loadVehicles(mappedUser.storeId);
+          
+          // Carrega veículos em paralelo para não travar a UI
+          loadVehicles(mappedUser.storeId);
           
           // Redirecionamento Inteligente Pós-Login
           setCurrentPage(prev => {
-              // Se estava na landing/login/registro, vai pro app
               if (prev === Page.LANDING || prev === Page.LOGIN || prev === Page.REGISTER) {
                   return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
               }
@@ -192,7 +191,9 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const login = async (loggedUser: User) => {
     setUser(loggedUser);
+    setIsLoading(true); // Breve loading visual
     await loadVehicles(loggedUser.storeId);
+    setIsLoading(false);
     setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
   };
 

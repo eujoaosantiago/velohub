@@ -169,7 +169,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   const currentUser = AuthService.getCurrentUser();
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
-  const canEditSalePrice = checkPermission(currentUser || null, 'edit_sale_price');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
   const canShare = PLAN_CONFIG[userPlan].showShareLink && checkPermission(currentUser || null, 'share_vehicles');
 
@@ -538,9 +537,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const isSold = formData.status === 'sold';
 
   // --- MATEMÁTICA FINANCEIRA DO DRE (LIVE OR SAVED) ---
-  // Se estiver vendido, usa os dados do banco (formData).
-  // Se não estiver, simula com os dados dos inputs (saleData).
-  
   const currentInputPrice = parseCurrencyInput(saleData.price) || 0;
   const currentTradeInValue = parseCurrencyInput(saleData.tradeIn.value) || 0;
   const currentCommissionInput = parseCurrencyInput(saleData.commission) || 0;
@@ -548,12 +544,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   // Lógica Unificada: Se vendido, usa dado salvo. Se não, usa simulação.
   const tradeInValue = isSold ? (formData.tradeInInfo?.value || 0) : (saleData.method === 'Troca + Volta' ? currentTradeInValue : 0);
   
-  // Receita Bruta = (Dinheiro + Troca) OU (Só Dinheiro)
   const grossRevenue = isSold 
       ? (formData.soldPrice || 0) 
       : (saleData.method === 'Troca + Volta' ? currentInputPrice + currentTradeInValue : currentInputPrice);
   
-  // Dinheiro Recebido = Receita Bruta - Valor da Troca
   const cashReceived = grossRevenue - tradeInValue;
 
   // Custos
@@ -576,7 +570,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       availableTabs.splice(1, 0, { id: 'expenses', label: 'Gastos', isDirty: dirtyState.isExpensesDirty });
   }
   
-  // LOGICA DA ABA VENDER: Só aparece se NÃO for novo, e NÃO estiver em preparação
   if (canManageSales && !isNew && formData.status !== 'preparation') {
       availableTabs.push({ id: 'sell', label: isSold ? 'Dados da Venda' : 'Fechar Venda', isDirty: false });
   }
@@ -612,7 +605,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                       <X size={20} />
                   </button>
                   <div className="p-8 text-center animate-fade-in relative overflow-hidden rounded-2xl">
-                        {/* Shine Effect */}
                         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                              <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg] animate-shine"></div>
                         </div>
@@ -709,7 +701,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                             >
                                 {canShare ? 'Compartilhar' : 'Bloqueado'}
                             </Button>
-                            {/* O BOTÃO VENDER TAMBÉM SOME SE ESTIVER EM PREPARAÇÃO */}
                             {canManageSales && formData.status !== 'preparation' && <Button onClick={() => setActiveTab('sell')}>Vender</Button>}
                         </>
                     )}
@@ -742,26 +733,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       </div>
 
       <div className="min-h-[400px]">
-          {/* ... (Overview, Photos, Expenses Tabs remain the same) ... */}
           {activeTab === 'overview' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* ... Existing Overview code ... */}
                   <div className="md:col-span-2 space-y-6">
                       <Card title="Dados do Veículo">
-                          {formData.status === 'reserved' && formData.reservationDetails && (
-                              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg mb-6 flex items-start gap-3">
-                                  <Lock className="text-amber-400 mt-1" size={20} />
-                                  <div>
-                                      <h4 className="text-amber-400 font-bold text-sm">Veículo Reservado</h4>
-                                      <p className="text-amber-200/80 text-sm">
-                                          Reservado para: <strong>{formData.reservationDetails.reservedBy}</strong><br/>
-                                          {formData.reservationDetails.reservedByPhone && <span>Contato: {formData.reservationDetails.reservedByPhone}<br/></span>}
-                                          Sinal Pago: <strong>{formatCurrency(formData.reservationDetails.signalValue)}</strong>
-                                      </p>
-                                  </div>
-                              </div>
-                          )}
-
+                          {/* FIPE Section */}
                           <div className="mb-4 flex items-center justify-between">
                               <span className="text-white font-medium flex gap-2"><Search size={16} className="text-indigo-400"/> FIPE</span>
                               <button onClick={() => setUseFipeSearch(!useFipeSearch)} className="text-xs text-indigo-400 underline">
@@ -857,47 +833,42 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                           </div>
                       </Card>
 
-                      <Card title={userRole === 'owner' ? "Financeiro" : "Preço de Venda"}>
+                      {/* --- PRICING SECTION (LIBERATED) --- */}
+                      <Card title="Financeiro e Preços">
                           <div className="space-y-4">
                               <div className="flex justify-between p-3 bg-slate-800/50 rounded-lg">
                                   <span className="text-slate-400">Referência FIPE</span>
                                   <input 
                                     type="text" 
-                                    inputMode="numeric"
+                                    inputMode="decimal"
                                     className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white" 
                                     value={getMaskedValue(formData.fipePrice)} 
                                     onChange={e => setFormData(prev => ({...prev, fipePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
                                   />
                               </div>
 
-                              {canViewCosts && (
-                                  <>
-                                    <div className="flex justify-between p-3 bg-slate-800/50 rounded-lg border border-indigo-500/30">
-                                        <span className="text-indigo-300">Custo de Compra</span>
-                                        <input 
-                                            type="text" 
-                                            inputMode="numeric"
-                                            className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white" 
-                                            value={getMaskedValue(formData.purchasePrice)} 
-                                            onChange={e => setFormData(prev => ({...prev, purchasePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
-                                        />
-                                    </div>
-                                  </>
-                              )}
+                              {/* Purchase Price - Always Visible Now */}
+                              <div className="flex justify-between p-3 bg-slate-800/50 rounded-lg border border-indigo-500/30">
+                                  <span className="text-indigo-300">Custo de Compra</span>
+                                  <input 
+                                      type="text" 
+                                      inputMode="decimal"
+                                      className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white" 
+                                      value={getMaskedValue(formData.purchasePrice)} 
+                                      onChange={e => setFormData(prev => ({...prev, purchasePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
+                                  />
+                              </div>
                               
+                              {/* Sale Price - Always Editable Now */}
                               <div className="flex justify-between p-3 rounded-lg bg-slate-800">
                                   <span className="text-white">Preço Anunciado</span>
-                                  {canEditSalePrice ? (
-                                    <input 
-                                        type="text" 
-                                        inputMode="numeric"
-                                        className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white text-lg font-bold" 
-                                        value={getMaskedValue(formData.expectedSalePrice)} 
-                                        onChange={e => setFormData(prev => ({...prev, expectedSalePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
-                                    />
-                                  ) : (
-                                    <span className="text-white font-bold text-lg">{formatCurrency(vehicle.expectedSalePrice)}</span>
-                                  )}
+                                  <input 
+                                      type="text" 
+                                      inputMode="decimal"
+                                      className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white text-lg font-bold" 
+                                      value={getMaskedValue(formData.expectedSalePrice)} 
+                                      onChange={e => setFormData(prev => ({...prev, expectedSalePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
+                                  />
                               </div>
                           </div>
                       </Card>
@@ -916,7 +887,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                           <button onClick={() => setActiveTab('photos')} className="absolute bottom-4 right-4 bg-slate-900/80 p-2 rounded-full text-white hover:bg-indigo-600 transition-colors"><Camera size={20}/></button>
                       </div>
 
-                      {/* TOTAL COST SUMMARY CARD (NEW) */}
+                      {/* TOTAL COST SUMMARY CARD */}
                       {canViewCosts && (
                           <div className="mt-4 bg-slate-900 border border-slate-800 rounded-xl p-4 animate-fade-in shadow-lg">
                               <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
@@ -945,7 +916,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
           {activeTab === 'photos' && (
               <div className="space-y-6">
-                  {/* ... Photos logic remains the same ... */}
+                  {/* ... Photos logic ... */}
                   <div className="flex flex-col md:flex-row gap-4 mb-8">
                       <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} className="hidden" multiple accept="image/*" />
                       <button onClick={() => fileInputRef.current?.click()} className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors">
@@ -1007,7 +978,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               </select>
                               <input 
                                 type="text" 
-                                inputMode="numeric"
+                                inputMode="decimal"
                                 placeholder="Valor (R$)" 
                                 className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-sm font-bold" 
                                 value={expenseData.amount} 
@@ -1082,7 +1053,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
           {activeTab === 'sell' && canManageSales && !isNew && (
               <div className="space-y-6">
-                  {/* FINANCIAL BREAKDOWN CARD (DRE) - LIVE OR SOLD */}
+                  {/* FINANCIAL BREAKDOWN CARD (DRE) */}
                   {canViewCosts && (
                       <Card className="bg-slate-950 border border-slate-800">
                           <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
@@ -1146,12 +1117,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </p>
                               </div>
                           </div>
-                          
-                          {vehicle.purchasePrice === 0 && (
-                              <p className="text-xs text-amber-500 mt-3 text-center bg-amber-500/10 p-2 rounded">
-                                  ⚠ Atenção: O preço de compra deste veículo está R$ 0,00. O lucro exibido pode estar incorreto.
-                              </p>
-                          )}
                       </Card>
                   )}
 
@@ -1163,7 +1128,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               </label>
                               <input 
                                 type="text" 
-                                inputMode="numeric"
+                                inputMode="decimal"
                                 value={saleData.price} 
                                 onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})} 
                                 disabled={isSold} 
@@ -1209,15 +1174,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </div>
                               </div>
 
-                              {/* Commission Input in Manual Sale */}
                               <div>
                                   <div className="flex gap-4">
                                       <div className="flex-1">
                                           <label className="block text-sm text-slate-300">Comissão de Venda (R$)</label>
                                           <input 
                                             type="text" 
-                                            inputMode="numeric"
-                                            // FIX: Multiply saved commission by 100 before masking to display correct currency (e.g. 100.00 -> 10000 -> R$ 100,00)
+                                            inputMode="decimal"
                                             value={isSold ? maskCurrencyInput(((vehicle.saleCommission || 0) * 100).toFixed(0)) : saleData.commission} 
                                             onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
                                             disabled={isSold} 
@@ -1225,7 +1188,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             placeholder="R$ 0,00"
                                           />
                                       </div>
-                                      {/* Show Employee Input only if commission is being added */}
                                       {hasCommissionInput && !isSold && (
                                           <div className="flex-1 animate-fade-in">
                                               <label className="block text-sm text-slate-300">Para Quem? (Vendedor)</label>
@@ -1265,7 +1227,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       </div>
                                       <input 
                                         placeholder="Valor de Avaliação R$" 
-                                        inputMode="numeric"
+                                        inputMode="decimal"
                                         className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm font-bold" 
                                         value={saleData.tradeIn.value} 
                                         onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, value: maskCurrencyInput(e.target.value)}})} 
