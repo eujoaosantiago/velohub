@@ -17,8 +17,6 @@ export const AuthService = {
   },
 
   getCurrentUser: (): User | null => {
-    // SECURITY: Não confiamos mais no localStorage para sessão de usuário completa
-    // A fonte da verdade é o estado do Supabase no Context
     return null;
   },
 
@@ -54,16 +52,15 @@ export const AuthService = {
     });
     if (error) throw new Error("Credenciais inválidas ou erro de conexão.");
     
-    // Using maybeSingle() instead of single() to avoid throwing error on empty result
-    // This allows us to detect "missing profile" cleanly
+    // Tenta buscar o perfil
     let { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .maybeSingle();
         
-    // --- SELF HEALING PARA LOGIN MANUAL ---
-    // Se o perfil não existe (null), tentamos criar
+    // --- SELF HEALING (AUTO-CURA) ---
+    // Se o perfil não existe, forçamos a criação/atualização
     if (!profile) {
         console.warn("Perfil não encontrado no login. Tentando criar automaticamente...");
         const meta = data.user.user_metadata || {};
@@ -84,24 +81,28 @@ export const AuthService = {
             updated_at: new Date().toISOString()
         };
 
-        const { error: insertError } = await supabase
+        // Usamos UPSERT para garantir que se o registro já existir (mas estiver oculto), ele seja atualizado
+        const { data: inserted, error: insertError } = await supabase
             .from('users')
-            .insert(newProfile);
+            .upsert(newProfile)
+            .select()
+            .single();
 
-        if (!insertError) {
-            profile = newProfile;
+        if (!insertError && inserted) {
+            profile = inserted;
         } else {
             console.error("Falha na auto-cura (Login):", insertError);
-            // Se falhar por duplicidade, significa que o perfil existe mas está oculto por RLS
-            if (insertError.code === '23505') {
-                 throw new Error("Erro de Permissão: Seu usuário existe mas o sistema não consegue lê-lo. Verifique as Políticas RLS no Supabase (SQL de Correção).");
-            }
+            throw new Error(`Erro ao criar perfil: ${insertError?.message || 'Erro desconhecido no banco de dados'}.`);
         }
     }
 
-    if (profileError || !profile) {
+    if (profileError && !profile) {
         console.error("Erro crítico perfil:", profileError);
-        throw new Error("Erro ao carregar perfil de segurança. Verifique se o SQL de Correção foi executado no Supabase.");
+        throw new Error(`Erro de Banco de Dados: ${profileError.message}`);
+    }
+
+    if (!profile) {
+        throw new Error("Perfil não encontrado mesmo após tentativa de recuperação.");
     }
 
     return AuthService.mapProfileToUser(profile);
@@ -111,7 +112,6 @@ export const AuthService = {
     if (supabase) {
         supabase.auth.signOut();
     }
-    // Limpeza de qualquer resquício local inseguro
     localStorage.removeItem('velohub_session_user');
     localStorage.removeItem('velohub_users_db');
   },
@@ -136,7 +136,6 @@ export const AuthService = {
     
     if (error) throw new Error(error.message);
     
-    // Retorna objeto parcial apenas para feedback de UI, a sessão real vem do listener
     return {
         id: data.user?.id || '',
         name,
@@ -168,7 +167,6 @@ export const AuthService = {
               cnpj: user.cnpj,
               contract_template: user.contractTemplate
           };
-          // RLS deve garantir que apenas o dono faça isso
           await supabase.from('users').update(sharedUpdates).eq('store_id', user.storeId);
       }
 
@@ -195,7 +193,6 @@ export const AuthService = {
       const { data: { user } } = await supabase.auth.getUser();
       if(!user) return [];
 
-      // Fetch current user store_id securely
       const { data: profile } = await supabase.from('users').select('store_id').eq('id', user.id).single();
       if(!profile) return [];
 
@@ -218,7 +215,6 @@ export const AuthService = {
     const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single();
     if (!profile) throw new Error("Perfil não encontrado");
 
-    // Gera um token base64 do store_id para o link de convite
     const token = btoa(profile.store_id); 
     return `${window.location.origin}?invite=${token}&storeName=${encodeURIComponent(profile.store_name || '')}`;
   },
