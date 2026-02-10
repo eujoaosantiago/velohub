@@ -6,17 +6,12 @@ import { ApiService } from '../services/api';
 import { supabase } from '../lib/supabaseClient';
 
 interface VelohubContextType {
-  // Auth State
   user: User | null;
   isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
-  
-  // Data State
   vehicles: Vehicle[];
   refreshData: () => Promise<void>;
-  
-  // Navigation State
   currentPage: Page;
   navigateTo: (page: Page) => void;
 }
@@ -29,22 +24,17 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [currentPage, setCurrentPage] = useState<Page>(Page.LANDING);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial Boot
+  // Inicialização
   useEffect(() => {
     let mounted = true;
 
-    // 1. SAFETY TIMEOUT: Garante que o loading desapareça após 3s
-    const safetyTimer = setTimeout(() => {
-        if (mounted) {
-            setIsLoading((prev) => {
-                if (prev) {
-                    console.warn("⚠️ Loading timeout: Forçando liberação da tela.");
-                    return false;
-                }
-                return prev;
-            });
+    // Safety Timeout para garantir que o app nunca fique preso na tela de loading
+    const timeoutId = setTimeout(() => {
+        if (mounted && isLoading) {
+            console.warn("Loading timeout reached. Forcing unlock.");
+            setIsLoading(false);
         }
-    }, 3000);
+    }, 5000);
 
     if (!supabase) {
         setIsLoading(false);
@@ -53,20 +43,17 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const checkSession = async () => {
         try {
-            // DETECÇÃO DE RETORNO DO STRIPE (Prioridade Alta)
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            // Check for payment return success param
             const params = new URLSearchParams(window.location.search);
             const isPaymentSuccess = params.get('success') === 'true';
 
-            const { data: { session }, error } = await supabase.auth.getSession();
-            if (error) throw error;
-
             if (session?.user) {
-                // Se voltou do pagamento, forçamos um fetch fresco do banco
-                // E usamos POLLING para garantir que o webhook do Stripe já processou
+                // Se existe sessão, carrega o perfil completo
                 await fetchUserProfile(session.user.id, isPaymentSuccess);
                 
                 if (isPaymentSuccess) {
-                    // Limpa a URL para não ficar ?success=true para sempre
                     window.history.replaceState({}, '', window.location.pathname);
                 }
             } else {
@@ -91,7 +78,6 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-            // Evita refetch se o usuário já estiver carregado e igual
             if (!user || user.id !== session.user.id) {
                 await fetchUserProfile(session.user.id);
             }
@@ -105,7 +91,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     return () => {
         mounted = false;
-        clearTimeout(safetyTimer);
+        clearTimeout(timeoutId);
         subscription.unsubscribe();
     };
   }, []);
@@ -114,8 +100,9 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
       try {
           if (!supabase) return;
           
+          // Retry Logic para casos de latência (Webhooks, etc)
           let attempts = 0;
-          const maxAttempts = isPaymentSuccess ? 5 : 1; // Tenta 5x se voltou do pagamento
+          const maxAttempts = isPaymentSuccess ? 5 : 2; 
           let profile = null;
 
           while (attempts < maxAttempts) {
@@ -125,30 +112,30 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
                 .eq('id', userId)
                 .maybeSingle();
 
-              if (error) throw error;
-              profile = data;
-
-              // Se for retorno de pagamento, verifica se o plano mudou
-              // Assumindo que o usuário estava no free ou trial antes
-              // Se o plano ainda é free/trial, espera e tenta de novo (Webhook delay)
-              if (isPaymentSuccess && (profile.plan === 'free' || profile.plan === 'trial')) {
-                  attempts++;
-                  if (attempts < maxAttempts) {
-                      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2s
-                      continue; 
-                  }
+              // Se der erro de conexão, tentamos novamente
+              if (error && error.code !== 'PGRST116') {
+                  console.warn(`Tentativa ${attempts + 1} falhou:`, error.message);
+              } else {
+                  profile = data;
               }
-              
-              // Se achou perfil ou esgotou tentativas
-              break;
+
+              // Se achou perfil E (não é pagamento OU o plano já atualizou), sai do loop
+              if (profile) {
+                  if (!isPaymentSuccess) break;
+                  if (isPaymentSuccess && profile.plan !== 'free' && profile.plan !== 'trial') break;
+              }
+
+              attempts++;
+              if (attempts < maxAttempts) {
+                  await new Promise(r => setTimeout(r, 1000)); // Espera 1s
+              }
           }
 
-          // --- SELF-HEALING (AUTO-CURA) ---
+          // Se após tentativas o perfil não existe, recria (Active Sync via Auth Data)
           if (!profile) {
-              console.warn("Perfil não encontrado. Tentando recriar automaticamente...");
               const { data: { user: authUser } } = await supabase.auth.getUser();
-              
               if (authUser) {
+                  console.log("Recuperando perfil via Active Sync no Context...");
                   const meta = authUser.user_metadata || {};
                   const newProfile = {
                       id: authUser.id,
@@ -158,47 +145,33 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
                       store_name: meta.store_name || 'Minha Loja',
                       role: meta.role || 'owner',
                       plan: meta.plan || 'free',
-                      cnpj: meta.cnpj || '',
-                      phone: meta.phone || '',
-                      city: meta.city || '',
-                      state: meta.state || '',
                       created_at: new Date().toISOString(),
                       updated_at: new Date().toISOString()
                   };
+                  
+                  const { data: created } = await supabase.from('users').upsert(newProfile).select().single();
+                  profile = created;
+              }
+          }
 
-                  const { error: insertError } = await supabase
-                      .from('users')
-                      .insert(newProfile);
-
-                  if (!insertError) {
-                      profile = newProfile;
-                  } else {
-                      console.error("Falha na auto-cura:", insertError);
+          if (profile) {
+              const mappedUser = AuthService.mapProfileToUser(profile);
+              setUser(mappedUser);
+              
+              // Carrega dados em paralelo para agilizar
+              loadVehicles(mappedUser.storeId).catch(console.error);
+              
+              setCurrentPage(prev => {
+                  if (prev === Page.LANDING || prev === Page.LOGIN || prev === Page.REGISTER) {
+                      return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
                   }
-              }
-          }
-
-          if (!profile) {
-              console.error("Impossível carregar perfil. Deslogando por segurança.");
+                  return prev;
+              });
+          } else {
+              // Se falhar catastroficamente, desloga para evitar estado inconsistente
+              console.error("Perfil irrecuperável. Realizando logout de segurança.");
               await supabase.auth.signOut();
-              setUser(null);
-              setIsLoading(false);
-              return;
           }
-
-          const mappedUser = AuthService.mapProfileToUser(profile);
-          setUser(mappedUser);
-          
-          // Carrega veículos
-          loadVehicles(mappedUser.storeId);
-          
-          // Redirecionamento Inteligente Pós-Login
-          setCurrentPage(prev => {
-              if (prev === Page.LANDING || prev === Page.LOGIN || prev === Page.REGISTER) {
-                  return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
-              }
-              return prev;
-          });
 
       } catch (e) {
           console.error("Auth flow error", e);
@@ -211,17 +184,23 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
       try {
           const data = await ApiService.getVehicles(storeId);
           setVehicles(data);
-      } catch (e) {
-          console.error("Failed to load secure vehicle data", e);
+      } catch (e: any) {
+          // Trata AbortError silenciosamente
+          if (e.name !== 'AbortError') {
+              console.error("Failed to load secure vehicle data", e);
+          }
       }
   };
 
   const login = async (loggedUser: User) => {
     setUser(loggedUser);
     setIsLoading(true);
-    await loadVehicles(loggedUser.storeId);
-    setIsLoading(false);
-    setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
+    try {
+        await loadVehicles(loggedUser.storeId);
+        setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const logout = () => {
@@ -233,7 +212,6 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const refreshData = async () => {
       if (!user) return;
-      // Recarrega perfil (importante para atualização de plano) e veículos
       await fetchUserProfile(user.id, true);
   };
 

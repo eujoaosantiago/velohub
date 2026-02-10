@@ -17,10 +17,11 @@ export const AuthService = {
   },
 
   getCurrentUser: (): User | null => {
-    return null;
+    // Legacy helper, main state is in Context
+    const sessionStr = localStorage.getItem('velohub_session_user');
+    return sessionStr ? JSON.parse(sessionStr) : null;
   },
 
-  // Helper function to map DB User to App User
   mapProfileToUser: (profile: any): User => {
       return {
         id: profile.id,
@@ -46,66 +47,62 @@ export const AuthService = {
   login: async (email: string, password: string): Promise<User> => {
     if (!supabase) throw new Error("Sistema não configurado (Falta conexão segura).");
 
+    // 1. Autenticação (Email/Senha)
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
     });
+
     if (error) throw new Error("Credenciais inválidas ou erro de conexão.");
     
-    // Tenta buscar o perfil
-    let { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
-        
-    // --- SELF HEALING (AUTO-CURA) ---
-    // Se o perfil não existe, forçamos a criação/atualização
-    if (!profile) {
-        console.warn("Perfil não encontrado no login. Tentando criar automaticamente...");
-        const meta = data.user.user_metadata || {};
-        
-        const newProfile = {
-            id: data.user.id,
-            email: data.user.email,
-            name: meta.name || 'Usuário',
-            store_id: meta.store_id || crypto.randomUUID(),
-            store_name: meta.store_name || 'Minha Loja',
-            role: meta.role || 'owner',
-            plan: meta.plan || 'free',
-            cnpj: meta.cnpj || '',
-            phone: meta.phone || '',
-            city: meta.city || '',
-            state: meta.state || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-
-        // Usamos UPSERT para garantir que se o registro já existir (mas estiver oculto), ele seja atualizado
-        const { data: inserted, error: insertError } = await supabase
+    // 2. ACTIVE SYNC: Busca perfil, se falhar, cria imediatamente.
+    try {
+        let { data: profile, error: profileError } = await supabase
             .from('users')
-            .upsert(newProfile)
-            .select()
-            .single();
+            .select('*')
+            .eq('id', data.user.id)
+            .maybeSingle();
 
-        if (!insertError && inserted) {
-            profile = inserted;
-        } else {
-            console.error("Falha na auto-cura (Login):", insertError);
-            throw new Error(`Erro ao criar perfil: ${insertError?.message || 'Erro desconhecido no banco de dados'}.`);
+        // Se perfil não existe (Causa do erro no mobile/pc), recria agora.
+        if (!profile) {
+            console.log("Perfil ausente. Executando Active Sync...");
+            const meta = data.user.user_metadata || {};
+            
+            const newProfile = {
+                id: data.user.id,
+                email: data.user.email,
+                name: meta.name || 'Usuário',
+                store_id: meta.store_id || crypto.randomUUID(),
+                store_name: meta.store_name || 'Minha Loja',
+                role: meta.role || 'owner',
+                plan: meta.plan || 'free',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            const { data: createdProfile, error: createError } = await supabase
+                .from('users')
+                .upsert(newProfile)
+                .select()
+                .single();
+
+            if (createError) throw createError;
+            profile = createdProfile;
         }
-    }
 
-    if (profileError && !profile) {
-        console.error("Erro crítico perfil:", profileError);
-        throw new Error(`Erro de Banco de Dados: ${profileError.message}`);
-    }
+        if (!profile) throw new Error("Falha crítica ao carregar perfil do usuário.");
 
-    if (!profile) {
-        throw new Error("Perfil não encontrado mesmo após tentativa de recuperação.");
-    }
+        const mappedUser = AuthService.mapProfileToUser(profile);
+        
+        // Salva na sessão local como backup
+        localStorage.setItem('velohub_session_user', JSON.stringify(mappedUser));
+        
+        return mappedUser;
 
-    return AuthService.mapProfileToUser(profile);
+    } catch (err: any) {
+        console.error("Erro no fluxo de login:", err);
+        throw new Error("Erro ao sincronizar dados do perfil. Tente novamente.");
+    }
   },
 
   logout: () => {
@@ -136,6 +133,7 @@ export const AuthService = {
     
     if (error) throw new Error(error.message);
     
+    // Retorno otimista para UI imediata
     return {
         id: data.user?.id || '',
         name,
@@ -161,6 +159,7 @@ export const AuthService = {
       const { error } = await supabase.from('users').update(updates).eq('id', user.id);
       if (error) throw new Error(error.message);
       
+      // Sincroniza nome da loja para todos os usuários da mesma loja
       if (user.role === 'owner') {
           const sharedUpdates = {
               store_name: user.storeName,
