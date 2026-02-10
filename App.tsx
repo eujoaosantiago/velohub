@@ -12,7 +12,7 @@ import { TeamInvite } from './components/TeamInvite';
 import { ProfilePage } from './auth/ProfilePage';
 import { LoginPage } from './auth/LoginPage';
 import { RegisterPage } from './auth/RegisterPage';
-import { ResetPasswordPage } from './auth/ResetPasswordPage'; // Novo Import
+import { ResetPasswordPage } from './auth/ResetPasswordPage'; 
 import { LandingPage } from './landing/LandingPage';
 import { TermsPage, PrivacyPage, SupportPage } from './landing/LegalPages';
 import { PublicVehicleShare } from './vehicles/PublicVehicleShare';
@@ -94,6 +94,13 @@ const AppContent: React.FC = () => {
       }
   }, []);
 
+  // Force redirect if user is logged in but on public pages
+  useEffect(() => {
+      if (user && !isLoading && (currentPage === Page.LANDING || currentPage === Page.LOGIN || currentPage === Page.REGISTER)) {
+          navigateTo(user.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
+      }
+  }, [user, isLoading, currentPage]);
+
   const handleSelectVehicle = (id: string) => {
     setDraftVehicle(null);
     setSelectedVehicleId(id);
@@ -109,24 +116,20 @@ const AppContent: React.FC = () => {
     if (!user) return;
     try {
         if (draftVehicle && draftVehicle.id === updatedVehicle.id) {
-            // Criação de novo veículo
             await ApiService.createVehicle(updatedVehicle, user);
             setDraftVehicle(null);
             setSelectedVehicleId(null);
-            // Redireciona de volta para o Estoque após adicionar
             navigateTo(Page.VEHICLES);
         } else {
-            // Atualização de veículo existente
             await ApiService.updateVehicle(updatedVehicle);
         }
         await refreshData();
     } catch (error: any) {
         alert(error.message || "Erro ao salvar dados.");
-        throw error; // Rethrow to allow caller to handle error state
+        throw error;
     }
   };
 
-  // Função para criar o veículo de troca automaticamente
   const handleCreateTradeIn = async (tradeInVehicle: Vehicle) => {
       if (!user) return;
       try {
@@ -205,7 +208,6 @@ const AppContent: React.FC = () => {
       );
   }
 
-  // ALTA PRIORIDADE: Tela de Reset de Senha (mostra mesmo se user != null, pois o link loga o user temporariamente)
   if (currentPage === Page.RESET_PASSWORD) {
       return (
         <>

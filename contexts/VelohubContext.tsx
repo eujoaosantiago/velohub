@@ -32,8 +32,6 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Initial Boot
   useEffect(() => {
     if (!supabase) {
-        // Se Supabase não estiver configurado, apenas paramos o loading.
-        // O App.tsx vai tratar a exibição da tela de "Configuração Necessária".
         setIsLoading(false);
         return;
     }
@@ -75,15 +73,56 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
       try {
           if (!supabase) return;
           
-          const { data: profile, error } = await supabase
+          // Tenta buscar o perfil
+          let { data: profile, error } = await supabase
             .from('users')
             .select('*')
             .eq('id', userId)
             .single();
 
+          // --- SELF-HEALING (AUTO-CURA) ---
+          // Se o usuário existe no Auth mas não no Banco (Erro PGRST116 = row not found),
+          // vamos criar o perfil agora mesmo.
+          if (error && error.code === 'PGRST116') {
+              console.warn("Perfil não encontrado. Tentando recriar automaticamente...");
+              
+              const { data: { user: authUser } } = await supabase.auth.getUser();
+              
+              if (authUser) {
+                  const meta = authUser.user_metadata || {};
+                  const newProfile = {
+                      id: authUser.id,
+                      email: authUser.email,
+                      name: meta.name || 'Usuário',
+                      store_id: meta.store_id || crypto.randomUUID(),
+                      store_name: meta.store_name || 'Minha Loja',
+                      role: meta.role || 'owner',
+                      plan: meta.plan || 'free',
+                      cnpj: meta.cnpj || '',
+                      phone: meta.phone || '',
+                      city: meta.city || '',
+                      state: meta.state || '',
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                  };
+
+                  const { error: insertError } = await supabase
+                      .from('users')
+                      .insert(newProfile);
+
+                  if (!insertError) {
+                      profile = newProfile; // Recuperado!
+                      error = null;
+                  } else {
+                      console.error("Falha na auto-cura:", insertError);
+                  }
+              }
+          }
+
           if (error || !profile) {
-              console.error("Security Error: Profile mismatch or unauthorized", error);
-              if(error?.code !== 'PGRST116') {
+              console.error("Erro crítico de perfil:", error);
+              if (error?.code !== 'PGRST116') {
+                  // Só desloga se for um erro real, não apenas "não encontrado" (que tentamos tratar acima)
                   supabase.auth.signOut();
               }
               setIsLoading(false);
@@ -94,9 +133,15 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
           setUser(mappedUser);
           await loadVehicles(mappedUser.storeId);
           
-          if (currentPage === Page.LANDING || currentPage === Page.LOGIN) {
-              setCurrentPage(mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
-          }
+          // Redirecionamento Inteligente Pós-Login
+          // Se estiver na Landing ou Login, joga pro Dashboard
+          setCurrentPage(prev => {
+              if (prev === Page.LANDING || prev === Page.LOGIN || prev === Page.REGISTER) {
+                  return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
+              }
+              return prev;
+          });
+
       } catch (e) {
           console.error("Auth flow error", e);
       } finally {
@@ -121,7 +166,6 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const logout = () => {
     AuthService.logout();
-    // Reset state handled by onAuthStateChange listener usually, but force clear here too
     setUser(null);
     setVehicles([]);
     setCurrentPage(Page.LANDING);
