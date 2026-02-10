@@ -29,8 +29,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 const PLAN_MAP: Record<string, string> = {
     // FORMATO: 'ID_DO_STRIPE': 'nome_do_plano_interno',
     
-    'price_COLE_SEU_ID_STARTER_AQUI': 'starter', // <--- 🔴 COLE O ID DO STARTER AQUI
-    'price_COLE_SEU_ID_PRO_AQUI': 'pro',         // <--- 🔴 COLE O ID DO PRO AQUI
+    'price_1SzM1LDAG9g5kRk5JlWAAQXd': 'starter', // <--- 🔴 COLE O ID DO STARTER AQUI
+    'price_1SyOUTDAG9g5kRk5trqAd4cY': 'pro',         // <--- 🔴 COLE O ID DO PRO AQUI
     'price_COLE_SEU_ID_ENTERPRISE_AQUI': 'enterprise'
 }
 
