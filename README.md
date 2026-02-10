@@ -10,8 +10,9 @@ Bem-vindo ao repositório oficial do **Velohub**. Este é um sistema SaaS (Softw
 1.  [Pré-requisitos](#-pré-requisitos)
 2.  [Instalação Local](#-instalação-local)
 3.  [Configuração do Banco de Dados (Supabase)](#-configuração-do-banco-de-dados-supabase)
-4.  [🚀 GUIA DE PRODUÇÃO & WEBHOOKS](#-guia-de-produção--webhooks-obrigatório)
-5.  [Deploy na Vercel](#-deploy-na-vercel)
+4.  [📧 CONFIGURAÇÃO DE EMAIL (OBRIGATÓRIO)](#-configuração-de-email-obrigatório)
+5.  [🚀 GUIA DE PRODUÇÃO & WEBHOOKS](#-guia-de-produção--webhooks-obrigatório)
+6.  [Deploy na Vercel](#-deploy-na-vercel)
 
 ---
 
@@ -172,6 +173,27 @@ create trigger on_auth_user_created
 
 ---
 
+## 📧 CONFIGURAÇÃO DE EMAIL (OBRIGATÓRIO)
+
+O Supabase limita o envio de emails a 3 por hora no plano gratuito. Para evitar que o link de cadastro falhe, você deve usar um serviço externo como o **Resend** (Gratuito até 3000 emails/mês).
+
+1.  Crie uma conta em [Resend.com](https://resend.com).
+2.  Gere uma **API Key** no Resend.
+3.  Vá no Painel do Supabase > **Project Settings** > **Authentication** > **SMTP Settings**.
+4.  Ative a opção **Enable Custom SMTP** e preencha:
+    *   **Sender Email**: `onboarding@resend.dev` (ou seu domínio verificado)
+    *   **⚠️ IMPORTANTE**: Se você não configurou um domínio próprio no Resend (ex: `@sualoja.com`), você **DEVE** usar exatamente `onboarding@resend.dev` como Sender Email. Qualquer outro email causará o erro *"Error sending confirmation email"*.
+    *   **Sender Name**: `Velohub`
+    *   **Host**: `smtp.resend.com`
+    *   **Port Number**: `465`
+    *   **Username**: `resend`
+    *   **Password**: `Sua_API_Key_do_Resend_Aqui` (começa com `re_`)
+5.  Clique em **Save**.
+
+Agora seus emails de cadastro e recuperação de senha chegarão instantaneamente e sem limites.
+
+---
+
 ## 🚀 GUIA DE PRODUÇÃO & WEBHOOKS (OBRIGATÓRIO)
 
 Para que o sistema detecte que o usuário pagou e atualize o plano automaticamente, você precisa configurar os **Webhooks do Stripe** conectando com as **Edge Functions do Supabase**.
@@ -215,6 +237,7 @@ Vá no Painel do Supabase > **Settings > Edge Functions** e adicione:
 *   `STRIPE_WEBHOOK_SIGNATURE`: O segredo `whsec_...` que você copiou no passo 4.
 *   `SUPABASE_URL`: A URL do seu projeto.
 *   `SUPABASE_SERVICE_ROLE_KEY`: A chave secreta do banco (Settings > API > service_role). **Cuidado: Não use a anon key aqui.**
+*   `RESEND_API_KEY`: Sua chave do Resend (para envio de convites de equipe).
 
 ### 6. Mapear os Planos
 Abra o arquivo `supabase/functions/stripe-webhook/index.ts` e edite a constante `PLAN_MAP`. Você deve colocar os IDs de Preço (Price IDs) que você criou no Stripe.

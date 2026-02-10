@@ -104,7 +104,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       }
       
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar conta.');
+      console.error(err);
+      // Tratamento específico para erro de configuração SMTP comum no desenvolvimento
+      if (err.message && err.message.includes("Error sending confirmation email")) {
+          setError("Erro na configuração de Email (SMTP). Verifique se o 'Sender Email' no Supabase é 'onboarding@resend.dev'.");
+      } else {
+          setError(err.message || 'Erro ao criar conta.');
+      }
     } finally {
       setIsLoading(false);
     }
