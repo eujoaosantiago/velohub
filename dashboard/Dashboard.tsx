@@ -111,9 +111,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                       isClient: true
                   }
               });
-              if (error) throw error;
+              if (error) {
+                  console.error("Function Error:", error);
+                  throw new Error("Falha ao contactar servidor.");
+              }
           } else {
-              // Local mode fallback
+              // Local mode fallback simulation
               await new Promise(resolve => setTimeout(resolve, 1500));
           }
 
@@ -124,7 +127,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
           setTimeout(() => setSupportSent(false), 5000);
       } catch (err) {
           console.error("Erro ao enviar suporte:", err);
-          alert("Erro ao enviar mensagem. Tente novamente.");
+          alert("Não foi possível enviar sua mensagem agora. Por favor, tente novamente ou envie um email para suporte@velohub.com");
       } finally {
           setIsSendingSupport(false);
       }

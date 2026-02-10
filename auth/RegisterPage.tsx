@@ -27,6 +27,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [storeName, setStoreName] = useState(inviteStoreName || '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -80,6 +81,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
     // Validação de Senha Forte
     if (!passwordCriteria.length || !passwordCriteria.uppercase || !passwordCriteria.special) {
         setError('A senha não atende aos requisitos de segurança.');
+        setIsLoading(false);
+        return;
+    }
+
+    // Validação de Confirmação de Senha
+    if (password !== confirmPassword) {
+        setError('As senhas não coincidem.');
         setIsLoading(false);
         return;
     }
@@ -274,39 +282,59 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
             </div>
         </div>
         
-        <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Criar Senha</label>
-            <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input 
-                    type="password" 
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    onFocus={() => setIsPasswordFocused(true)}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
-                    placeholder="Mínimo 8 caracteres"
-                />
-            </div>
-            
-            {/* Password Criteria Feedback */}
-            {isPasswordFocused && (
-                <div className="mt-3 grid grid-cols-2 gap-2 bg-slate-900/50 p-3 rounded-lg border border-slate-800 animate-fade-in">
-                    <div className={`flex items-center gap-1.5 text-xs ${passwordCriteria.length ? 'text-emerald-400' : 'text-slate-500'}`}>
-                        {passwordCriteria.length ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
-                        Mínimo 8 caracteres
-                    </div>
-                    <div className={`flex items-center gap-1.5 text-xs ${passwordCriteria.uppercase ? 'text-emerald-400' : 'text-slate-500'}`}>
-                        {passwordCriteria.uppercase ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
-                        Letra Maiúscula
-                    </div>
-                    <div className={`flex items-center gap-1.5 text-xs ${passwordCriteria.special ? 'text-emerald-400' : 'text-slate-500'}`}>
-                        {passwordCriteria.special ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
-                        Caractere Especial (!@#)
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Criar Senha</label>
+                <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <input 
+                        type="password" 
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        onFocus={() => setIsPasswordFocused(true)}
+                        className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                        placeholder="Mínimo 8 caracteres"
+                    />
                 </div>
-            )}
+            </div>
+            <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Confirmar Senha</label>
+                <div className="relative">
+                    <Check className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <input 
+                        type="password" 
+                        required
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        className={`w-full bg-slate-950 border text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all ${password && confirmPassword && password !== confirmPassword ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:ring-indigo-500'}`}
+                        placeholder="Repita a senha"
+                    />
+                </div>
+            </div>
         </div>
+            
+        {/* Password Criteria Feedback */}
+        {isPasswordFocused && (
+            <div className="mt-1 grid grid-cols-2 gap-2 bg-slate-900/50 p-3 rounded-lg border border-slate-800 animate-fade-in">
+                <div className={`flex items-center gap-1.5 text-xs ${passwordCriteria.length ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passwordCriteria.length ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
+                    Mínimo 8 caracteres
+                </div>
+                <div className={`flex items-center gap-1.5 text-xs ${passwordCriteria.uppercase ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passwordCriteria.uppercase ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
+                    Letra Maiúscula
+                </div>
+                <div className={`flex items-center gap-1.5 text-xs ${passwordCriteria.special ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {passwordCriteria.special ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
+                    Caractere Especial (!@#)
+                </div>
+                <div className={`flex items-center gap-1.5 text-xs ${password === confirmPassword && confirmPassword.length > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {password === confirmPassword && confirmPassword.length > 0 ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-600"></div>}
+                    Senhas coincidem
+                </div>
+            </div>
+        )}
 
         {error && (
             <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-3 rounded-lg text-center animate-shake flex items-center justify-center gap-2">

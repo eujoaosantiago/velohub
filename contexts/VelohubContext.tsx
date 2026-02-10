@@ -62,10 +62,11 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
             if (session?.user) {
                 // Se voltou do pagamento, forçamos um fetch fresco do banco
+                // E usamos POLLING para garantir que o webhook do Stripe já processou
                 await fetchUserProfile(session.user.id, isPaymentSuccess);
                 
                 if (isPaymentSuccess) {
-                    // Limpa a URL
+                    // Limpa a URL para não ficar ?success=true para sempre
                     window.history.replaceState({}, '', window.location.pathname);
                 }
             } else {
@@ -109,16 +110,38 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string, forceRefresh = false) => {
+  const fetchUserProfile = async (userId: string, isPaymentSuccess = false) => {
       try {
           if (!supabase) return;
           
-          // Tenta buscar o perfil
-          let { data: profile, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
+          let attempts = 0;
+          const maxAttempts = isPaymentSuccess ? 5 : 1; // Tenta 5x se voltou do pagamento
+          let profile = null;
+
+          while (attempts < maxAttempts) {
+              const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+
+              if (error) throw error;
+              profile = data;
+
+              // Se for retorno de pagamento, verifica se o plano mudou
+              // Assumindo que o usuário estava no free ou trial antes
+              // Se o plano ainda é free/trial, espera e tenta de novo (Webhook delay)
+              if (isPaymentSuccess && (profile.plan === 'free' || profile.plan === 'trial')) {
+                  attempts++;
+                  if (attempts < maxAttempts) {
+                      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2s
+                      continue; 
+                  }
+              }
+              
+              // Se achou perfil ou esgotou tentativas
+              break;
+          }
 
           // --- SELF-HEALING (AUTO-CURA) ---
           if (!profile) {
