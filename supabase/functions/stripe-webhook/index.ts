@@ -56,7 +56,9 @@ serve(async (req) => {
         return new Response(`Webhook Signature Error: ${err.message}`, { status: 400 })
     }
 
-    // --- EVENTO: COMPRA REALIZADA COM SUCESSO ---
+    console.log(`🔔 Evento Recebido: ${event.type}`);
+
+    // --- EVENTO: COMPRA REALIZADA COM SUCESSO (CHECKOUT) ---
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.client_reference_id
@@ -95,6 +97,36 @@ serve(async (req) => {
             console.log(`✅ Sucesso: Usuário ${userId} atualizado para ${plan}`)
         }
     }
+
+    // --- EVENTO: MUDANÇA DE PLANO (PORTAL DO CLIENTE OU RENOVAÇÃO) ---
+    if (event.type === 'customer.subscription.updated') {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
+        const status = subscription.status
+        
+        // Pega o ID do preço atual
+        const priceId = subscription.items.data[0]?.price?.id
+        let plan = 'free'
+        
+        if (priceId && PLAN_MAP[priceId]) {
+            plan = PLAN_MAP[priceId]
+        }
+
+        // Se a assinatura estiver ativa ou em trial, atualiza o plano
+        if (status === 'active' || status === 'trialing') {
+             const { error } = await supabase
+                .from('users')
+                .update({ 
+                    plan: plan,
+                    subscription_status: status,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('stripe_customer_id', customerId)
+             
+             if (error) console.error('Erro ao atualizar assinatura:', error)
+             else console.log(`🔄 Assinatura atualizada: Customer ${customerId} agora é ${plan}`)
+        }
+    }
     
     // --- EVENTO: ASSINATURA CANCELADA OU PAGAMENTO FALHOU ---
     if (event.type === 'customer.subscription.deleted' || event.type === 'invoice.payment_failed') {
@@ -112,7 +144,7 @@ serve(async (req) => {
             .eq('stripe_customer_id', customerId)
             
         if (error) console.error('Erro ao processar cancelamento:', error)
-        else console.log(`⚠️ Assinatura cancelada para customer ${customerId}`)
+        else console.log(`🚫 Assinatura cancelada para customer ${customerId}`)
     }
 
     return new Response(JSON.stringify({ received: true }), {

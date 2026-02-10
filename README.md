@@ -10,68 +10,51 @@ Bem-vindo ao repositório oficial do **Velohub**. Este é um sistema SaaS (Softw
 1.  [Pré-requisitos](#-pré-requisitos)
 2.  [Instalação Local](#-instalação-local)
 3.  [Configuração do Banco de Dados (Supabase)](#-configuração-do-banco-de-dados-supabase)
-4.  [Configuração de Pagamentos (Stripe)](#-configuração-de-pagamentos-stripe)
-5.  [Configuração de Emails (Resend)](#-configuração-de-emails-resend)
-6.  [🚀 DEPLOY (Colocar no Ar)](#-deploy-colocando-no-ar)
-7.  [Ajustes Finais (Pós-Deploy)](#-ajustes-finais-pós-deploy)
+4.  [🚀 GUIA DE PRODUÇÃO & WEBHOOKS](#-guia-de-produção--webhooks-obrigatório)
+5.  [Deploy na Vercel](#-deploy-na-vercel)
 
 ---
 
 ## 🎒 Pré-requisitos
 
-Para rodar este projeto, você precisa ter instalado:
-
-*   **Node.js** (Versão 18 ou superior) - [Baixar](https://nodejs.org/)
-*   **Git** - [Baixar](https://git-scm.com/)
-*   **VS Code** - Editor de código recomendado.
+*   **Node.js** (v18+)
+*   **Git**
+*   **VS Code**
 
 ---
 
 ## 👣 Instalação Local
 
-1.  **Clone o repositório** (ou baixe os arquivos):
+1.  **Clone o repositório**:
     ```bash
     git clone https://github.com/SEU_USUARIO/velohub.git
     cd velohub
     ```
 
-2.  **Instale as dependências**:
+2.  **Instale**:
     ```bash
     npm install
     ```
 
-3.  **Crie o arquivo de variáveis de ambiente**:
-    Crie um arquivo chamado `.env` na raiz do projeto e cole o seguinte (preencheremos os valores nos próximos passos):
-
+3.  **Configuração `.env`**:
+    Crie um arquivo `.env` na raiz:
     ```env
-    # Supabase (Project Settings > API)
-    VITE_SUPABASE_URL=
-    VITE_SUPABASE_ANON_KEY=
-
-    # Stripe (Developers > API Keys)
-    VITE_STRIPE_PUBLIC_KEY=
+    VITE_SUPABASE_URL=sua_url_supabase
+    VITE_SUPABASE_ANON_KEY=sua_chave_anon
+    VITE_STRIPE_PUBLIC_KEY=sua_chave_publica_stripe
     ```
 
-4.  **Inicie o servidor local**:
-    ```bash
-    npm run dev
-    ```
-    O site rodará em `http://localhost:5173`.
+4.  **Rodar**: `npm run dev`
 
 ---
 
 ## 🧠 Configuração do Banco de Dados (Supabase)
 
-O Velohub usa o Supabase para Autenticação, Banco de Dados e Armazenamento de Fotos.
-
-1.  Crie uma conta em [supabase.com](https://supabase.com) e crie um novo projeto.
-2.  No painel do projeto, vá em **Project Settings > API**.
-    *   Copie a `Project URL` e cole em `VITE_SUPABASE_URL` no seu arquivo `.env`.
-    *   Copie a `anon` `public` key e cole em `VITE_SUPABASE_ANON_KEY` no seu arquivo `.env`.
-3.  Vá em **SQL Editor**, clique em **New Query**, cole o código abaixo e clique em **RUN**:
+1.  Crie um projeto em [supabase.com](https://supabase.com).
+2.  No **SQL Editor**, rode o script abaixo para criar as tabelas e triggers:
 
 ```sql
--- TABELA DE USUÁRIOS (LOJAS)
+-- TABELAS E SEGURANÇA
 create table public.users (
   id uuid references auth.users not null primary key,
   email text,
@@ -94,7 +77,6 @@ create table public.users (
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- TABELA DE VEÍCULOS
 create table public.vehicles (
   id uuid default gen_random_uuid() primary key,
   store_id text not null,
@@ -125,12 +107,10 @@ create table public.vehicles (
   licensing_paid boolean default false,
   photos text[],
   expenses jsonb default '[]'::jsonb,
-  notes text,
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- TABELA DE DESPESAS DA LOJA (OPEX)
 create table public.store_expenses (
   id uuid default gen_random_uuid() primary key,
   store_id text not null,
@@ -142,30 +122,28 @@ create table public.store_expenses (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- SEGURANÇA (RLS - Row Level Security)
+-- RLS (POLÍTICAS DE SEGURANÇA)
 alter table users enable row level security;
 alter table vehicles enable row level security;
 alter table store_expenses enable row level security;
 
--- POLÍTICAS DE ACESSO
--- 1. Usuário sempre vê seu próprio perfil (Evita bloqueio no login)
+create or replace function get_my_store_id()
+returns text as $$
+  select store_id from users where id = auth.uid();
+$$ language sql stable security definer;
+
 create policy "Ver proprio perfil" on users for select using (auth.uid() = id);
+create policy "Ver time" on users for select using (store_id = get_my_store_id());
 create policy "Editar proprio perfil" on users for update using (auth.uid() = id);
-create policy "Criar proprio perfil" on users for insert with check (auth.uid() = id);
+create policy "Ver veiculos da loja" on vehicles for all using (store_id = get_my_store_id());
+create policy "Ver despesas da loja" on store_expenses for all using (store_id = get_my_store_id());
 
--- 2. Ver dados da equipe (mesma loja)
-create policy "Ver time" on users for select using (store_id in (select store_id from users where id = auth.uid()));
-
--- 3. Ver veículos e despesas da loja
-create policy "Ver veiculos da loja" on vehicles for all using (store_id in (select store_id from users where id = auth.uid()));
-create policy "Ver despesas da loja" on store_expenses for all using (store_id in (select store_id from users where id = auth.uid()));
-
--- ARMAZENAMENTO DE FOTOS (STORAGE)
+-- STORAGE
 insert into storage.buckets (id, name, public) values ('vehicles', 'vehicles', true);
 create policy "Imagens Publicas" on storage.objects for select using ( bucket_id = 'vehicles' );
 create policy "Upload Permitido" on storage.objects for insert with check ( bucket_id = 'vehicles' and auth.role() = 'authenticated' );
 
--- GATILHO AUTOMÁTICO (CRIAÇÃO DE PERFIL)
+-- TRIGGER DE CRIAÇÃO DE USUÁRIO
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -194,93 +172,65 @@ create trigger on_auth_user_created
 
 ---
 
-## 🔧 Correção de Erros (Se já criou o banco antes)
+## 🚀 GUIA DE PRODUÇÃO & WEBHOOKS (OBRIGATÓRIO)
 
-Se você já rodou o SQL antigo e está tendo problemas de login, **rode este comando no SQL Editor do Supabase** para corrigir as regras de segurança:
+Para que o sistema detecte que o usuário pagou e atualize o plano automaticamente, você precisa configurar os **Webhooks do Stripe** conectando com as **Edge Functions do Supabase**.
 
-```sql
-drop policy if exists "Ver dados da propria loja (Users)" on users;
-drop policy if exists "Ver proprio perfil" on users;
-drop policy if exists "Ver time" on users;
+### 1. Login no Supabase via CLI
+No seu terminal, use `npx` (não precisa instalar nada globalmente):
+```bash
+npx supabase login
+```
+*Isso abrirá o navegador. Aceite a conexão.*
 
-create policy "Ver proprio perfil" on users for select using (auth.uid() = id);
-create policy "Ver time" on users for select using (store_id in (select store_id from users where id = auth.uid()));
-create policy "Editar proprio perfil" on users for update using (auth.uid() = id);
-create policy "Criar proprio perfil" on users for insert with check (auth.uid() = id);
+### 2. Conectar ao Projeto
+```bash
+npx supabase link --project-ref seu-id-do-projeto
+# O ID do projeto está na URL do seu painel Supabase (ex: https://[abcdefgh].supabase.co)
+# Digite a senha do banco de dados quando solicitado.
 ```
 
----
+### 3. Fazer Deploy da Função Stripe
+Esta função receberá os avisos de pagamento.
+```bash
+npx supabase functions deploy stripe-webhook
+```
+*Anote a URL gerada no final (ex: `https://[id].supabase.co/functions/v1/stripe-webhook`).*
 
-## 💳 Configuração de Pagamentos (Stripe)
+### 4. Configurar o Webhook no Stripe
+1.  Acesse o [Dashboard do Stripe](https://dashboard.stripe.com/test/webhooks) (Developers > Webhooks).
+2.  Clique em **Add Endpoint**.
+3.  **Endpoint URL**: Cole a URL que você gerou no passo 3.
+4.  **Events to send**: Selecione estes dois eventos:
+    *   `checkout.session.completed`
+    *   `customer.subscription.updated`
+5.  Clique em **Add Endpoint**.
+6.  Na tela seguinte, copie o **Signing secret** (começa com `whsec_...`).
 
-Necessário para vender os planos Starter e Pro.
+### 5. Configurar Segredos no Supabase
+O código precisa das chaves para funcionar.
+Vá no Painel do Supabase > **Settings > Edge Functions** e adicione:
 
-1.  Crie uma conta em [stripe.com](https://stripe.com).
-2.  Vá em **Developers > API Keys**.
-    *   Copie a `Publishable key` (pk_test...) e cole em `VITE_STRIPE_PUBLIC_KEY` no `.env`.
-3.  Vá em **Product Catalog** e crie os produtos:
-    *   **Velohub Starter** (R$ 39,90/mês). Crie um Link de Pagamento.
-    *   **Velohub Pro** (R$ 89,90/mês). Crie um Link de Pagamento.
-4.  No VS Code, abra `lib/plans.ts` e cole os Links de Pagamento gerados nas propriedades `stripePaymentLink`.
-5.  No painel do Stripe, vá em **Settings > Customer Portal**, ative-o, copie o link e cole no arquivo `services/payment.ts`.
+*   `STRIPE_API_KEY`: Sua chave secreta do Stripe (`sk_live_...` ou `sk_test_...`).
+*   `STRIPE_WEBHOOK_SIGNATURE`: O segredo `whsec_...` que você copiou no passo 4.
+*   `SUPABASE_URL`: A URL do seu projeto.
+*   `SUPABASE_SERVICE_ROLE_KEY`: A chave secreta do banco (Settings > API > service_role). **Cuidado: Não use a anon key aqui.**
 
----
-
-## 📧 Configuração de Emails (Resend)
-
-Necessário para enviar convites de equipe e receber mensagens de suporte.
-
-1.  Crie uma conta em [resend.com](https://resend.com).
-2.  Crie uma API Key e copie-a.
-3.  Vá no Painel do **Supabase > Project Settings > Edge Functions**.
-4.  Adicione um novo segredo (Secret):
-    *   Nome: `RESEND_API_KEY`
-    *   Valor: `re_123...` (sua chave).
-5.  Implante as funções (Se estiver usando Supabase CLI) ou copie o conteúdo de `supabase/functions` para criar as funções manualmente se necessário. *Nota: Para simplificar, o frontend já está preparado para chamar estas funções.*
-
----
-
-## 🚀 DEPLOY (Colocar no Ar)
-
-Para resolver problemas de redirecionamento e tornar o site profissional, vamos publicá-lo na **Vercel**.
-
-1.  **Suba o código no GitHub**:
-    ```bash
-    git init
-    git add .
-    git commit -m "Deploy inicial"
-    # Crie um repo no GitHub e siga as instruções para dar push
-    git remote add origin https://github.com/SEU_USUARIO/velohub.git
-    git push -u origin main
-    ```
-
-2.  **Crie conta na Vercel**:
-    *   Acesse [vercel.com](https://vercel.com) e faça login com o GitHub.
-
-3.  **Importe o Projeto**:
-    *   Clique em **Add New > Project**.
-    *   Selecione o repositório `velohub`.
-
-4.  **Configure as Variáveis (IMPORTANTE!)**:
-    *   Na tela de configuração da Vercel, procure a seção **Environment Variables**.
-    *   Adicione as mesmas variáveis do seu `.env` local:
-        *   `VITE_SUPABASE_URL`
-        *   `VITE_SUPABASE_ANON_KEY`
-        *   `VITE_STRIPE_PUBLIC_KEY`
-
-5.  **Clique em Deploy**:
-    *   Aguarde alguns minutos. Quando terminar, você receberá um link (ex: `https://velohub-123.vercel.app`).
+### 6. Mapear os Planos
+Abra o arquivo `supabase/functions/stripe-webhook/index.ts` e edite a constante `PLAN_MAP`. Você deve colocar os IDs de Preço (Price IDs) que você criou no Stripe.
+*   Ex: `'price_1Pxyz...': 'starter'`
+*   Depois de editar, rode `npx supabase functions deploy stripe-webhook` novamente.
 
 ---
 
-## 🔧 Ajustes Finais (Pós-Deploy)
+## 🌍 Deploy na Vercel
 
-Agora que seu site tem um endereço real (`https://...`), você precisa avisar ao Supabase para aceitar logins vindos de lá.
+1.  Crie um novo projeto na Vercel e importe este repositório.
+2.  Em **Environment Variables**, adicione:
+    *   `VITE_SUPABASE_URL`
+    *   `VITE_SUPABASE_ANON_KEY`
+    *   `VITE_STRIPE_PUBLIC_KEY`
+3.  Faça o deploy.
+4.  No Supabase (Authentication > URL Configuration), adicione a URL da Vercel em **Site URL** e **Redirect URLs**.
 
-1.  Vá no Painel do Supabase > **Authentication > URL Configuration**.
-2.  Em **Site URL**, apague `localhost` e coloque o link da Vercel (ex: `https://velohub-123.vercel.app`).
-3.  Em **Redirect URLs**, adicione:
-    *   `https://velohub-123.vercel.app/**`
-4.  Clique em **Save**.
-
-**Pronto!** Agora o login por email, o reset de senha e os convites funcionarão perfeitamente sem voltar para a Landing Page.
+**Pronto!** Agora, quando um usuário pagar, o Stripe avisará o Supabase, que atualizará o banco de dados, e o Frontend (via Polling) atualizará a tela do usuário em tempo real.
