@@ -202,6 +202,21 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
             </div>
         </div>
 
+        <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">WhatsApp da Loja</label>
+            <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                    type="tel" 
+                    inputMode="tel"
+                    value={whatsapp}
+                    onChange={e => setWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                    placeholder="11999999999"
+                />
+            </div>
+        </div>
+
         {/* Store Info (Only if not invited) */}
         {!inviteStoreId && (
             <>
