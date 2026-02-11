@@ -109,19 +109,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
           v.expenses.forEach(e => {
               flat.push({ ...e, vehicleName: `${v.make} ${v.model}`, vehiclePlate: v.plate || 'S/ Placa', type: 'expense' });
           });
-          if (v.status === 'sold' && v.saleCommission && v.saleCommission > 0) {
-              flat.push({
-                  id: `comm-${v.id}`,
-                  description: 'Comissão de Venda',
-                  amount: v.saleCommission,
-                  date: v.soldDate || v.updatedAt,
-                  category: 'salary',
-                  vehicleName: `${v.make} ${v.model}`,
-                  vehiclePlate: v.plate || 'S/ Placa',
-                  employeeName: v.saleCommissionTo,
-                  type: 'commission'
-              });
-          }
       });
       return flat.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [vehicles]);
@@ -216,7 +203,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
                                         </td>
                                         <td className="p-3 text-slate-300">
                                             {e.description}
-                                            {e.type === 'commission' && <span className="ml-2 text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">Comissão</span>}
+                                            {e.category === 'salary' && <span className="ml-2 text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">Comissão</span>}
                                         </td>
                                         <td className="p-3 text-right font-bold text-white">{formatCurrency(e.amount)}</td>
                                     </tr>

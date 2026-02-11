@@ -1,3 +1,4 @@
+
 import { Vehicle } from '../types';
 
 /* =======================
@@ -76,30 +77,16 @@ export const calculateProjectedProfit = (vehicle: Vehicle): number => {
   return vehicle.expectedSalePrice - totalCost;
 };
 
-// ✅ LUCRO REAL (CORRIGIDO)
+// ✅ LUCRO REAL (PADRONIZADO)
 export const calculateRealProfit = (vehicle: Vehicle): number => {
   // Tudo que entrou na venda (dinheiro + troca)
   const grossRevenue = vehicle.soldPrice || 0;
 
-  // Despesas operacionais (exceto comissão)
-  const operatingExpenses = vehicle.expenses
-    .filter(e => e.category !== 'salary')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
-  // Comissão via despesas
-  const salaryExpenses = vehicle.expenses
-    .filter(e => e.category === 'salary')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
-  // Comissão efetiva (prioriza campo da venda)
-  const commissionCost =
-    vehicle.saleCommission && vehicle.saleCommission > 0
-      ? vehicle.saleCommission
-      : salaryExpenses;
+  // Soma todas as despesas reais (incluindo comissões que agora são salvas como expenses)
+  const allExpenses = vehicle.expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
   // Custo total do veículo
-  const totalCost =
-    vehicle.purchasePrice + operatingExpenses + commissionCost;
+  const totalCost = vehicle.purchasePrice + allExpenses;
 
   const profit = grossRevenue - totalCost;
 

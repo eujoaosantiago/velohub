@@ -134,7 +134,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const [activeExpenseFilter, setActiveExpenseFilter] = useState<ExpenseCategory | 'all'>('all');
   
   const calculateDefaultCommission = () => {
+      // Se já foi vendido e tem comissão registrada no campo legado, usa ela
       if (vehicle.saleCommission && vehicle.saleCommission > 0) return vehicle.saleCommission;
+      // Caso contrário, soma todas as despesas do tipo 'salary' (Comissão)
       return vehicle.expenses
           .filter(e => e.category === 'salary')
           .reduce((acc, curr) => acc + curr.amount, 0);
@@ -198,9 +200,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   // Sincroniza o estado local com a prop quando o registro é atualizado no banco (ex: após salvar com sucesso)
   useEffect(() => {
-      // Quando a prop 'vehicle' muda (o que acontece após um refreshData no pai),
-      // atualizamos o formData para refletir a "verdade" do servidor.
-      // Isso limpa o estado de "sujo" (dirtyState) porque formData ficará igual a vehicle.
       setFormData(vehicle);
   }, [vehicle]);
 
@@ -210,6 +209,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
     }
   }, [isNew, useFipeSearch]);
 
+  // ... (Camera and FIPE code omitted for brevity as it is unchanged) ...
   useEffect(() => {
       let stream: MediaStream | null = null;
 
@@ -471,18 +471,38 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           phone: sanitizeInput(saleData.buyerPhone)
       };
 
+      // --- LOGICA DE COMISSÃO COMO GASTO REAL ---
+      // Para garantir que a comissão apareça na aba de gastos e no financeiro,
+      // criamos um objeto Expense e adicionamos à lista de despesas.
+      
+      let updatedExpenses = [...formData.expenses]; // Usa os gastos atuais do formulário
+      
+      if (commissionVal > 0) {
+          const commExpense: Expense = {
+              id: Math.random().toString(), // ID temporário, backend vai gerar real se recarregar
+              vehicleId: vehicle.id,
+              description: 'Comissão de Venda',
+              amount: commissionVal,
+              date: saleData.date,
+              category: 'salary',
+              employeeName: saleData.commissionTo || undefined
+          };
+          updatedExpenses.push(commExpense);
+      }
+
       const saleUpdate: Partial<Vehicle> = {
           status: 'sold',
           soldPrice: finalSoldPrice,
           soldDate: saleData.date,
           paymentMethod: saleData.method,
-          saleCommission: commissionVal,
+          saleCommission: 0, // Zeramos o campo legado para evitar duplicidade no cálculo, já que agora é um gasto real na lista
           saleCommissionTo: saleData.commissionTo,
           buyer,
           warrantyDetails: {
               time: saleData.warrantyTime,
               km: saleData.warrantyKm
-          }
+          },
+          expenses: updatedExpenses // Enviamos a lista atualizada com a comissão
       };
 
       if (saleData.method === 'Troca + Volta') {
@@ -524,6 +544,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               await onCreateTradeIn(tradeInVehicle);
           } 
           
+          // Atualiza o formulário local para refletir a venda
           setFormData(prev => ({ ...prev, ...saleUpdate }));
           setShowSaleSuccess(true); 
 
@@ -536,6 +557,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const handleAddExpense = async () => {
+      // ... (Rest of expense logic remains same)
       if(!expenseData.desc) {
           showToast("Informe a descrição do gasto.", "error");
           return;
@@ -560,6 +582,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       const newExpenses = [...formData.expenses, newExp];
       setFormData(prev => ({ ...prev, expenses: newExpenses }));
 
+      // Se adicionar comissão manualmente na aba de gastos, reflete no campo de venda
       if (expenseData.category === 'salary') {
           const currentCommission = parseCurrencyInput(saleData.commission);
           const newTotalCommission = currentCommission + amountVal;
@@ -588,14 +611,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   
   const cashReceived = grossRevenue - tradeInValue;
 
-  const expensesCommissionValue = formData.expenses.filter(e => e.category === 'salary').reduce((acc, e) => acc + e.amount, 0);
-  const operatingExpensesValue = formData.expenses.filter(e => e.category !== 'salary').reduce((acc, e) => acc + e.amount, 0);
+  // Cálculos de lucro em tempo real para a UI
+  const allExpensesSum = formData.expenses.reduce((acc, e) => acc + e.amount, 0);
   
-  const effectiveCommissionCost = isSold
-      ? ((formData.saleCommission && formData.saleCommission > 0) ? formData.saleCommission : expensesCommissionValue)
-      : (currentCommissionInput > 0 ? currentCommissionInput : expensesCommissionValue);
+  // Comissão efetiva: Se ainda não vendeu, usa o input. Se já vendeu, a comissão já está dentro de allExpenses (pois salvamos como expense)
+  const effectiveCommissionCost = isSold ? 0 : currentCommissionInput; 
+  // Nota: Se isSold é true, a comissão já foi convertida em expense em handleSale, então está em allExpensesSum.
+  // Se não é sold, mostramos a projeção baseada no input.
 
-  const totalCost = formData.purchasePrice + operatingExpensesValue + effectiveCommissionCost;
+  const totalCost = formData.purchasePrice + allExpensesSum + effectiveCommissionCost;
   const netProfit = grossRevenue - totalCost;
   const isProfit = netProfit > 0;
 
@@ -650,7 +674,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                         </div>
                         <h2 className="text-3xl font-black text-white mb-2">Sucesso!</h2>
                         <p className="text-slate-400 mb-8">
-                            Venda registrada e estoque atualizado. O veículo agora consta como "Vendido".
+                            Venda registrada e comissão lançada nos gastos.
                         </p>
                         <div className="flex flex-col gap-3 justify-center">
                             <Button onClick={() => setShowContract(true)} icon={<Printer size={18} />} className="w-full py-4 text-lg shadow-lg shadow-indigo-500/20">
@@ -665,6 +689,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           </div>
       )}
 
+      {/* ... Rest of the UI remains identical ... */}
       {cameraState.isOpen && (
           <div className="fixed inset-0 z-[100] bg-black flex flex-col">
               <div className="flex justify-between items-center p-4 bg-black/50 backdrop-blur absolute top-0 w-full z-10">
@@ -973,7 +998,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </div>
                                   <div className="flex justify-between text-slate-400">
                                       <span>Gastos + Comissões</span>
-                                      <span>{formatCurrency(operatingExpensesValue + effectiveCommissionCost)}</span>
+                                      <span>{formatCurrency(allExpensesSum)}</span>
                                   </div>
                                   <div className="border-t border-slate-800 pt-2 flex justify-between font-bold text-white text-base">
                                       <span>Total</span>
@@ -1161,8 +1186,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <p className="text-rose-400 font-bold text-lg">- {formatCurrency(totalCost)}</p>
                                   <div className="text-[10px] text-slate-500 mt-1 flex flex-col">
                                       <span>Compra: {formatCurrency(vehicle.purchasePrice)}</span>
-                                      <span>Gastos Op.: {formatCurrency(operatingExpensesValue)}</span>
-                                      <span>Comissões: {formatCurrency(effectiveCommissionCost)}</span>
+                                      <span>Gastos Op. + Comissão: {formatCurrency(allExpensesSum + effectiveCommissionCost)}</span>
                                   </div>
                                   {vehicle.purchasePrice === 0 && (
                                       <div className="absolute -top-2 -right-2 text-amber-500 bg-slate-900 rounded-full border border-amber-500/50 p-1" title="Custo de compra zerado">
@@ -1249,7 +1273,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                           <input 
                                             type="text" 
                                             inputMode="decimal"
-                                            value={isSold ? maskCurrencyInput(((vehicle.saleCommission || 0) * 100).toFixed(0)) : saleData.commission} 
+                                            value={isSold ? maskCurrencyInput((calculateDefaultCommission() * 100).toFixed(0)) : saleData.commission} 
                                             onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
                                             disabled={isSold} 
                                             className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm font-bold" 
@@ -1271,7 +1295,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                               </div>
                                           </div>
                                       )}
-                                      {isSold && vehicle.saleCommission && vehicle.saleCommission > 0 && (
+                                      {isSold && calculateDefaultCommission() > 0 && (
                                           <div className="flex-1">
                                               <label className="block text-sm text-slate-300">Vendedor (Comissão)</label>
                                               <input 
