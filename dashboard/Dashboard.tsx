@@ -49,7 +49,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   const soldVehicles = vehicles.filter(v => v.status === 'sold');
   
   // 1. KPI Cards
-  const totalInventoryValue = availableVehicles.reduce((acc, v) => acc + v.purchasePrice, 0);
+  // Capital investido = preço de compra + gastos + comissões
+  const totalInventoryValue = availableVehicles.reduce((acc, v) => {
+    const purchasePrice = v.purchasePrice || 0;
+    const expensesTotal = (v.expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const commission = v.saleCommission || 0;
+    return acc + purchasePrice + expensesTotal + commission;
+  }, 0);
   const potentialRevenue = availableVehicles.reduce((acc, v) => acc + v.expectedSalePrice, 0);
   const potentialProfit = potentialRevenue - totalInventoryValue;
   
