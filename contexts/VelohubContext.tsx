@@ -19,21 +19,39 @@ interface VelohubContextType {
 const VelohubContext = createContext<VelohubContextType | undefined>(undefined);
 
 export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // OTIMIZAÇÃO: Inicializa estados baseados no LocalStorage para evitar "flicker" de loading
+  const [user, setUser] = useState<User | null>(() => {
+      const stored = localStorage.getItem('velohub_session_user');
+      return stored ? JSON.parse(stored) : null;
+  });
+
+  // OTIMIZAÇÃO: Se não tem usuário no storage, NÃO mostra loading (exibe Landing Page direto)
+  // Se tem usuário, mostra loading enquanto valida a sessão no backend
+  const [isLoading, setIsLoading] = useState(() => {
+      return !!localStorage.getItem('velohub_session_user');
+  });
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [currentPage, setCurrentPage] = useState<Page>(Page.LANDING);
-  const [isLoading, setIsLoading] = useState(true);
+  // Se já temos user recuperado do storage, vai pro Dashboard, senão Landing
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+      const stored = localStorage.getItem('velohub_session_user');
+      if (stored) {
+          const parsed = JSON.parse(stored);
+          return parsed.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
+      }
+      return Page.LANDING;
+  });
 
   useEffect(() => {
     let mounted = true;
 
-    // Timeout de Segurança Absoluto (aumentado para 20s para mobile)
+    // Timeout de segurança apenas se estiver carregando
     const safetyTimer = setTimeout(() => {
         if (mounted && isLoading) {
             console.warn("⚠️ Timeout de carregamento global.");
             setIsLoading(false);
         }
-    }, 20000);
+    }, 15000);
 
     if (!supabase) {
         setIsLoading(false);
@@ -46,21 +64,33 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             const params = new URLSearchParams(window.location.search);
             const isPaymentReturn = params.get('success') === 'true';
 
+            // Checagem rápida de sessão
             const { data: { session }, error } = await supabase.auth.getSession();
             
             if (error) throw error;
 
             if (session?.user) {
-                // Se tem sessão, tenta buscar o perfil com Polling (Tentativas)
-                await fetchUserProfileWithRetry(session.user.id, isPaymentReturn);
+                // Sessão válida no Supabase. 
+                // Se já temos o user no state (via localStorage), apenas atualizamos os dados em background (SWR)
+                // Se é retorno de pagamento, forçamos o loading
+                if (!user || isPaymentReturn) {
+                    await fetchUserProfileWithRetry(session.user.id, isPaymentReturn);
+                } else {
+                    // Usuário já está visualmente logado, carregamos veículos em background silenciosamente
+                    loadVehicles(user.storeId);
+                    setIsLoading(false); 
+                }
                 
                 if (isPaymentReturn) {
                     window.history.replaceState({}, '', window.location.pathname);
                 }
             } else {
+                // Sem sessão no Supabase
                 if (mounted) {
-                    setUser(null);
-                    setCurrentPage(Page.LANDING);
+                    // Se tínhamos um usuário no state (ex: token expirou), fazemos logout
+                    if (user) {
+                        handleLogoutCleanup();
+                    }
                     setIsLoading(false);
                 }
             }
@@ -68,7 +98,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             console.error("Erro na verificação de sessão:", error);
             if (mounted) {
                 setIsLoading(false);
-                setUser(null);
+                if (user) handleLogoutCleanup();
             }
         }
     };
@@ -82,16 +112,13 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-            // Evita reload se o usuário já estiver carregado corretamente
+            // Só ativa loading se o usuário ainda não estiver no state
             if (!user || user.id !== session.user.id) {
                 setIsLoading(true);
                 await fetchUserProfileWithRetry(session.user.id);
             }
         } else if (event === 'SIGNED_OUT') {
-            setUser(null);
-            setVehicles([]);
-            setCurrentPage(Page.LANDING);
-            setIsLoading(false);
+            handleLogoutCleanup();
         }
     });
 
@@ -102,6 +129,14 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, []);
 
+  const handleLogoutCleanup = () => {
+      setUser(null);
+      setVehicles([]);
+      setCurrentPage(Page.LANDING);
+      setIsLoading(false);
+      localStorage.removeItem('velohub_session_user');
+  };
+
   /**
    * LÓGICA DE POLLING (TENTATIVAS):
    * Tenta buscar o perfil no banco de dados. Aumentado para suportar latência mobile.
@@ -110,9 +145,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!supabase) return;
       
       let attempts = 0;
-      // Mais tentativas e intervalo maior para garantir consistência em redes lentas
-      const maxAttempts = isPaymentWait ? 15 : 10; 
-      const interval = 1500; 
+      const maxAttempts = isPaymentWait ? 15 : 8; 
+      const interval = 1000; 
       
       let profile = null;
 
@@ -125,11 +159,8 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
           if (data) {
               profile = data;
-              
               if (isPaymentWait) {
-                  if (profile.plan !== 'free' && profile.plan !== 'trial') {
-                      break; 
-                  }
+                  if (profile.plan !== 'free' && profile.plan !== 'trial') break; 
               } else {
                   break; 
               }
@@ -142,16 +173,16 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (!profile && !isPaymentWait) {
-          console.error("Perfil crítico não encontrado após várias tentativas.");
+          // Se falhar em recuperar o perfil, faz logout para evitar estado inconsistente
           await supabase.auth.signOut();
-          setUser(null);
-          setIsLoading(false);
+          handleLogoutCleanup();
           return;
       }
 
       if (profile) {
           const mappedUser = AuthService.mapProfileToUser(profile);
           setUser(mappedUser);
+          localStorage.setItem('velohub_session_user', JSON.stringify(mappedUser));
           
           await loadVehicles(mappedUser.storeId);
           
@@ -180,6 +211,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   const login = async (loggedUser: User | null) => {
     if (loggedUser) {
         setUser(loggedUser);
+        localStorage.setItem('velohub_session_user', JSON.stringify(loggedUser));
         setIsLoading(true);
         await loadVehicles(loggedUser.storeId);
         setIsLoading(false);
@@ -202,16 +234,14 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const logout = () => {
     AuthService.logout();
-    setUser(null);
-    setVehicles([]);
-    setCurrentPage(Page.LANDING);
+    handleLogoutCleanup();
   };
 
   const refreshData = async () => {
       if (!user) return;
-      setIsLoading(true);
+      // Não bloqueia a tela inteira com isLoading no refresh manual, apenas atualiza
       await fetchUserProfileWithRetry(user.id, true);
-      setIsLoading(false);
+      await loadVehicles(user.storeId);
   };
 
   const navigateTo = (page: Page) => {

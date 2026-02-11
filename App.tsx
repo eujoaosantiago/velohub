@@ -23,7 +23,7 @@ import { WelcomeModal } from './components/WelcomeModal';
 import { CookieConsent } from './components/CookieConsent';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { Button } from './components/ui/Button';
-import { Database } from 'lucide-react';
+import { Database, Loader2 } from 'lucide-react';
 
 // Wrapper component to use the hook
 const AppContent: React.FC = () => {
@@ -190,15 +190,28 @@ const AppContent: React.FC = () => {
     navigateTo(Page.VEHICLE_DETAIL);
   };
 
-  if (isLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white flex-col gap-4">
-      <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center animate-pulse"><span className="font-bold text-white text-xl">V</span></div>
-      <p className="text-slate-400 text-sm">Carregando Velohub...</p>
-  </div>;
+  // --- TELA DE CARREGAMENTO (SÓ APARECE SE TIVER SESSÃO) ---
+  if (isLoading && !user) {
+      // Se está carregando mas não temos usuário em memória (validação de token inicial),
+      // mostramos o loading. Se tiver usuário em memória, mostramos a UI antiga enquanto valida.
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white flex-col gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center animate-pulse shadow-lg shadow-indigo-500/20">
+                <span className="font-bold text-white text-xl">V</span>
+            </div>
+        </div>
+      );
+  }
 
   if (currentPage === Page.PUBLIC_SHARE && publicVehicleId) {
       const foundVehicle = vehicles.find(v => v.id === publicVehicleId);
       if (!foundVehicle) {
-           return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">Carregando ficha do veículo... (Em modo demo, faça login primeiro para carregar os dados no navegador)</div>;
+           return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">
+               <div className="flex flex-col items-center gap-2">
+                   <Loader2 className="animate-spin text-slate-400" size={24} />
+                   <span className="text-sm">Carregando ficha...</span>
+               </div>
+           </div>;
       }
       return (
         <>
