@@ -67,13 +67,13 @@ export const ApiService = {
 
     console.log('✅ Veículo encontrado:', vehicleData.make, vehicleData.model);
 
-    // Segunda tentativa: busca o nome e whatsapp da loja (da tabela users)
+    // Segunda tentativa: busca o nome e phone da loja (da tabela users)
     let storeName = 'Nossa Loja';
     let storeWhatsapp = '';
     try {
         const { data: userData } = await supabase
             .from('users')
-            .select('store_name, whatsapp')
+            .select('store_name, phone')
             .eq('store_id', vehicleData.store_id)
             .limit(1)
             .single();
@@ -83,9 +83,10 @@ export const ApiService = {
                 storeName = userData.store_name;
                 console.log('✅ Loja encontrada:', storeName);
             }
-            if (userData.whatsapp) {
-                storeWhatsapp = userData.whatsapp;
-                console.log('✅ WhatsApp encontrado:', storeWhatsapp);
+            if (userData.phone) {
+                // Remove formatação do phone para usar apenas dígitos no WhatsApp
+                storeWhatsapp = userData.phone.replace(/\D/g, '');
+                console.log('✅ Telefone encontrado:', storeWhatsapp);
             }
         }
     } catch (e) {

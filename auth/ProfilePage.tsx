@@ -31,7 +31,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
   const [name, setName] = useState(user.name);
   const [storeName, setStoreName] = useState(user.storeName || '');
   const [cnpj, setCnpj] = useState(user.cnpj || '');
-  const [whatsapp, setWhatsapp] = useState(user.whatsapp || ''); // Novo estado
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [contractTemplate, setContractTemplate] = useState(user.contractTemplate || DEFAULT_CONTRACT);
@@ -58,7 +57,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
             name,
             storeName: user.role === 'owner' ? storeName : undefined,
             cnpj: user.role === 'owner' ? cnpj : undefined,
-            whatsapp: user.role === 'owner' ? whatsapp : undefined, // Novo campo
             contractTemplate: user.role === 'owner' ? contractTemplate : undefined
         };
 
@@ -184,20 +182,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
                                                 value={cnpj}
                                                 onChange={handleCnpjChange}
                                                 placeholder="00.000.000/0000-00"
-                                                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">WhatsApp</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                                            <input 
-                                                type="tel"
-                                                inputMode="tel"
-                                                value={whatsapp}
-                                                onChange={e => setWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                                                placeholder="11999999999"
                                                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                             />
                                         </div>

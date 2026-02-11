@@ -51,33 +51,85 @@ Success. No rows returned
 
 ---
 
-## 🧪 Como Testar
+## 📱 Como Adicionar WhatsApp na Loja
 
-1. **Compartilhe um veículo** no Velohub
-2. **Copie o link** gerado
-3. **Abra em janela anônima** (Ctrl + Shift + N no Chrome)
-4. A ficha do veículo deve carregar normalmente! ✨
+Quando você clica em "Tenho Interesse" no link compartilhado, o visitante é redirecionado para WhatsApp. Para isso funcionar, você precisa:
+
+### Passo 1️⃣: Executar Script SQL
+
+⚠️ **PRIMEIRO**, execute este script caso ainda não tenha feito:
+
+1. Acesse https://supabase.com/dashboard
+2. Selecione seu projeto **Velohub**
+3. No menu lateral, clique em **SQL Editor**
+4. Clique em **+ New Query**
+5. Copie todo o conteúdo de `supabase/add-whatsapp-field.sql`
+6. Cole no editor SQL
+7. Clique em **RUN** (ou pressione `Ctrl + Enter`)
+
+Você verá a mensagem:
+```
+Success. No rows returned
+```
+
+### Passo 2️⃣: Adicionar WhatsApp no Perfil
+
+1. Faça login no Velohub
+2. Clique em **Configurações** (no menu)
+3. Procure por **WhatsApp** na seção "Dados da Organização"
+4. Digite seu número (** apenas dígitos, ex: 11999999999**)
+5. Clique em **Salvar**
+
+### Passo 3️⃣: Testar
+
+1. Compartilhe um veículo
+2. Clique em "Tenho Interesse"
+3. Você deve ser redirecionado para WhatsApp com uma mensagem pré-formatada! ✨
 
 ---
 
-## 🛡️ Segurança
+## 🎯 O que é um Número de WhatsApp Válido?
 
-Não se preocupe! Esta configuração é **segura** porque:
+- ✅ **Formato:** 2 dígitos de DDD + 8 ou 9 dígitos do número
+- ✅ **Exemplo:** `11999999999` (São Paulo)
+- ✅ **No campo:** Digite **apenas números**, sem parênteses ou hífens
+- ✅ **O sistema adiciona automaticamente o +55** (país Brasil)
 
-- ✅ Apenas **dados básicos** dos veículos são públicos (marca, modelo, ano, fotos, preço)
-- ✅ **Informações sensíveis** como preço de compra, gastos e lucro permanecem **privados**
-- ✅ Apenas **usuários autenticados** podem modificar dados
-- ✅ **Row Level Security** continua ativo para INSERT/UPDATE/DELETE
+### Exemplos por Estado:
+
+| Estado | DDD | Exemplo Completo |
+|--------|-----|-----------------|
+| São Paulo | 11 | 11999999999 |
+| Rio de Janeiro | 21 | 21999999999 |
+| Minas Gerais | 31 | 31999999999 |
+| Bahia | 71 | 71999999999 |
+| Ceará | 85 | 85999999999 |
 
 ---
 
-## 🐛 Problemas?
+## 🔗 Redirecionamento WhatsApp
 
-Se ainda não funcionar após executar o script:
+Quando alguém clica em "Tenho Interesse", é enviada uma mensagem automática como esta:
 
-1. **Verifique os logs do navegador** (F12 → Console)
-2. **Procure por mensagens** começando com 🔍, ✅ ou ❌
-3. **Copie as mensagens de erro** e reporte ao suporte
+```
+Olá, vi o anúncio do *Hyundai HB20* na *Minhas Motors* e gostaria de mais informações.
+```
+
+---
+
+## ⚠️ Erros Comuns
+
+### "Erro ao atualizar perfil"
+- **Motivo:** Coluna `whatsapp` não existe no banco de dados
+- **Solução:** Execute o script `add-whatsapp-field.sql` primeiro
+
+### "WhatsApp da loja não configurado"
+- **Motivo:** Campo WhatsApp vazio ou em formato inválido
+- **Solução:** Adicione um número válido no perfil (ex: 11999999999)
+
+### Botão "Tenho Interesse" não abre WhatsApp
+- **Motivo:** Número de WhatsApp em formato incorreto
+- **Solução:** Verifique se está digitando **apenas números**
 
 ---
 
