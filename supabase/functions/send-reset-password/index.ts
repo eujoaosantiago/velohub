@@ -1,7 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Declare Deno to suppress TS errors in non-Deno environments
 declare const Deno: {
   env: {
     get(key: string): string | undefined;
@@ -16,28 +14,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface InviteRequest {
+interface ResetPasswordRequest {
   email: string;
   name: string;
-  link: string;
-  storeName: string;
-  ownerName: string;
+  resetLink: string;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight request
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { email, name, link, storeName, ownerName } = await req.json() as InviteRequest;
+    const { email, name, resetLink } = await req.json() as ResetPasswordRequest;
 
     if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
-      throw new Error("MAILGUN_API_KEY or MAILGUN_DOMAIN not configured on server");
+      throw new Error("MAILGUN_API_KEY or MAILGUN_DOMAIN not configured");
     }
 
-    const inviteEmailTemplate = `
+    const emailTemplate = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -99,26 +94,26 @@ serve(async (req) => {
             color: #ff6035;
             font-weight: 600;
           }
-          .info-box {
-            background-color: #f5f5f7;
+          .warning-box {
+            background-color: #fff9f0;
             border-left: 4px solid #ff6035;
             padding: 16px;
             border-radius: 8px;
             margin: 0 0 30px 0;
           }
-          .info-box-title {
+          .warning-title {
             font-size: 13px;
             font-weight: 600;
-            color: #757474;
+            color: #ff6035;
             margin: 0 0 8px 0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
-          .info-box-value {
-            font-size: 16px;
-            font-weight: 500;
+          .warning-text {
+            font-size: 14px;
             color: #2b2a2a;
             margin: 0;
+            line-height: 1.5;
           }
           .cta-button {
             display: inline-block;
@@ -134,7 +129,7 @@ serve(async (req) => {
           }
           .help-text {
             font-size: 12px;
-            color: #ece8e8;
+            color: #757474;
             margin: 20px 0 0 0;
             line-height: 1.5;
           }
@@ -146,6 +141,7 @@ serve(async (req) => {
           .fallback-link {
             word-break: break-all;
             color: #ff6035;
+            font-size: 11px;
           }
           .footer {
             padding: 24px 30px;
@@ -161,28 +157,30 @@ serve(async (req) => {
           <div class="card">
             <div class="header">
               <h1>VELOHUB</h1>
-              <p>Plataforma de Gestão de Veículos</p>
+              <p>Redefinir senha</p>
             </div>
             
             <div class="content">
               <div class="greeting">
-                Olá, <span class="highlight">${name}</span>! 👋
+                Olá, <span class="highlight">${name}</span>!
               </div>
               
               <div class="message">
-                <span class="highlight">${ownerName}</span> convidou você para gerenciar o estoque da <span class="highlight">${storeName}</span> no Velohub.
+                Recebemos uma solicitação para redefinir sua senha. Se foi você, clique no botão abaixo para criar uma nova senha.
               </div>
               
-              <div class="info-box">
-                <div class="info-box-title">Concessionária</div>
-                <div class="info-box-value">${storeName}</div>
+              <div class="warning-box">
+                <div class="warning-title">⚠️ Segurança</div>
+                <div class="warning-text">
+                  Este link expira em 24 horas. Se não solicitou a redefinição, ignore este email.
+                </div>
               </div>
               
-              <a href="${link}" class="cta-button">Aceitar Convite e Criar Conta</a>
+              <a href="${resetLink}" class="cta-button">Redefinir Senha</a>
               
               <div class="help-text">
                 <div class="help-text-title">Não consegue clicar no botão?</div>
-                <div class="fallback-link">${link}</div>
+                <div class="fallback-link">${resetLink}</div>
               </div>
             </div>
             
@@ -201,8 +199,8 @@ serve(async (req) => {
     const formData = new FormData();
     formData.append("from", `Velohub <noreply@${MAILGUN_DOMAIN}>`);
     formData.append("to", email);
-    formData.append("subject", `${ownerName} convidou você para Velohub`);
-    formData.append("html", inviteEmailTemplate);
+    formData.append("subject", "Redefinir sua senha - Velohub");
+    formData.append("html", emailTemplate);
 
     const res = await fetch(`https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`, {
       method: "POST",
@@ -215,16 +213,17 @@ serve(async (req) => {
     const data = await res.json();
 
     if (!res.ok) {
-        console.error("Resend Error:", data);
-        throw new Error(data.message || "Failed to send email");
+      console.error("Mailgun Error:", data);
+      throw new Error(data.message || "Failed to send email");
     }
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({ success: true, messageId: data.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error: any) {
+    console.error("Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

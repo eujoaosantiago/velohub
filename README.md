@@ -253,7 +253,9 @@ Vá no Painel do Supabase > **Settings > Edge Functions** e adicione:
 *   `STRIPE_WEBHOOK_SIGNATURE`: O segredo `whsec_...` que você copiou no passo 4.
 *   `SUPABASE_URL`: A URL do seu projeto.
 *   `SUPABASE_SERVICE_ROLE_KEY`: A chave secreta do banco (Settings > API > service_role). **Cuidado: Não use a anon key aqui.**
-*   `RESEND_API_KEY`: Sua chave do Resend (para envio de convites de equipe).
+*   `RESEND_API_KEY`: Sua chave do Resend (para envio de convites de equipe e formulários de suporte).
+
+**↓ Guia passo-a-passo**: [`docs/SETUP_RESEND_SECRET.md`](./docs/SETUP_RESEND_SECRET.md)
 
 ### 6. Mapear os Planos
 Abra o arquivo `supabase/functions/stripe-webhook/index.ts` e edite a constante `PLAN_MAP`. Você deve colocar os IDs de Preço (Price IDs) que você criou no Stripe.
