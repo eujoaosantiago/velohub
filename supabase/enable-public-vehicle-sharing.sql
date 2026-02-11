@@ -54,20 +54,11 @@ USING (
 );
 
 -- ============================================================
--- 4. Habilitar também leitura pública da tabela STORES
---    (necessário para exibir o nome da loja no compartilhamento)
--- ============================================================
-
-DROP POLICY IF EXISTS "Lojas são visíveis apenas para membros" ON stores;
-
-CREATE POLICY "Lojas são públicas para leitura"
-ON stores
-FOR SELECT
-USING (true);
-
--- ============================================================
 -- ✅ PRONTO! Agora os links de compartilhamento funcionam!
 -- ============================================================
 -- Teste compartilhando um veículo e abrindo o link em uma
 -- janela anônima (sem login)
+-- ============================================================
+-- NOTA: O nome da loja está na tabela 'users' (campo store_name),
+-- não existe tabela 'stores' separada
 -- ============================================================

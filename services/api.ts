@@ -67,17 +67,18 @@ export const ApiService = {
 
     console.log('✅ Veículo encontrado:', vehicleData.make, vehicleData.model);
 
-    // Segunda tentativa: busca o nome da loja
+    // Segunda tentativa: busca o nome da loja (da tabela users)
     let storeName = 'Nossa Loja';
     try {
-        const { data: storeData } = await supabase
-            .from('stores')
+        const { data: userData } = await supabase
+            .from('users')
             .select('store_name')
-            .eq('id', vehicleData.store_id)
+            .eq('store_id', vehicleData.store_id)
+            .limit(1)
             .single();
         
-        if (storeData) {
-            storeName = storeData.store_name;
+        if (userData && userData.store_name) {
+            storeName = userData.store_name;
             console.log('✅ Loja encontrada:', storeName);
         }
     } catch (e) {
