@@ -392,6 +392,72 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       setShowReservation(false);
   };
 
+  // Função para comprimir e redimensionar imagens antes do upload
+  const compressImage = async (file: File, maxWidth: number = 1920, quality: number = 0.85): Promise<File> => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          
+          reader.onload = (event) => {
+              const img = new Image();
+              img.src = event.target?.result as string;
+              
+              img.onload = () => {
+                  // Calcula novas dimensões mantendo aspect ratio
+                  let width = img.width;
+                  let height = img.height;
+                  
+                  if (width > maxWidth) {
+                      height = (height * maxWidth) / width;
+                      width = maxWidth;
+                  }
+                  
+                  // Cria canvas e desenha imagem redimensionada
+                  const canvas = document.createElement('canvas');
+                  canvas.width = width;
+                  canvas.height = height;
+                  
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) {
+                      reject(new Error('Não foi possível criar contexto do canvas'));
+                      return;
+                  }
+                  
+                  ctx.drawImage(img, 0, 0, width, height);
+                  
+                  // Converte canvas para Blob com compressão
+                  canvas.toBlob(
+                      (blob) => {
+                          if (!blob) {
+                              reject(new Error('Erro ao comprimir imagem'));
+                              return;
+                          }
+                          
+                          // Cria novo arquivo com o blob comprimido
+                          const compressedFile = new File([blob], file.name, {
+                              type: 'image/jpeg',
+                              lastModified: Date.now(),
+                          });
+                          
+                          // Log para debug do tamanho
+                          const originalSizeMB = (file.size / 1024 / 1024).toFixed(2);
+                          const compressedSizeMB = (compressedFile.size / 1024 / 1024).toFixed(2);
+                          console.log(`📸 Imagem comprimida: ${originalSizeMB}MB → ${compressedSizeMB}MB (${width}x${height}px)`);
+                          
+                          resolve(compressedFile);
+                      },
+                      'image/jpeg',
+                      quality
+                  );
+              };
+              
+              img.onerror = () => reject(new Error('Erro ao carregar imagem'));
+          };
+          
+          reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      });
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement> | Blob) => {
       setCameraState(prev => ({ ...prev, isUploading: true }));
       try {
@@ -412,7 +478,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           const newUrls: string[] = [];
 
           for (const f of files) {
-              const url = await StorageService.uploadPhoto(f, vehicle.storeId);
+              // Comprime a imagem antes de enviar
+              const compressedFile = await compressImage(f);
+              const url = await StorageService.uploadPhoto(compressedFile, vehicle.storeId);
               newUrls.push(url);
           }
 
