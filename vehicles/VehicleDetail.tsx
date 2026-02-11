@@ -100,38 +100,31 @@ const STATUS_OPTIONS = [
 ];
 
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicles = [], isNew = false, onBack, onUpdate, onDelete, userRole, userPlan = 'starter', onCreateTradeIn }) => {
-  // Use Context to get fresh user data (resolves Share button issue)
   const { user: currentUser } = useVelohub();
   
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Vehicle>(vehicle);
   
-  // Notification State
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  // UI States
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Modals
   const [showContract, setShowContract] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const [showSaleSuccess, setShowSaleSuccess] = useState(false);
 
-  // Estados FIPE
   const [useFipeSearch, setUseFipeSearch] = useState(true);
   const [fipeData, setFipeData] = useState<{ brands: FipeBrand[], models: FipeModel[], years: FipeYear[] }>({ brands: [], models: [], years: [] });
   const [fipeSelection, setFipeSelection] = useState({ brand: '', model: '', year: '' });
   const [isLoadingFipe, setIsLoadingFipe] = useState(false);
 
-  // Estados Fotos e Câmera
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cameraState, setCameraState] = useState({ isOpen: false, isUploading: false });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Estados Venda & Gastos
   const [expenseData, setExpenseData] = useState({ 
       desc: '', 
       amount: '', 
@@ -140,7 +133,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   });
   const [activeExpenseFilter, setActiveExpenseFilter] = useState<ExpenseCategory | 'all'>('all');
   
-  // ... (Calculation Logic for Commission) ...
   const calculateDefaultCommission = () => {
       if (vehicle.saleCommission && vehicle.saleCommission > 0) return vehicle.saleCommission;
       return vehicle.expenses
@@ -171,11 +163,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
   
-  // Use current context user plan limits for accurate share button state
   const currentLimits = currentUser ? getPlanLimits(currentUser) : PLAN_CONFIG['free'];
   const canShare = (currentLimits.showShareLink ?? false) && checkPermission(currentUser || null, 'share_vehicles');
 
-  // ... (Dirty State Logic) ...
   const dirtyState = useMemo(() => {
       const compareExpenses = (a: Expense[], b: Expense[]) => JSON.stringify(a) !== JSON.stringify(b);
       const comparePhotos = (a: string[], b: string[]) => JSON.stringify(a) !== JSON.stringify(b);
@@ -192,8 +182,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           formData.expectedSalePrice !== vehicle.expectedSalePrice ||
           formData.fipePrice !== vehicle.fipePrice ||
           formData.status !== vehicle.status ||
-          formData.ipvaPaid !== vehicle.ipvaPaid ||
-          formData.licensingPaid !== vehicle.licensingPaid;
+          // FIX: Força comparação booleana para evitar erro de dirty state com null/undefined
+          !!formData.ipvaPaid !== !!vehicle.ipvaPaid ||
+          !!formData.licensingPaid !== !!vehicle.licensingPaid;
 
       const isPhotosDirty = comparePhotos(formData.photos, vehicle.photos);
       const isExpensesDirty = compareExpenses(formData.expenses, vehicle.expenses);
@@ -212,7 +203,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
     }
   }, [isNew, useFipeSearch]);
 
-  // CAMERA LOGIC - IMPROVED FOR MOBILE
   useEffect(() => {
       let stream: MediaStream | null = null;
 
@@ -225,7 +215,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   });
                   if (videoRef.current) {
                       videoRef.current.srcObject = stream;
-                      // Necessary for some mobile browsers to start playing
                       videoRef.current.play().catch(e => console.log("Play error", e));
                   }
               } catch (err) {
@@ -278,7 +267,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       }
   };
 
-  // ... (Remaining handlers) ...
   const showToast = (message: string, type: 'success' | 'error') => {
       setNotification({ message, type });
       setTimeout(() => setNotification(null), 4000);
@@ -541,7 +529,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const handleAddExpense = async () => {
-      // ... (Expense logic kept same)
       if(!expenseData.desc) {
           showToast("Informe a descrição do gasto.", "error");
           return;
@@ -582,7 +569,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   const isSold = formData.status === 'sold';
 
-  // --- MATEMÁTICA FINANCEIRA ---
   const currentInputPrice = parseCurrencyInput(saleData.price) || 0;
   const currentTradeInValue = parseCurrencyInput(saleData.tradeIn.value) || 0;
   const currentCommissionInput = parseCurrencyInput(saleData.commission) || 0;
@@ -630,7 +616,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      {/* ... (Modals & Header) ... */}
       {notification && (
           <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
               {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
@@ -673,7 +658,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           </div>
       )}
 
-      {/* --- CAMERA MODAL --- */}
       {cameraState.isOpen && (
           <div className="fixed inset-0 z-[100] bg-black flex flex-col">
               <div className="flex justify-between items-center p-4 bg-black/50 backdrop-blur absolute top-0 w-full z-10">
@@ -710,7 +694,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           </div>
       )}
 
-      {/* ... (Existing Header and Actions) ... */}
       <div className="flex flex-col md:flex-row justify-between gap-4">
           <div className="flex items-center gap-4">
               <button onClick={handleBackGuard} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><ArrowLeft /></button>
@@ -1215,11 +1198,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div>
                                       <label className="block text-sm text-slate-300">Data</label>
-                                      <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" />
+                                      <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
                                   </div>
                                   <div>
                                       <label className="block text-sm text-slate-300">Pagamento</label>
-                                      <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                                      <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white">
                                           <option>Pix / Transferência</option>
                                           <option>Financiamento</option>
                                           <option>Dinheiro</option>

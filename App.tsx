@@ -146,7 +146,9 @@ const AppContent: React.FC = () => {
       try {
         await ApiService.deleteVehicle(id, user.storeId);
         await refreshData();
-        navigateTo(Page.VEHICLES);
+        if (currentPage === Page.VEHICLE_DETAIL) {
+            navigateTo(Page.VEHICLES);
+        }
       } catch (e) {
         alert("Erro ao excluir veículo.");
       }
@@ -192,8 +194,6 @@ const AppContent: React.FC = () => {
 
   // --- TELA DE CARREGAMENTO (SÓ APARECE SE TIVER SESSÃO) ---
   if (isLoading && !user) {
-      // Se está carregando mas não temos usuário em memória (validação de token inicial),
-      // mostramos o loading. Se tiver usuário em memória, mostramos a UI antiga enquanto valida.
       return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white flex-col gap-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center animate-pulse shadow-lg shadow-indigo-500/20">
@@ -255,7 +255,7 @@ const AppContent: React.FC = () => {
   const renderContent = () => {
     switch (currentPage) {
       case Page.DASHBOARD: return <Dashboard vehicles={vehicles} user={user} />;
-      case Page.VEHICLES: return <VehicleList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} onAddVehicle={handleAddVehicle} userRole={user.role} onUpdateVehicle={handleUpdateVehicle} onCreateTradeIn={handleCreateTradeIn} />;
+      case Page.VEHICLES: return <VehicleList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} onAddVehicle={handleAddVehicle} userRole={user.role} onUpdateVehicle={handleUpdateVehicle} onCreateTradeIn={handleCreateTradeIn} onDeleteVehicle={handleDeleteVehicle} />;
       case Page.VEHICLE_DETAIL:
         const vehicle = draftVehicle || vehicles.find(v => v.id === selectedVehicleId);
         if (!vehicle) return <div className="text-white">Veículo não encontrado</div>;

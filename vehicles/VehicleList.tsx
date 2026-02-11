@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Vehicle, UserRole, VehicleStatus, checkPermission } from '../types';
 import { Button } from '../components/ui/Button';
 import { formatCurrency, getStatusLabel, getStatusBorderColor } from '../lib/utils';
-import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check } from 'lucide-react';
+import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check, Trash2 } from 'lucide-react';
 import { QuickSaleModal } from '../components/QuickSaleModal';
 import { ReservationModal } from '../components/ReservationModal';
 import { ShareModal } from '../components/ShareModal';
-import { useVelohub } from '../contexts/VelohubContext'; // IMPORTANTE
+import { useVelohub } from '../contexts/VelohubContext'; 
 import { Page } from '../types';
 import { getPlanLimits } from '../lib/plans';
 
@@ -18,14 +18,14 @@ interface VehicleListProps {
   userRole: UserRole;
   onUpdateVehicle: (vehicle: Vehicle) => Promise<void>; 
   onCreateTradeIn?: (vehicle: Vehicle) => Promise<void>;
+  onDeleteVehicle?: (id: string) => void; // Nova prop
 }
 
-export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehicle, onAddVehicle, userRole, onUpdateVehicle, onCreateTradeIn }) => {
-  const { navigateTo, user: currentUser } = useVelohub(); // USO DO CONTEXTO
+export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehicle, onAddVehicle, userRole, onUpdateVehicle, onCreateTradeIn, onDeleteVehicle }) => {
+  const { navigateTo, user: currentUser } = useVelohub(); 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
-  // Estado para controlar qual dropdown de status está aberto
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
 
   const [quickSaleVehicle, setQuickSaleVehicle] = useState<Vehicle | null>(null);
@@ -36,11 +36,9 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
   
-  // VERIFICAÇÃO DE PLANO + PERMISSÃO
   const planLimits = currentUser ? getPlanLimits(currentUser) : null;
   const canShare = (planLimits?.showShareLink ?? false) && checkPermission(currentUser || null, 'share_vehicles');
 
-  // Filtragem e Ordenação
   const filteredVehicles = vehicles.filter(v => {
     const matchesSearch = `${v.make} ${v.model} ${v.plate}`.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -62,7 +60,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   }).length;
 
   const handleStatusUpdate = async (vehicle: Vehicle, newStatus: VehicleStatus) => {
-      setOpenStatusId(null); // Fecha o dropdown
+      setOpenStatusId(null); 
       
       if (newStatus === 'sold') {
           setQuickSaleVehicle(vehicle);
@@ -128,7 +126,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
 
   return (
     <div className="space-y-6" onClick={() => setOpenStatusId(null)}>
-      {/* MODALS */}
       {quickSaleVehicle && (
           <QuickSaleModal 
               vehicle={quickSaleVehicle}
@@ -154,7 +151,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
           />
       )}
 
-      {/* UPSELL MODAL (FEATURE LOCKED) */}
       {showUpgradeModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowUpgradeModal(false)}>
               <div className="bg-slate-900 border border-indigo-500/30 w-full max-w-md rounded-2xl shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -221,7 +217,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
           </div>
       )}
 
-      {/* FILTERS & SEARCH */}
       <div className="flex flex-col gap-4">
         <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -275,7 +270,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                 className={`group bg-slate-900/40 backdrop-blur-sm border-l-4 ${borderColorClass} border-y border-r border-slate-800/60 rounded-2xl p-4 hover:bg-slate-800/60 transition-all cursor-pointer flex flex-col gap-4 ${isStale && userRole === 'owner' ? 'shadow-[0_0_15px_-5px_rgba(245,158,11,0.2)]' : ''}`}
               >
                 <div className="flex flex-col md:flex-row gap-4">
-                    {/* Image Thumbnail */}
                     <div className="w-full md:w-64 h-48 md:h-40 rounded-xl bg-slate-800 flex-shrink-0 overflow-hidden relative border border-slate-800">
                     {vehicle.photos.length > 0 ? (
                         <img 
@@ -291,7 +285,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                     )}
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0 w-full">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">
@@ -304,7 +297,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                 )}
                             </div>
                             
-                            {/* CUSTOM STATUS DROPDOWN */}
                             <div className="relative group min-w-[140px]" onClick={(e) => e.stopPropagation()}>
                                 <button 
                                     onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
@@ -431,6 +423,15 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                 >
                                     {canShare ? <Share2 size={16} /> : <Lock size={14} />}
                                 </button>
+                                {userRole === 'owner' && onDeleteVehicle && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onDeleteVehicle(vehicle.id); }} 
+                                        className="px-3 border border-slate-800 bg-slate-900 text-rose-500 hover:bg-rose-500 hover:text-white rounded-full transition-colors flex items-center justify-center"
+                                        title="Excluir Veículo"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -457,16 +458,26 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                     VENDER
                                 </button>
                             )}
-                            <button 
-                                onClick={(e) => handleShareClick(e, vehicle)}
-                                className={`px-4 py-3 rounded-xl border flex items-center justify-center active:bg-slate-700 transition-colors ${
-                                    canShare
-                                    ? 'bg-slate-800 text-white border-slate-700'
-                                    : 'bg-slate-900 text-slate-600 border-slate-800'
-                                }`}
-                            >
-                                {canShare ? <Share2 size={20} /> : <Lock size={20} />}
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={(e) => handleShareClick(e, vehicle)}
+                                    className={`px-4 py-3 rounded-xl border flex items-center justify-center active:bg-slate-700 transition-colors ${
+                                        canShare
+                                        ? 'bg-slate-800 text-white border-slate-700'
+                                        : 'bg-slate-900 text-slate-600 border-slate-800'
+                                    }`}
+                                >
+                                    {canShare ? <Share2 size={20} /> : <Lock size={20} />}
+                                </button>
+                                {userRole === 'owner' && onDeleteVehicle && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onDeleteVehicle(vehicle.id); }} 
+                                        className="px-4 py-3 rounded-xl border border-slate-800 bg-slate-900 text-rose-500 flex items-center justify-center active:bg-rose-500 active:text-white transition-colors"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
