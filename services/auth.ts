@@ -109,8 +109,7 @@ export const AuthService = {
     // Enviar email de confirmação via Resend
     if (data.user) {
         try {
-            const confirmToken = data.user.id;
-            const confirmLink = `${window.location.origin}/auth/confirm?token=${confirmToken}`;
+            const redirectTo = `${window.location.origin}/?confirmed=1`;
             
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 await fetch(`${SUPABASE_URL}/functions/v1/send-confirm-email`, {
@@ -120,7 +119,7 @@ export const AuthService = {
                         apikey: SUPABASE_ANON_KEY,
                         Authorization: `Bearer ${SUPABASE_ANON_KEY}`
                     },
-                    body: JSON.stringify({ email, name, confirmLink })
+                    body: JSON.stringify({ email, name, redirectTo })
                 });
             }
         } catch (err) {

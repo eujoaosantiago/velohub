@@ -7,6 +7,8 @@ declare const Deno: {
 };
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +18,7 @@ const corsHeaders = {
 interface ConfirmEmailRequest {
   email: string;
   name: string;
-  confirmLink: string;
+  redirectTo?: string;
 }
 
 serve(async (req) => {
@@ -25,11 +27,38 @@ serve(async (req) => {
   }
 
   try {
-    const { email, name, confirmLink } = await req.json() as ConfirmEmailRequest;
+    const { email, name, redirectTo } = await req.json() as ConfirmEmailRequest;
 
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY not configured");
     }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
+    }
+
+    const linkResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        type: "signup",
+        email,
+        redirect_to: redirectTo || "https://velohub-theta.vercel.app/?confirmed=1",
+      }),
+    });
+
+    const linkData = await linkResponse.json();
+
+    if (!linkResponse.ok) {
+      console.error("Supabase Error:", linkData);
+      throw new Error(linkData?.msg || "Failed to generate confirmation link");
+    }
+
+    const confirmLink = linkData.action_link;
 
     const emailTemplate = `
       <!DOCTYPE html>
