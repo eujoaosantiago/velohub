@@ -25,6 +25,23 @@ export const PublicVehicleShare: React.FC<PublicVehicleShareProps> = ({ vehicle,
         else setActiveImage(vehicle.photos.length - 1);
     };
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        const touchEnd = e.changedTouches[0].clientX;
+        const distance = touchStart - touchEnd;
+        
+        if (Math.abs(distance) > 50) {
+            if (distance > 0) {
+                handleNextImage();
+            } else {
+                handlePrevImage();
+            }
+        }
+    };
+
     const handleWhatsApp = () => {
         const phoneNumber = storeWhatsapp || '';
         if (!phoneNumber) {
