@@ -175,22 +175,33 @@ create trigger on_auth_user_created
 
 ## 📧 CONFIGURAÇÃO DE EMAIL (OBRIGATÓRIO)
 
-O Supabase limita o envio de emails a 3 por hora no plano gratuito. Para evitar que o link de cadastro falhe, você deve usar um serviço externo como o **Resend** (Gratuito até 3000 emails/mês).
+O Supabase **não consegue enviar emails** sem uma configuração de provedor externo. Sem isso:
+- ❌ Link de confirmação NÃO chega
+- ❌ Recuperação de senha NÃO funciona
+- ❌ Convites de equipe NÃO são enviados
 
-1.  Crie uma conta em [Resend.com](https://resend.com).
-2.  Gere uma **API Key** no Resend.
-3.  Vá no Painel do Supabase > **Project Settings** > **Authentication** > **SMTP Settings**.
-4.  Ative a opção **Enable Custom SMTP** e preencha:
-    *   **Sender Email**: `onboarding@resend.dev` (ou seu domínio verificado)
-    *   **⚠️ IMPORTANTE**: Se você não configurou um domínio próprio no Resend (ex: `@sualoja.com`), você **DEVE** usar exatamente `onboarding@resend.dev` como Sender Email. Qualquer outro email causará o erro *"Error sending confirmation email"*.
-    *   **Sender Name**: `Velohub`
-    *   **Host**: `smtp.resend.com`
-    *   **Port Number**: `465`
-    *   **Username**: `resend`
-    *   **Password**: `Sua_API_Key_do_Resend_Aqui` (começa com `re_`)
-5.  Clique em **Save**.
+### 🚀 Dois Caminhos:
 
-Agora seus emails de cadastro e recuperação de senha chegarão instantaneamente e sem limites.
+#### **OPÇÃO 1: Rápido (Desenvolvimento)**
+Se você quer testar rápido **sem configurar email ainda**:
+1. Desabilite verificação de email no Supabase (veja `docs/QUICK_EMAIL_FIX.md`)
+2. Usuários se registram imediatamente sem validação
+3. **Lembre-se**: Isso é só para DEV, produção precisa de email real!
+
+#### **OPÇÃO 2: Completo (Produção)**
+Configure o **Resend** (gratuito até 3000 emails/mês):
+
+1.  Crie uma conta em [Resend.com](https://resend.com)
+2.  Gere uma **API Key** no Resend
+3.  Vá no Supabase Dashboard > **Authentication** → **Email Provider** (ou **Settings**)
+4.  Selecione **Resend** como provider
+5.  Cole a **API Key** e clique em **Save**
+6.  Use `onboarding@resend.dev` como **Sender Email** (teste; para produção, valide seu domínio)
+7.  Pronto! Seus emails chegarão instantaneamente
+
+**🔗 Documentação Completa:**
+- **Guia rápido para dev**: [`docs/QUICK_EMAIL_FIX.md`](./docs/QUICK_EMAIL_FIX.md)
+- **Guia completo**: [`docs/SETUP_EMAIL_CONFIGURATION.md`](./docs/SETUP_EMAIL_CONFIGURATION.md) (incluindo SendGrid e troubleshooting)
 
 ---
 
@@ -257,3 +268,32 @@ Abra o arquivo `supabase/functions/stripe-webhook/index.ts` e edite a constante 
 4.  No Supabase (Authentication > URL Configuration), adicione a URL da Vercel em **Site URL** e **Redirect URLs**.
 
 **Pronto!** Agora, quando um usuário pagar, o Stripe avisará o Supabase, que atualizará o banco de dados, e o Frontend (via Polling) atualizará a tela do usuário em tempo real.
+
+---
+
+## 🔧 Troubleshooting
+
+### ❌ "Erro ao enviar email de confirmação"
+**Causa**: Supabase não tem provedor de email configurado
+- ✅ Siga `docs/SETUP_EMAIL_CONFIGURATION.md` e configure Resend
+- 🚀 Ou desabilite verificação de email (`docs/QUICK_EMAIL_FIX.md`) para desarrollo
+
+### ❌ "Usuário se registra mas não recebe email"
+**Verificação**:
+1. Seu Resend tem **API Key válida**?
+2. A chave está configurada no Supabase (Authentication → Email Provider)?
+3. O **Sender Email** está correto (`onboarding@resend.dev` para testes)?
+4. Você criou a sua conta no Resend e **confirmou seu email**?
+
+### ❌ "Erro 17MB ou build muito grande"
+**Solução**: Rode `npm run build` localmente e verifique se há módulos desnecessários
+- Verifique `vite.config.ts` para exclusões
+- Limpe `node_modules` e reinstale: `rm -r node_modules && npm install`
+
+### ✅ "Agora funciona! Como faço para ir para produção?"
+1. Configure seu **domínio próprio** no Resend (ex: `noreply@velohub.com`)
+2. **Re-habilite** email verification no Supabase
+3. Configure todos os **webhooks do Stripe** (veja seção acima)
+4. **Teste tudo** antes de publicar!
+
+Para mais detalhes, veja a documentação completa em `docs/`
