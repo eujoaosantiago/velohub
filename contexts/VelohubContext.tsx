@@ -18,11 +18,22 @@ interface VelohubContextType {
 
 const VelohubContext = createContext<VelohubContextType | undefined>(undefined);
 
+const getStoredUser = (): User | null => {
+    const stored = localStorage.getItem('velohub_session_user');
+    if (!stored) return null;
+    try {
+        return JSON.parse(stored) as User;
+    } catch (err) {
+        console.warn('⚠️ Sessão local inválida. Limpando storage.');
+        localStorage.removeItem('velohub_session_user');
+        return null;
+    }
+};
+
 export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Inicializa estados baseados no LocalStorage
   const [user, setUser] = useState<User | null>(() => {
-      const stored = localStorage.getItem('velohub_session_user');
-      return stored ? JSON.parse(stored) : null;
+            return getStoredUser();
   });
 
   // Ref para acesso síncrono dentro de event listeners (corrige o bug do login)
@@ -35,15 +46,14 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const [isLoading, setIsLoading] = useState(() => {
       // Se tem user no storage, começa true para validar sessão. Se não, false para mostrar landing.
-      return !!localStorage.getItem('velohub_session_user');
+      return !!getStoredUser();
   });
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-      const stored = localStorage.getItem('velohub_session_user');
-      if (stored) {
-          const parsed = JSON.parse(stored);
-          return parsed.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
+      const storedUser = getStoredUser();
+      if (storedUser) {
+          return storedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
       }
       return Page.LANDING;
   });
