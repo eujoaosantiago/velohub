@@ -3,6 +3,7 @@ import { User, UserPermissions } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
 
 export const DEFAULT_EMPLOYEE_PERMISSIONS: UserPermissions = {
     view_costs: false,
@@ -111,10 +112,14 @@ export const AuthService = {
             const confirmToken = data.user.id;
             const confirmLink = `${window.location.origin}/auth/confirm?token=${confirmToken}`;
             
-            if (SUPABASE_URL) {
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 await fetch(`${SUPABASE_URL}/functions/v1/send-confirm-email`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        apikey: SUPABASE_ANON_KEY,
+                        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+                    },
                     body: JSON.stringify({ email, name, confirmLink })
                 });
             }
@@ -187,10 +192,14 @@ export const AuthService = {
       
       // Enviar email de reset de senha via Resend
       try {
-          if (SUPABASE_URL) {
+          if (SUPABASE_URL && SUPABASE_ANON_KEY) {
               await fetch(`${SUPABASE_URL}/functions/v1/send-reset-password`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: {
+                      'Content-Type': 'application/json',
+                      apikey: SUPABASE_ANON_KEY,
+                      Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+                  },
                   body: JSON.stringify({ email, name: userName, resetLink })
               });
           }
