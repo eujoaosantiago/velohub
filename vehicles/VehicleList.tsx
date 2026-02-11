@@ -314,7 +314,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                             { val: 'available', label: 'Em Estoque', color: 'text-emerald-400' },
                                             { val: 'reserved', label: 'Reservado', color: 'text-amber-400' },
                                             { val: 'preparation', label: 'Preparação', color: 'text-indigo-400' },
-                                            { val: 'sold', label: 'Vender Agora', color: 'text-white bg-gradient-to-r from-indigo-500 to-orange-600' }
+                                            // 'sold' option removed per user request
                                         ].map(opt => (
                                             <button
                                                 key={opt.val}
@@ -322,7 +322,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                                     e.stopPropagation();
                                                     handleStatusUpdate(vehicle, opt.val as VehicleStatus);
                                                 }}
-                                                className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between group/item hover:bg-slate-800 transition-colors ${opt.val === 'sold' ? 'font-bold text-white bg-slate-800/50' : 'text-slate-300'}`}
+                                                className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between group/item hover:bg-slate-800 transition-colors text-slate-300`}
                                             >
                                                 <span className={opt.color.includes('text') ? opt.color : ''}>{opt.label}</span>
                                                 {vehicle.status === opt.val && <Check size={14} className="text-emerald-400"/>}

@@ -29,7 +29,10 @@ export const ApiService = {
         soldDate: v.sold_date,
         purchaseDate: v.created_at, 
         expenses: v.expenses || [],
-        paymentMethod: v.payment_method
+        paymentMethod: v.payment_method,
+        // Mapping boolean fields explicitly
+        ipvaPaid: v.ipva_paid,
+        licensingPaid: v.licensing_paid
     }));
   },
 
@@ -93,6 +96,8 @@ export const ApiService = {
         warranty_details: vehicle.warrantyDetails,
         ipva_paid: vehicle.ipvaPaid,
         licensing_paid: vehicle.licensingPaid,
+        sale_commission: vehicle.saleCommission,
+        sale_commission_to: vehicle.saleCommissionTo,
         updated_at: new Date().toISOString()
     };
 
