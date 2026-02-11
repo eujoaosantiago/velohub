@@ -43,7 +43,7 @@ export const ApiService = {
     }));
   },
 
-  getVehicleById: async (vehicleId: string): Promise<Vehicle & { storeName?: string }> => {
+  getVehicleById: async (vehicleId: string): Promise<Vehicle & { storeName?: string; storeWhatsapp?: string }> => {
     if (!supabase) throw new Error("Conexão necessária.");
 
     console.log('🔍 Buscando veículo público:', vehicleId);
@@ -67,22 +67,29 @@ export const ApiService = {
 
     console.log('✅ Veículo encontrado:', vehicleData.make, vehicleData.model);
 
-    // Segunda tentativa: busca o nome da loja (da tabela users)
+    // Segunda tentativa: busca o nome e whatsapp da loja (da tabela users)
     let storeName = 'Nossa Loja';
+    let storeWhatsapp = '';
     try {
         const { data: userData } = await supabase
             .from('users')
-            .select('store_name')
+            .select('store_name, whatsapp')
             .eq('store_id', vehicleData.store_id)
             .limit(1)
             .single();
         
-        if (userData && userData.store_name) {
-            storeName = userData.store_name;
-            console.log('✅ Loja encontrada:', storeName);
+        if (userData) {
+            if (userData.store_name) {
+                storeName = userData.store_name;
+                console.log('✅ Loja encontrada:', storeName);
+            }
+            if (userData.whatsapp) {
+                storeWhatsapp = userData.whatsapp;
+                console.log('✅ WhatsApp encontrado:', storeWhatsapp);
+            }
         }
     } catch (e) {
-        console.warn('⚠️ Não foi possível buscar nome da loja, usando default');
+        console.warn('⚠️ Não foi possível buscar dados da loja, usando defaults');
     }
 
     return {
@@ -105,7 +112,8 @@ export const ApiService = {
         saleCommissionTo: vehicleData.sale_commission_to || '',
         ipvaPaid: vehicleData.ipva_paid,
         licensingPaid: vehicleData.licensing_paid,
-        storeName: storeName
+        storeName: storeName,
+        storeWhatsapp: storeWhatsapp
     };
   },
 

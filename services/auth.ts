@@ -34,6 +34,7 @@ export const AuthService = {
         storeName: profile.store_name,
         cnpj: profile.cnpj,
         phone: profile.phone,
+        whatsapp: profile.whatsapp,
         city: profile.city,
         state: profile.state,
         permissions: profile.permissions,
@@ -123,6 +124,7 @@ export const AuthService = {
           name: user.name,
           store_name: user.storeName,
           cnpj: user.cnpj,
+          whatsapp: user.whatsapp,
           contract_template: user.contractTemplate
       };
       
@@ -133,6 +135,7 @@ export const AuthService = {
           const sharedUpdates = {
               store_name: user.storeName,
               cnpj: user.cnpj,
+              whatsapp: user.whatsapp,
               contract_template: user.contractTemplate
           };
           await supabase.from('users').update(sharedUpdates).eq('store_id', user.storeId);

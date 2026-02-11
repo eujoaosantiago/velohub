@@ -286,7 +286,8 @@ const AppContent: React.FC = () => {
         <>
             <PublicVehicleShare 
                 vehicle={publicVehicle} 
-                storeName={(publicVehicle as any).storeName || 'Nossa Loja'} 
+                storeName={(publicVehicle as any).storeName || 'Nossa Loja'}
+                storeWhatsapp={(publicVehicle as any).storeWhatsapp}
             />
             <CookieConsent />
         </>
