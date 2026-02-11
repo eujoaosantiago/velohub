@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth';
 import { User, UserPermissions } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Mail, UserPlus, CheckCircle2, Trash2, Lock, Copy, AlertTriangle, Settings, X, Shield, DollarSign, Users, BarChart3, Edit3, ShoppingCart, Share2, MessageCircle, Send } from 'lucide-react';
+import { Mail, UserPlus, CheckCircle2, Trash2, Lock, Copy, AlertTriangle, Settings, X, Shield, DollarSign, Users, BarChart3, Edit3, ShoppingCart, Share2, MessageCircle, Send, Loader } from 'lucide-react';
 import { checkTeamLimit, getPlanLimits } from '../lib/plans';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
@@ -23,6 +23,8 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [emailSentStatus, setEmailSentStatus] = useState<'sent' | 'failed' | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendMessage, setResendMessage] = useState('');
 
     // Permission Modal State
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -96,6 +98,33 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
     const handleCopyLink = () => {
         navigator.clipboard.writeText(inviteLink);
         alert("Link copiado para a área de transferência!");
+    };
+
+    const handleResendInvite = async () => {
+        setResendLoading(true);
+        setResendMessage('');
+        
+        try {
+            if (isSupabaseConfigured() && supabase) {
+                const { data, error } = await supabase.functions.invoke('send-invite', {
+                    body: {
+                        email,
+                        name,
+                        link: inviteLink,
+                        storeName: user.storeName || 'Loja',
+                        ownerName: user.name
+                    }
+                });
+
+                if (error) throw error;
+                setResendMessage('Convite reenviado com sucesso!');
+            }
+        } catch (err: any) {
+            setResendMessage('Erro ao reenviar: ' + (err.message || 'Tente novamente mais tarde'));
+        } finally {
+            setResendLoading(false);
+            setTimeout(() => setResendMessage(''), 5000);
+        }
     };
 
     const handleOpenPermissions = (member: User) => {
@@ -180,9 +209,31 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
                                 </div>
                             </div>
 
-                            <Button onClick={handleCloseSuccess} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white border-transparent py-3">
-                                Concluir
-                            </Button>
+                            {resendMessage && (
+                                <div className={`mb-4 text-sm p-3 rounded-lg ${
+                                    resendMessage.includes('sucesso') 
+                                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' 
+                                        : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
+                                }`}>
+                                    {resendMessage}
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <Button onClick={handleCloseSuccess} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white border-transparent py-3">
+                                    Concluir
+                                </Button>
+                                {emailSentStatus === 'sent' && (
+                                    <button
+                                        onClick={handleResendInvite}
+                                        disabled={resendLoading}
+                                        className="w-full py-3 px-4 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {resendLoading ? <Loader className="animate-spin" size={18} /> : <Mail size={18} />}
+                                        {resendLoading ? 'Reenviando...' : 'Reenviar Convite'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

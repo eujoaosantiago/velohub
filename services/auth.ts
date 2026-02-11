@@ -154,6 +154,15 @@ export const AuthService = {
       if (error) throw new Error(error.message);
   },
 
+  resendConfirmationEmail: async (email: string) => {
+      if (!supabase) throw new Error("Serviço indisponível.");
+      const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email,
+      });
+      if (error) throw new Error(error.message);
+  },
+
   getTeam: async (): Promise<User[]> => {
       if (!supabase) return [];
       const { data: { user } } = await supabase.auth.getUser();

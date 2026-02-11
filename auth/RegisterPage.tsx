@@ -40,6 +40,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   // Password Validation State
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
@@ -117,6 +119,23 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
     }
   };
 
+  const handleResendEmail = async () => {
+    setResendLoading(true);
+    setResendMessage('');
+    
+    try {
+        await AuthService.resendConfirmationEmail(email);
+        setResendMessage('Email reenviado com sucesso! Verifique sua caixa de entrada.');
+        
+        // Remove a mensagem após 5 segundos
+        setTimeout(() => setResendMessage(''), 5000);
+    } catch (err: any) {
+        setResendMessage('Erro ao reenviar email: ' + (err.message || 'Tente novamente mais tarde'));
+    } finally {
+        setResendLoading(false);
+    }
+  };
+
   if (showSuccess) {
       return (
         <AuthLayout title="Cadastro Realizado!" subtitle="Falta pouco para acessar sua conta.">
@@ -131,20 +150,40 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                          Verifique seu email
                      </h4>
                      <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                         Enviamos um link de confirmação para <strong>{email}</strong>. 
+                         Enviamos um link de confirmação para <strong className="text-indigo-300 break-all">{email}</strong>. 
                          Clique no link para ativar sua conta.
                      </p>
                      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200 flex gap-2">
-                        <AlertTriangle size={16} className="shrink-0 text-amber-500" />
+                        <AlertTriangle size={16} className="shrink-0 text-amber-500 mt-0.5" />
                         <span>
                             <strong>Não recebeu?</strong> Verifique sua pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>. O remetente pode ser "noreply" ou "Velohub".
                         </span>
                      </div>
                  </div>
+
+                 {resendMessage && (
+                    <div className={`mb-4 text-sm p-3 rounded-lg ${
+                        resendMessage.includes('sucesso') 
+                            ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' 
+                            : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
+                    }`}>
+                        {resendMessage}
+                    </div>
+                 )}
                  
-                 <Button onClick={onNavigateLogin} size="lg" className="w-full">
-                     Voltar para Login
-                 </Button>
+                 <div className="space-y-3 mb-6">
+                     <Button onClick={onNavigateLogin} size="lg" className="w-full">
+                         Já confirmei meu email
+                     </Button>
+                     <button
+                         onClick={handleResendEmail}
+                         disabled={resendLoading}
+                         className="w-full py-3 px-4 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                     >
+                         {resendLoading ? <Loader className="animate-spin" size={18} /> : <Mail size={18} />}
+                         {resendLoading ? 'Reenviando...' : 'Reenviar Email de Confirmação'}
+                     </button>
+                 </div>
             </div>
         </AuthLayout>
       );
@@ -262,10 +301,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         <input 
                             type="text" 
                             required
-                            readOnly
                             value={city}
-                            className="w-full bg-slate-900 border border-slate-800 text-slate-400 rounded-xl px-2 py-3 text-sm focus:outline-none cursor-default"
-                            placeholder="Auto"
+                            onChange={e => setCity(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                            placeholder="Cidade"
                         />
                     </div>
                     <div>
@@ -273,10 +312,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         <input 
                             type="text" 
                             required
-                            readOnly
                             value={state}
-                            className="w-full bg-slate-900 border border-slate-800 text-slate-400 rounded-xl px-2 py-3 text-sm focus:outline-none cursor-default text-center"
-                            placeholder="UF"
+                            onChange={e => setState(e.target.value.toUpperCase().slice(0, 2))}
+                            maxLength={2}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all text-center"
+                            placeholder="SP"
                         />
                     </div>
                 </div>

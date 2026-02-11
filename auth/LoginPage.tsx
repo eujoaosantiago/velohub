@@ -21,6 +21,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
   // Estado para fluxo de "Esqueci minha senha"
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +62,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
       }
   };
 
+  const handleResendPasswordReset = async () => {
+      setResendLoading(true);
+      setResendMessage('');
+      
+      try {
+          await AuthService.resetPassword(email);
+          setResendMessage('Email de recuperação reenviado com sucesso!');
+          
+          // Remove a mensagem após 5 segundos
+          setTimeout(() => setResendMessage(''), 5000);
+      } catch (err: any) {
+          setResendMessage('Erro ao reenviar: ' + (err.message || 'Tente novamente mais tarde'));
+      } finally {
+          setResendLoading(false);
+      }
+  };
+
   // --- TELA DE RECUPERAÇÃO DE SENHA ---
   if (isResetting) {
       return (
@@ -77,12 +96,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
                          <CheckCircle size={32} />
                      </div>
                      <h3 className="text-white font-bold text-lg mb-2">Email Enviado!</h3>
-                     <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                     <p className="text-slate-400 text-sm mb-2 leading-relaxed">
                          Verifique sua caixa de entrada (e spam). Enviamos um link para redefinir sua senha.
                      </p>
-                     <Button onClick={() => { setIsResetting(false); setResetSent(false); }} className="w-full">
-                         Voltar ao Login
-                     </Button>
+                     <p className="text-slate-500 text-xs mb-6">Para: <strong className="text-slate-300">{email}</strong></p>
+
+                     {resendMessage && (
+                        <div className={`mb-4 text-sm p-3 rounded-lg ${
+                            resendMessage.includes('sucesso') 
+                                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' 
+                                : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
+                        }`}>
+                            {resendMessage}
+                        </div>
+                     )}
+
+                     <div className="space-y-3">
+                         <Button onClick={() => { setIsResetting(false); setResetSent(false); }} className="w-full">
+                             Voltar ao Login
+                         </Button>
+                         <button
+                             onClick={handleResendPasswordReset}
+                             disabled={resendLoading}
+                             className="w-full py-3 px-4 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                         >
+                             {resendLoading ? <Loader className="animate-spin" size={18} /> : <Mail size={18} />}
+                             {resendLoading ? 'Reenviando...' : 'Reenviar Email de Recuperação'}
+                         </button>
+                     </div>
                  </div>
              ) : (
                 <form onSubmit={handleResetPassword} className="space-y-4">
