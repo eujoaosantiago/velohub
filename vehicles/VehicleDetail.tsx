@@ -209,7 +209,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
     }
   }, [isNew, useFipeSearch]);
 
-  // ... (Camera and FIPE code omitted for brevity as it is unchanged) ...
   useEffect(() => {
       let stream: MediaStream | null = null;
 
@@ -477,12 +476,22 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       
       let updatedExpenses = [...formData.expenses]; // Usa os gastos atuais do formulário
       
-      if (commissionVal > 0) {
+      // FIX: Verifica o quanto já existe de despesa de comissão lançada para não duplicar
+      const existingCommissionSum = updatedExpenses
+          .filter(e => e.category === 'salary')
+          .reduce((acc, e) => acc + e.amount, 0);
+
+      // Calcula a diferença entre o que está no input e o que já foi lançado
+      // Se o usuário lançou manual na aba gastos, a diferença será 0.
+      // Se o usuário digitou apenas no input de venda, a diferença será o valor total.
+      const commissionDifference = commissionVal - existingCommissionSum;
+      
+      if (commissionDifference > 0.01) { // Tolerância para float
           const commExpense: Expense = {
               id: Math.random().toString(), // ID temporário, backend vai gerar real se recarregar
               vehicleId: vehicle.id,
               description: 'Comissão de Venda',
-              amount: commissionVal,
+              amount: commissionDifference,
               date: saleData.date,
               category: 'salary',
               employeeName: saleData.commissionTo || undefined
@@ -557,7 +566,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const handleAddExpense = async () => {
-      // ... (Rest of expense logic remains same)
       if(!expenseData.desc) {
           showToast("Informe a descrição do gasto.", "error");
           return;
@@ -582,7 +590,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       const newExpenses = [...formData.expenses, newExp];
       setFormData(prev => ({ ...prev, expenses: newExpenses }));
 
-      // Se adicionar comissão manualmente na aba de gastos, reflete no campo de venda
       if (expenseData.category === 'salary') {
           const currentCommission = parseCurrencyInput(saleData.commission);
           const newTotalCommission = currentCommission + amountVal;
@@ -611,15 +618,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   
   const cashReceived = grossRevenue - tradeInValue;
 
-  // Cálculos de lucro em tempo real para a UI
-  const allExpensesSum = formData.expenses.reduce((acc, e) => acc + e.amount, 0);
+  const expensesCommissionValue = formData.expenses.filter(e => e.category === 'salary').reduce((acc, e) => acc + e.amount, 0);
+  const operatingExpensesValue = formData.expenses.filter(e => e.category !== 'salary').reduce((acc, e) => acc + e.amount, 0);
   
-  // Comissão efetiva: Se ainda não vendeu, usa o input. Se já vendeu, a comissão já está dentro de allExpenses (pois salvamos como expense)
-  const effectiveCommissionCost = isSold ? 0 : currentCommissionInput; 
-  // Nota: Se isSold é true, a comissão já foi convertida em expense em handleSale, então está em allExpensesSum.
-  // Se não é sold, mostramos a projeção baseada no input.
+  const effectiveCommissionCost = isSold
+      ? ((formData.saleCommission && formData.saleCommission > 0) ? formData.saleCommission : expensesCommissionValue)
+      : (currentCommissionInput > 0 ? currentCommissionInput : expensesCommissionValue);
 
-  const totalCost = formData.purchasePrice + allExpensesSum + effectiveCommissionCost;
+  const totalCost = formData.purchasePrice + operatingExpensesValue + effectiveCommissionCost;
   const netProfit = grossRevenue - totalCost;
   const isProfit = netProfit > 0;
 
@@ -689,7 +695,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           </div>
       )}
 
-      {/* ... Rest of the UI remains identical ... */}
       {cameraState.isOpen && (
           <div className="fixed inset-0 z-[100] bg-black flex flex-col">
               <div className="flex justify-between items-center p-4 bg-black/50 backdrop-blur absolute top-0 w-full z-10">
@@ -998,7 +1003,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </div>
                                   <div className="flex justify-between text-slate-400">
                                       <span>Gastos + Comissões</span>
-                                      <span>{formatCurrency(allExpensesSum)}</span>
+                                      <span>{formatCurrency(operatingExpensesValue + effectiveCommissionCost)}</span>
                                   </div>
                                   <div className="border-t border-slate-800 pt-2 flex justify-between font-bold text-white text-base">
                                       <span>Total</span>
@@ -1186,7 +1191,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <p className="text-rose-400 font-bold text-lg">- {formatCurrency(totalCost)}</p>
                                   <div className="text-[10px] text-slate-500 mt-1 flex flex-col">
                                       <span>Compra: {formatCurrency(vehicle.purchasePrice)}</span>
-                                      <span>Gastos Op. + Comissão: {formatCurrency(allExpensesSum + effectiveCommissionCost)}</span>
+                                      <span>Gastos Op. + Comissão: {formatCurrency(operatingExpensesValue + effectiveCommissionCost)}</span>
                                   </div>
                                   {vehicle.purchasePrice === 0 && (
                                       <div className="absolute -top-2 -right-2 text-amber-500 bg-slate-900 rounded-full border border-amber-500/50 p-1" title="Custo de compra zerado">
