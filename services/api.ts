@@ -46,43 +46,65 @@ export const ApiService = {
   getVehicleById: async (vehicleId: string): Promise<Vehicle & { storeName?: string }> => {
     if (!supabase) throw new Error("Conexão necessária.");
 
-    // Busca o veículo com JOIN na tabela stores para pegar o nome da loja
-    const { data, error } = await supabase
+    console.log('🔍 Buscando veículo público:', vehicleId);
+
+    // Primeira tentativa: busca simples do veículo
+    const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
-        .select('*, stores!vehicles_store_id_fkey(store_name)')
+        .select('*')
         .eq('id', vehicleId)
         .single();
         
-    if (error) {
-        console.error("Erro ao buscar veículo:", error);
-        throw new Error("Veículo não encontrado.");
+    if (vehicleError) {
+        console.error("❌ Erro ao buscar veículo:", vehicleError);
+        throw new Error(`Veículo não encontrado: ${vehicleError.message}`);
     }
     
-    if (!data) {
+    if (!vehicleData) {
+        console.error("❌ Veículo não existe");
         throw new Error("Veículo não encontrado.");
     }
 
+    console.log('✅ Veículo encontrado:', vehicleData.make, vehicleData.model);
+
+    // Segunda tentativa: busca o nome da loja
+    let storeName = 'Nossa Loja';
+    try {
+        const { data: storeData } = await supabase
+            .from('stores')
+            .select('store_name')
+            .eq('id', vehicleData.store_id)
+            .single();
+        
+        if (storeData) {
+            storeName = storeData.store_name;
+            console.log('✅ Loja encontrada:', storeName);
+        }
+    } catch (e) {
+        console.warn('⚠️ Não foi possível buscar nome da loja, usando default');
+    }
+
     return {
-        ...data,
-        id: data.id,
-        storeId: data.store_id,
-        purchasePrice: data.purchase_price,
-        expectedSalePrice: data.expected_sale_price,
-        fipePrice: data.fipe_price,
-        soldPrice: data.sold_price,
-        soldDate: data.sold_date,
-        purchaseDate: data.created_at, 
-        expenses: data.expenses || [],
-        paymentMethod: data.payment_method,
-        buyer: data.buyer || undefined,
-        warrantyDetails: data.warranty_details || undefined,
-        reservationDetails: data.reservation_details || undefined,
-        tradeInInfo: data.trade_in_info || undefined,
-        saleCommission: data.sale_commission || 0,
-        saleCommissionTo: data.sale_commission_to || '',
-        ipvaPaid: data.ipva_paid,
-        licensingPaid: data.licensing_paid,
-        storeName: data.stores?.store_name || 'Loja'
+        ...vehicleData,
+        id: vehicleData.id,
+        storeId: vehicleData.store_id,
+        purchasePrice: vehicleData.purchase_price,
+        expectedSalePrice: vehicleData.expected_sale_price,
+        fipePrice: vehicleData.fipe_price,
+        soldPrice: vehicleData.sold_price,
+        soldDate: vehicleData.sold_date,
+        purchaseDate: vehicleData.created_at, 
+        expenses: vehicleData.expenses || [],
+        paymentMethod: vehicleData.payment_method,
+        buyer: vehicleData.buyer || undefined,
+        warrantyDetails: vehicleData.warranty_details || undefined,
+        reservationDetails: vehicleData.reservation_details || undefined,
+        tradeInInfo: vehicleData.trade_in_info || undefined,
+        saleCommission: vehicleData.sale_commission || 0,
+        saleCommissionTo: vehicleData.sale_commission_to || '',
+        ipvaPaid: vehicleData.ipva_paid,
+        licensingPaid: vehicleData.licensing_paid,
+        storeName: storeName
     };
   },
 

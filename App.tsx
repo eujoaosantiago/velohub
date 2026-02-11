@@ -100,16 +100,21 @@ const AppContent: React.FC = () => {
   // Load public vehicle when publicVehicleId is set
   useEffect(() => {
       if (publicVehicleId && !publicVehicle) {
+          console.log('🔄 Iniciando carregamento de veículo público. ID:', publicVehicleId);
           const loadPublicVehicle = async () => {
               setLoadingPublicVehicle(true);
               try {
+                  console.log('📡 Chamando ApiService.getVehicleById...');
                   const vehicle = await ApiService.getVehicleById(publicVehicleId);
+                  console.log('✅ Veículo carregado com sucesso:', vehicle);
                   setPublicVehicle(vehicle);
-              } catch (error) {
-                  console.error('Erro ao carregar veículo público:', error);
+              } catch (error: any) {
+                  console.error('❌ Erro ao carregar veículo público:', error);
+                  console.error('❌ Mensagem de erro:', error?.message);
                   setPublicVehicle(null);
               } finally {
                   setLoadingPublicVehicle(false);
+                  console.log('🏁 Carregamento finalizado');
               }
           };
           loadPublicVehicle();
@@ -248,15 +253,31 @@ const AppContent: React.FC = () => {
               <div className="flex flex-col items-center gap-2">
                   <Loader2 className="animate-spin text-slate-400" size={24} />
                   <span className="text-sm">Carregando ficha...</span>
+                  <span className="text-xs text-slate-400 font-mono">ID: {publicVehicleId}</span>
               </div>
           </div>;
       }
       
       if (!publicVehicle) {
-          return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">
-              <div className="flex flex-col items-center gap-2 text-center p-4">
-                  <span className="text-lg font-semibold">Veículo não encontrado</span>
-                  <span className="text-sm">Este link pode estar desatualizado ou o veículo foi removido.</span>
+          return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500 p-4">
+              <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                      <span className="text-3xl">🚗</span>
+                  </div>
+                  <div>
+                      <h2 className="text-lg font-semibold text-slate-900 mb-1">Veículo não encontrado</h2>
+                      <p className="text-sm text-slate-500 mb-4">Este link pode estar desatualizado ou o veículo foi removido.</p>
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-left">
+                          <p className="text-slate-400 mb-1">ID do veículo:</p>
+                          <p className="font-mono text-slate-700 break-all">{publicVehicleId}</p>
+                      </div>
+                  </div>
+                  <button 
+                      onClick={() => window.location.href = '/'} 
+                      className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                      Voltar ao início
+                  </button>
               </div>
           </div>;
       }
