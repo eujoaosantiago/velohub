@@ -182,7 +182,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           formData.expectedSalePrice !== vehicle.expectedSalePrice ||
           formData.fipePrice !== vehicle.fipePrice ||
           formData.status !== vehicle.status ||
-          // FIX: Força comparação booleana para evitar erro de dirty state com null/undefined
           !!formData.ipvaPaid !== !!vehicle.ipvaPaid ||
           !!formData.licensingPaid !== !!vehicle.licensingPaid;
 
@@ -199,9 +198,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   // Sincroniza o estado local com a prop quando o registro é atualizado no banco (ex: após salvar com sucesso)
   useEffect(() => {
-      if (vehicle.updatedAt !== formData.updatedAt) {
-          setFormData(vehicle);
-      }
+      // Quando a prop 'vehicle' muda (o que acontece após um refreshData no pai),
+      // atualizamos o formData para refletir a "verdade" do servidor.
+      // Isso limpa o estado de "sujo" (dirtyState) porque formData ficará igual a vehicle.
+      setFormData(vehicle);
   }, [vehicle]);
 
   useEffect(() => {

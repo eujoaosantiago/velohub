@@ -64,7 +64,9 @@ export const ApiService = {
         expected_sale_price: vehicle.expectedSalePrice,
         fipe_price: vehicle.fipePrice,
         photos: vehicle.photos,
-        expenses: vehicle.expenses
+        expenses: vehicle.expenses,
+        ipva_paid: vehicle.ipvaPaid,
+        licensing_paid: vehicle.licensingPaid
     };
 
     const { data, error } = await supabase.from('vehicles').insert(dbVehicle).select().single();
