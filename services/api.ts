@@ -43,6 +43,49 @@ export const ApiService = {
     }));
   },
 
+  getVehicleById: async (vehicleId: string): Promise<Vehicle & { storeName?: string }> => {
+    if (!supabase) throw new Error("Conexão necessária.");
+
+    // Busca o veículo com JOIN na tabela stores para pegar o nome da loja
+    const { data, error } = await supabase
+        .from('vehicles')
+        .select('*, stores!vehicles_store_id_fkey(store_name)')
+        .eq('id', vehicleId)
+        .single();
+        
+    if (error) {
+        console.error("Erro ao buscar veículo:", error);
+        throw new Error("Veículo não encontrado.");
+    }
+    
+    if (!data) {
+        throw new Error("Veículo não encontrado.");
+    }
+
+    return {
+        ...data,
+        id: data.id,
+        storeId: data.store_id,
+        purchasePrice: data.purchase_price,
+        expectedSalePrice: data.expected_sale_price,
+        fipePrice: data.fipe_price,
+        soldPrice: data.sold_price,
+        soldDate: data.sold_date,
+        purchaseDate: data.created_at, 
+        expenses: data.expenses || [],
+        paymentMethod: data.payment_method,
+        buyer: data.buyer || undefined,
+        warrantyDetails: data.warranty_details || undefined,
+        reservationDetails: data.reservation_details || undefined,
+        tradeInInfo: data.trade_in_info || undefined,
+        saleCommission: data.sale_commission || 0,
+        saleCommissionTo: data.sale_commission_to || '',
+        ipvaPaid: data.ipva_paid,
+        licensingPaid: data.licensing_paid,
+        storeName: data.stores?.store_name || 'Loja'
+    };
+  },
+
   createVehicle: async (vehicle: Vehicle, user: User): Promise<Vehicle> => {
     if (!supabase) throw new Error("Conexão segura necessária.");
 

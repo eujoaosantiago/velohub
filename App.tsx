@@ -70,6 +70,8 @@ const AppContent: React.FC = () => {
   const [inviteStoreId, setInviteStoreId] = useState<string | null>(null);
   const [inviteStoreName, setInviteStoreName] = useState<string | null>(null);
   const [publicVehicleId, setPublicVehicleId] = useState<string | null>(null);
+  const [publicVehicle, setPublicVehicle] = useState<Vehicle | null>(null);
+  const [loadingPublicVehicle, setLoadingPublicVehicle] = useState(false);
 
   useEffect(() => {
       const params = new URLSearchParams(window.location.search);
@@ -94,6 +96,25 @@ const AppContent: React.FC = () => {
           }
       }
   }, []);
+
+  // Load public vehicle when publicVehicleId is set
+  useEffect(() => {
+      if (publicVehicleId && !publicVehicle) {
+          const loadPublicVehicle = async () => {
+              setLoadingPublicVehicle(true);
+              try {
+                  const vehicle = await ApiService.getVehicleById(publicVehicleId);
+                  setPublicVehicle(vehicle);
+              } catch (error) {
+                  console.error('Erro ao carregar veículo público:', error);
+                  setPublicVehicle(null);
+              } finally {
+                  setLoadingPublicVehicle(false);
+              }
+          };
+          loadPublicVehicle();
+      }
+  }, [publicVehicleId, publicVehicle]);
 
   // Force redirect if user is logged in but on public pages
   useEffect(() => {
@@ -222,18 +243,30 @@ const AppContent: React.FC = () => {
   }
 
   if (currentPage === Page.PUBLIC_SHARE && publicVehicleId) {
-      const foundVehicle = vehicles.find(v => v.id === publicVehicleId);
-      if (!foundVehicle) {
-           return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">
-               <div className="flex flex-col items-center gap-2">
-                   <Loader2 className="animate-spin text-slate-400" size={24} />
-                   <span className="text-sm">Carregando ficha...</span>
-               </div>
-           </div>;
+      if (loadingPublicVehicle) {
+          return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">
+              <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="animate-spin text-slate-400" size={24} />
+                  <span className="text-sm">Carregando ficha...</span>
+              </div>
+          </div>;
       }
+      
+      if (!publicVehicle) {
+          return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">
+              <div className="flex flex-col items-center gap-2 text-center p-4">
+                  <span className="text-lg font-semibold">Veículo não encontrado</span>
+                  <span className="text-sm">Este link pode estar desatualizado ou o veículo foi removido.</span>
+              </div>
+          </div>;
+      }
+      
       return (
         <>
-            <PublicVehicleShare vehicle={foundVehicle} storeName={user?.storeName || 'Nossa Loja'} />
+            <PublicVehicleShare 
+                vehicle={publicVehicle} 
+                storeName={(publicVehicle as any).storeName || 'Nossa Loja'} 
+            />
             <CookieConsent />
         </>
       );
