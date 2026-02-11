@@ -27,13 +27,13 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     let mounted = true;
 
-    // Timeout de Segurança Absoluto (10s) para não travar a tela de loading
+    // Timeout de Segurança Absoluto (aumentado para 20s para mobile)
     const safetyTimer = setTimeout(() => {
         if (mounted && isLoading) {
             console.warn("⚠️ Timeout de carregamento global.");
             setIsLoading(false);
         }
-    }, 10000);
+    }, 20000);
 
     if (!supabase) {
         setIsLoading(false);
@@ -52,11 +52,9 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
             if (session?.user) {
                 // Se tem sessão, tenta buscar o perfil com Polling (Tentativas)
-                // Se for retorno de pagamento, o polling é mais agressivo/longo
                 await fetchUserProfileWithRetry(session.user.id, isPaymentReturn);
                 
                 if (isPaymentReturn) {
-                    // Limpa a URL
                     window.history.replaceState({}, '', window.location.pathname);
                 }
             } else {
@@ -84,7 +82,7 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             setCurrentPage(Page.RESET_PASSWORD);
             setIsLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-            // Se o usuário mudou ou acabou de logar
+            // Evita reload se o usuário já estiver carregado corretamente
             if (!user || user.id !== session.user.id) {
                 setIsLoading(true);
                 await fetchUserProfileWithRetry(session.user.id);
@@ -106,17 +104,15 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   /**
    * LÓGICA DE POLLING (TENTATIVAS):
-   * Tenta buscar o perfil no banco de dados.
-   * 
-   * 1. Login Normal: Tenta 5 vezes (1s intervalo). Isso cobre o tempo da Trigger do banco criar o usuário.
-   * 2. Retorno Pagamento: Tenta 10 vezes (2s intervalo). Aguarda o Webhook do Stripe chegar e atualizar o plano.
+   * Tenta buscar o perfil no banco de dados. Aumentado para suportar latência mobile.
    */
   const fetchUserProfileWithRetry = async (userId: string, isPaymentWait = false) => {
       if (!supabase) return;
       
       let attempts = 0;
-      const maxAttempts = isPaymentWait ? 10 : 5; 
-      const interval = isPaymentWait ? 2000 : 1000;
+      // Mais tentativas e intervalo maior para garantir consistência em redes lentas
+      const maxAttempts = isPaymentWait ? 15 : 10; 
+      const interval = 1500; 
       
       let profile = null;
 
@@ -130,45 +126,37 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
           if (data) {
               profile = data;
               
-              // Se estamos esperando pagamento, só paramos se o plano mudou de 'free'/'trial'
               if (isPaymentWait) {
                   if (profile.plan !== 'free' && profile.plan !== 'trial') {
-                      break; // Sucesso! Plano atualizado.
+                      break; 
                   }
-                  // Se ainda for free, continua tentando no loop...
               } else {
-                  // Login normal: achou perfil, ótimo.
                   break; 
               }
           }
 
           attempts++;
           if (attempts < maxAttempts) {
-              // Espera antes da próxima tentativa
               await new Promise(r => setTimeout(r, interval));
           }
       }
 
-      // Se após todas tentativas não temos perfil válido (Apenas no Login normal)
       if (!profile && !isPaymentWait) {
-          console.error("Perfil crítico não encontrado após várias tentativas. Deslogando para segurança.");
+          console.error("Perfil crítico não encontrado após várias tentativas.");
           await supabase.auth.signOut();
           setUser(null);
           setIsLoading(false);
           return;
       }
 
-      // Se temos perfil (mesmo que plano antigo se o webhook falhou), carregamos
       if (profile) {
           const mappedUser = AuthService.mapProfileToUser(profile);
           setUser(mappedUser);
           
-          // Carregar veículos em paralelo
           await loadVehicles(mappedUser.storeId);
           
           setIsLoading(false);
           
-          // Redireciona apenas se estiver em páginas públicas
           setCurrentPage(prev => {
               if ([Page.LANDING, Page.LOGIN, Page.REGISTER].includes(prev)) {
                   return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
@@ -176,7 +164,6 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
               return prev;
           });
       } else {
-          // Caso extremo: Pagamento timeout, mantém logado mas sem perfil (raro)
           setIsLoading(false);
       }
   };
@@ -191,20 +178,24 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const login = async (loggedUser: User | null) => {
-    // Chamada manual do Login Page
     if (loggedUser) {
-        // Se o AuthService já retornou o usuário completo, usamos ele
         setUser(loggedUser);
         setIsLoading(true);
         await loadVehicles(loggedUser.storeId);
         setIsLoading(false);
         setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
     } else {
-        // Se o AuthService retornou null (perfil não pronto), forçamos o polling
-        const { data: { user: authUser } } = await supabase!.auth.getUser();
-        if (authUser) {
-            setIsLoading(true);
-            await fetchUserProfileWithRetry(authUser.id);
+        try {
+            const { data: { user: authUser } } = await supabase!.auth.getUser();
+            if (authUser) {
+                setIsLoading(true);
+                await fetchUserProfileWithRetry(authUser.id);
+            } else {
+                setIsLoading(false);
+            }
+        } catch (e) {
+            console.error("Login flow error", e);
+            setIsLoading(false);
         }
     }
   };
@@ -218,7 +209,6 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const refreshData = async () => {
       if (!user) return;
-      // Força polling agressivo para tentar pegar atualização de plano manual
       setIsLoading(true);
       await fetchUserProfileWithRetry(user.id, true);
       setIsLoading(false);
