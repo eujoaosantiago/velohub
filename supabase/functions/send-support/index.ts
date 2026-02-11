@@ -37,7 +37,7 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
-    // Template HTML para email interno (notificação para você)
+    // Template HTML para email interno (notificação para você) - Estilo Apple
     const adminEmailTemplate = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -45,89 +45,69 @@ serve(async (req) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Novo Chamado de Suporte</title>
+        <style>
+          body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f5f5f7; }
+          .container { max-width: 600px; margin: 0 auto; padding: 40px 16px; }
+          .card { background: #ffffff; border-radius: 20px; padding: 48px 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 24px; }
+          .header { text-align: center; padding-bottom: 40px; border-bottom: 1px solid #f0f0f0; }
+          .logo { font-size: 32px; font-weight: 700; letter-spacing: -1px; margin: 0; color: #2b2a2a; }
+          .logo-accent { color: #ff6035; }
+          .tagline { color: #757474; font-size: 15px; margin: 8px 0 0 0; }
+          h1 { font-size: 28px; font-weight: 700; color: #2b2a2a; margin: 40px 0 32px 0; line-height: 1.2; }
+          .info-row { margin-bottom: 28px; }
+          .label { font-size: 13px; font-weight: 600; color: #757474; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+          .value { font-size: 16px; color: #2b2a2a; font-weight: 500; }
+          .value-accent { color: #ff6035; font-weight: 600; }
+          .message-box { background: #f5f5f7; border-radius: 12px; padding: 24px; margin-top: 40px; }
+          .message-text { color: #2b2a2a; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; margin: 0; }
+          .cta-button { display: inline-block; background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%); color: white; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 15px; text-decoration: none; margin-top: 32px; border: none; cursor: pointer; }
+          .footer { text-align: center; padding-top: 40px; border-top: 1px solid #f0f0f0; color: #757474; font-size: 13px; line-height: 1.5; }
+          .footer a { color: #ff6035; text-decoration: none; font-weight: 500; }
+        </style>
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #2b2a2a;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #2b2a2a; padding: 40px 0;">
-          <tbody>
-            <tr>
-              <td align="center">
-                <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="background: #3d3c3c; border-radius: 12px; border: 1px solid #757474; overflow: hidden; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);">
-                  
-                  <!-- Header with Logo -->
-                  <tr style="background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%);">
-                    <td style="padding: 40px 20px; text-align: center;">
-                      <h1 style="margin: 0; color: #2b2a2a; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                        VELO<span style="color: #ece8e8;">HUB</span>
-                      </h1>
-                      <p style="margin: 8px 0 0 0; color: #ece8e8; font-size: 14px; font-weight: 500;">Centro de Suporte</p>
-                    </td>
-                  </tr>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <p class="logo">VELO<span class="logo-accent">HUB</span></p>
+              <p class="tagline">Centro de Suporte</p>
+            </div>
 
-                  <!-- Content -->
-                  <tr>
-                    <td style="padding: 40px;">
-                      
-                      <!-- Title -->
-                      <h2 style="margin: 0 0 30px 0; color: #ece8e8; font-size: 24px; font-weight: 700;">Novo Chamado Recebido</h2>
+            <div>
+              <h1>Novo Chamado Recebido</h1>
+              
+              <div class="info-row">
+                <div class="label">De</div>
+                <div class="value">${name}</div>
+                <div style="color: #757474; font-size: 14px; margin-top: 4px;">${email}</div>
+              </div>
 
-                      <!-- Info Cards -->
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
-                        <tr>
-                          <td style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">De:</p>
-                            <p style="margin: 6px 0 0 0; color: #ece8e8; font-size: 16px; font-weight: 600;">${name}</p>
-                            <p style="margin: 4px 0 0 0; color: #757474; font-size: 14px;">${email}</p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Tipo:</p>
-                            <p style="margin: 6px 0 0 0; color: #ece8e8; font-size: 16px; font-weight: 600;">${isClient ? '👤 Cliente Logado' : '🌐 Visitante'}</p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 16px;">
-                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Assunto:</p>
-                            <p style="margin: 6px 0 0 0; color: #ff6035; font-size: 16px; font-weight: 600;">${subject}</p>
-                          </td>
-                        </tr>
-                      </table>
+              <div class="info-row">
+                <div class="label">Tipo</div>
+                <div class="value">${isClient ? '👤 Cliente Logado' : '🌐 Visitante'}</div>
+              </div>
 
-                      <!-- Message -->
-                      <div style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                        <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Mensagem:</p>
-                        <p style="margin: 0; color: #ece8e8; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${message}</p>
-                      </div>
+              <div class="info-row">
+                <div class="label">Assunto</div>
+                <div class="value value-accent">${subject}</div>
+              </div>
 
-                      <!-- Action Button -->
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
-                        <tr>
-                          <td align="center">
-                            <a href="mailto:${email}" style="display: inline-block; background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%); color: #2b2a2a; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer;">
-                              Responder por Email
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
+              <div class="message-box">
+                <div class="label">Mensagem</div>
+                <p class="message-text">${message}</p>
+              </div>
 
-                    </td>
-                  </tr>
+              <center>
+                <a href="mailto:${email}" class="cta-button">Responder por Email</a>
+              </center>
+            </div>
+          </div>
 
-                  <!-- Footer -->
-                  <tr style="background: #2b2a2a; border-top: 1px solid #757474;">
-                    <td style="padding: 24px; text-align: center;">
-                      <p style="margin: 0; color: #757474; font-size: 12px; line-height: 1.6;">
-                        © 2026 Velohub Tecnologia. Todos os direitos reservados.<br>
-                        <a href="https://velohub-theta.vercel.app" style="color: #ff6035; text-decoration: none; font-weight: 500;">Voltar ao Painel</a>
-                      </p>
-                    </td>
-                  </tr>
-
-                </table>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <div class="footer">
+            <p>© 2026 Velohub Tecnologia<br>
+            <a href="https://velohub-theta.vercel.app">Voltar ao Painel</a></p>
+          </div>
+        </div>
       </body>
       </html>
     `;
@@ -154,7 +134,7 @@ serve(async (req) => {
         throw new Error("Failed to send admin email");
     }
 
-    // Template HTML para email de confirmação (para o usuário)
+    // Template HTML para email de confirmação (para o usuário) - Estilo Apple
     const userEmailTemplate = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -162,123 +142,108 @@ serve(async (req) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Recebemos sua Mensagem</title>
+        <style>
+          body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f5f5f7; }
+          .container { max-width: 600px; margin: 0 auto; padding: 40px 16px; }
+          .card { background: #ffffff; border-radius: 20px; padding: 48px 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 24px; }
+          .header { text-align: center; padding-bottom: 40px; border-bottom: 1px solid #f0f0f0; }
+          .logo { font-size: 32px; font-weight: 700; letter-spacing: -1px; margin: 0; color: #2b2a2a; }
+          .logo-accent { color: #ff6035; }
+          .tagline { color: #757474; font-size: 15px; margin: 8px 0 0 0; }
+          h1 { font-size: 28px; font-weight: 700; color: #2b2a2a; margin: 40px 0 16px 0; line-height: 1.2; }
+          .subtitle { font-size: 16px; color: #757474; line-height: 1.6; margin: 0 0 40px 0; }
+          .status-box { background: linear-gradient(135deg, rgba(255,96,53,0.08) 0%, rgba(255,122,82,0.06) 100%); border-left: 4px solid #ff6035; border-radius: 12px; padding: 20px; margin: 32px 0; }
+          .status-label { font-size: 13px; font-weight: 600; color: #757474; text-transform: uppercase; margin-bottom: 8px; }
+          .status-value { font-size: 16px; font-weight: 600; color: #ff6035; }
+          .info-row { margin-bottom: 20px; }
+          .label { font-size: 13px; font-weight: 600; color: #757474; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+          .value { font-size: 16px; color: #2b2a2a; font-weight: 500; }
+          .message-preview { background: #f5f5f7; border-radius: 12px; padding: 20px; margin-top: 16px; border-left: 4px solid #ff6035; }
+          .message-text { color: #2b2a2a; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; margin: 0; }
+          .timeline { padding: 32px 0; }
+          .timeline-item { margin-bottom: 24px; display: flex; }
+          .timeline-number { width: 40px; height: 40px; background: #ff6035; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; margin-right: 16px; }
+          .timeline-number.inactive { background: #e5e5e7; }
+          .timeline-content h3 { margin: 0; font-size: 15px; font-weight: 600; color: #2b2a2a; }
+          .timeline-content p { margin: 4px 0 0 0; font-size: 13px; color: #757474; }
+          .cta-button { display: inline-block; background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%); color: white; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 15px; text-decoration: none; margin-top: 32px; border: none; cursor: pointer; }
+          .footer { text-align: center; padding-top: 40px; border-top: 1px solid #f0f0f0; color: #757474; font-size: 13px; line-height: 1.5; }
+          .footer a { color: #ff6035; text-decoration: none; font-weight: 500; }
+          .help-text { font-size: 13px; color: #757474; text-align: center; }
+          .help-text a { color: #ff6035; text-decoration: none; font-weight: 500; }
+        </style>
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #2b2a2a;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #2b2a2a; padding: 40px 0;">
-          <tbody>
-            <tr>
-              <td align="center">
-                <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="background: #3d3c3c; border-radius: 12px; border: 1px solid #757474; overflow: hidden; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);">
-                  
-                  <!-- Header with Logo -->
-                  <tr style="background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%);">
-                    <td style="padding: 40px 20px; text-align: center;">
-                      <h1 style="margin: 0; color: #2b2a2a; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                        VELO<span style="color: #ece8e8;">HUB</span>
-                      </h1>
-                      <p style="margin: 8px 0 0 0; color: #ece8e8; font-size: 14px; font-weight: 500;">Obrigado por Entrar em Contato</p>
-                    </td>
-                  </tr>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <p class="logo">VELO<span class="logo-accent">HUB</span></p>
+              <p class="tagline">Obrigado por Entrar em Contato</p>
+            </div>
 
-                  <!-- Content -->
-                  <tr>
-                    <td style="padding: 40px;">
-                      
-                      <!-- Greeting -->
-                      <h2 style="margin: 0 0 8px 0; color: #ece8e8; font-size: 24px; font-weight: 700;">Olá, ${name}!</h2>
-                      <p style="margin: 0 0 30px 0; color: #757474; font-size: 16px; line-height: 1.6;">
-                        Recebemos sua mensagem com sucesso. Nossa equipe de especialistas já foi notificada e entrará em contato em breve.
-                      </p>
+            <div>
+              <h1>Olá, ${name}!</h1>
+              <p class="subtitle">Recebemos sua mensagem com sucesso. Nossa equipe de especialistas já foi notificada e entrará em contato em breve.</p>
 
-                      <!-- Status Box -->
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 24px; margin-bottom: 30px; border-left: 4px solid #ff6035;">
-                        <tr>
-                          <td>
-                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Status do Seu Chamado</p>
-                            <p style="margin: 8px 0 0 0; color: #ff6035; font-size: 16px; font-weight: 700;">✓ Recebido e Em Processamento</p>
-                          </td>
-                        </tr>
-                      </table>
+              <div class="status-box">
+                <div class="status-label">Status do Seu Chamado</div>
+                <div class="status-value">✓ Recebido e Em Processamento</div>
+              </div>
 
-                      <!-- Details -->
-                      <div style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                        <p style="margin: 0 0 16px 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Detalhes da Sua Mensagem:</p>
-                        
-                        <p style="margin: 0 0 12px 0;">
-                          <span style="color: #757474; font-size: 13px;">Assunto:</span><br>
-                          <span style="color: #ff6035; font-size: 15px; font-weight: 600;">${subject}</span>
-                        </p>
+              <h2 style="font-size: 16px; font-weight: 600; color: #2b2a2a; margin: 32px 0 16px 0;">Detalhes da Sua Mensagem</h2>
+              
+              <div class="info-row">
+                <div class="label">Assunto</div>
+                <div class="value" style="color: #ff6035; font-weight: 600;">${subject}</div>
+              </div>
 
-                        <p style="margin: 0;">
-                          <span style="color: #757474; font-size: 13px;">Mensagem:</span><br>
-                          <span style="color: #ece8e8; font-size: 14px; line-height: 1.6; display: block; margin-top: 8px; padding: 12px; background: #2b2a2a; border-radius: 6px; border-left: 3px solid #ff6035; white-space: pre-wrap; word-wrap: break-word;">${message}</span>
-                        </p>
-                      </div>
+              <div class="message-preview">
+                <div class="label" style="margin-bottom: 12px;">Sua Mensagem</div>
+                <p class="message-text">${message}</p>
+              </div>
 
-                      <!-- Timeline -->
-                      <div style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                        <p style="margin: 0 0 16px 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Próximos Passos:</p>
-                        
-                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                          <tr>
-                            <td style="vertical-align: top; padding-bottom: 16px;">
-                              <span style="display: inline-block; width: 32px; height: 32px; background: #ff6035; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">1</span>
-                              <p style="margin: 0; color: #ece8e8; font-size: 14px; font-weight: 500; overflow: hidden;">Sua mensagem foi recebida</p>
-                              <p style="margin: 4px 0 0 0; color: #757474; font-size: 13px; overflow: hidden;">Confirmado em ${new Date().toLocaleDateString('pt-BR')}</p>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style="vertical-align: top; padding-bottom: 16px;">
-                              <span style="display: inline-block; width: 32px; height: 32px; background: #ff6035; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">2</span>
-                              <p style="margin: 0; color: #ece8e8; font-size: 14px; font-weight: 500; overflow: hidden;">Nossa equipe analisará</p>
-                              <p style="margin: 4px 0 0 0; color: #757474; font-size: 13px; overflow: hidden;">Em até 24 horas úteis</p>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style="vertical-align: top;">
-                              <span style="display: inline-block; width: 32px; height: 32px; background: #757474; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">3</span>
-                              <p style="margin: 0; color: #ece8e8; font-size: 14px; font-weight: 500; overflow: hidden;">Você receberá uma resposta</p>
-                              <p style="margin: 4px 0 0 0; color: #757474; font-size: 13px; overflow: hidden;">Por email neste endereço</p>
-                            </td>
-                          </tr>
-                        </table>
-                      </div>
+              <h2 style="font-size: 16px; font-weight: 600; color: #2b2a2a; margin: 32px 0 16px 0;">Próximos Passos</h2>
+              
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-number">1</div>
+                  <div class="timeline-content">
+                    <h3>Sua mensagem foi recebida</h3>
+                    <p>Confirmado em ${new Date().toLocaleDateString('pt-BR')}</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-number">2</div>
+                  <div class="timeline-content">
+                    <h3>Nossa equipe analisará</h3>
+                    <p>Em até 24 horas úteis</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-number inactive">3</div>
+                  <div class="timeline-content">
+                    <h3>Você receberá uma resposta</h3>
+                    <p>Por email neste endereço</p>
+                  </div>
+                </div>
+              </div>
 
-                      <!-- CTA -->
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
-                        <tr>
-                          <td align="center">
-                            <a href="https://velohub-theta.vercel.app" style="display: inline-block; background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%); color: #2b2a2a; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer;">
-                              Voltar ao Velohub
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
+              <center>
+                <a href="https://velohub-theta.vercel.app" class="cta-button">Voltar ao Velohub</a>
+              </center>
 
-                      <!-- Help Text -->
-                      <p style="margin: 0; color: #757474; font-size: 13px; text-align: center; line-height: 1.6;">
-                        Tem alguma dúvida adicional?<br>
-                        <a href="https://velohub-theta.vercel.app/legal" style="color: #ff6035; text-decoration: none; font-weight: 500;">Acesse nossa Central de Ajuda</a>
-                      </p>
+              <p class="help-text" style="margin-top: 32px;">
+                Tem alguma dúvida adicional?<br>
+                <a href="https://velohub-theta.vercel.app/legal">Acesse nossa Central de Ajuda</a>
+              </p>
+            </div>
+          </div>
 
-                    </td>
-                  </tr>
-
-                  <!-- Footer -->
-                  <tr style="background: #2b2a2a; border-top: 1px solid #757474;">
-                    <td style="padding: 24px; text-align: center;">
-                      <p style="margin: 0; color: #757474; font-size: 12px; line-height: 1.6;">
-                        © 2026 Velohub Tecnologia. Todos os direitos reservados.<br>
-                        Este é um email automático. Por favor, não responda a este endereço.
-                      </p>
-                    </td>
-                  </tr>
-
-                </table>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <div class="footer">
+            <p>© 2026 Velohub Tecnologia<br>
+            Este é um email automático. Por favor, não responda a este endereço.</p>
+          </div>
+        </div>
       </body>
       </html>
     `;
