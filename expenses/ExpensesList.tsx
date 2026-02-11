@@ -70,6 +70,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     ExpenseCategory | "all"
   >("all");
   const [showVehicleFilters, setShowVehicleFilters] = useState(false);
+  const [vehicleDateStart, setVehicleDateStart] = useState("");
+  const [vehicleDateEnd, setVehicleDateEnd] = useState("");
+  const [vehicleMinAmount, setVehicleMinAmount] = useState("");
+  const [vehicleMaxAmount, setVehicleMaxAmount] = useState("");
+  const [vehicleStatusFilter, setVehicleStatusFilter] = useState<'all' | 'available' | 'sold'>('all');
 
   // States for OPEX Tab
   const [storeExpenses, setStoreExpenses] = useState<StoreExpense[]>([]);
@@ -78,6 +83,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     OpexCategory | "all"
   >("all");
   const [showOpexFilters, setShowOpexFilters] = useState(false);
+  const [opexDateStart, setOpexDateStart] = useState("");
+  const [opexDateEnd, setOpexDateEnd] = useState("");
+  const [opexMinAmount, setOpexMinAmount] = useState("");
+  const [opexMaxAmount, setOpexMaxAmount] = useState("");
+  const [opexPaidFilter, setOpexPaidFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [isAddingOpex, setIsAddingOpex] = useState(false);
   const [newOpex, setNewOpex] = useState<{
     desc: string;
@@ -177,7 +187,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           vehicleId: v.id,
           vehicleName: `${v.make} ${v.model}`,
           vehiclePlate: v.plate || "S/ Placa",
-          type: "expense",
         });
       });
     });
@@ -196,7 +205,44 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     const matchesCategory =
       vehicleCategoryFilter === "all" || e.category === vehicleCategoryFilter;
 
-    return matchesSearch && matchesCategory;
+    // Filtro de data
+    let matchesDate = true;
+    if (vehicleDateStart || vehicleDateEnd) {
+      try {
+        const expenseDate = new Date(e.date);
+        if (vehicleDateStart) {
+          const [y, m, d] = vehicleDateStart.split('-').map(Number);
+          const startDate = new Date(y, m - 1, d);
+          if (expenseDate < startDate) matchesDate = false;
+        }
+        if (vehicleDateEnd) {
+          const [y, m, d] = vehicleDateEnd.split('-').map(Number);
+          const endDate = new Date(y, m - 1, d);
+          endDate.setHours(23, 59, 59);
+          if (expenseDate > endDate) matchesDate = false;
+        }
+      } catch {
+        matchesDate = false;
+      }
+    }
+
+    // Filtro de valor
+    const matchesAmount = 
+      (!vehicleMinAmount || e.amount >= parseCurrencyInput(vehicleMinAmount)) &&
+      (!vehicleMaxAmount || e.amount <= parseCurrencyInput(vehicleMaxAmount));
+
+    // Filtro de status do veículo
+    let matchesStatus = true;
+    if (vehicleStatusFilter !== 'all') {
+      const vehicle = vehicles.find(v => v.id === e.vehicleId);
+      if (vehicle) {
+        matchesStatus = vehicleStatusFilter === 'sold' 
+          ? vehicle.status === 'sold' 
+          : vehicle.status !== 'sold';
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesDate && matchesAmount && matchesStatus;
   });
 
   const COLORS = [
@@ -264,7 +310,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       {/* --- ABA 1: CUSTOS DE VEÍCULOS (CMV) --- */}
       {activeTab === "vehicles" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
               <div className="flex items-center gap-3 mb-2">
                 <Wrench className="text-amber-400" />
@@ -274,11 +320,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               </div>
               <p className="text-2xl font-bold text-white">
                 {formatCurrency(
-                  allVehicleExpenses.reduce(
+                  filteredVehicleExpenses.reduce(
                     (acc, e) => acc + (e.category !== "salary" ? e.amount : 0),
                     0,
                   ),
                 )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {filteredVehicleExpenses.filter(e => e.category !== "salary").length} lançamento(s)
               </p>
             </Card>
             <Card>
@@ -290,74 +339,167 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               </div>
               <p className="text-2xl font-bold text-white">
                 {formatCurrency(
-                  allVehicleExpenses.reduce(
+                  filteredVehicleExpenses.reduce(
                     (acc, e) => acc + (e.category === "salary" ? e.amount : 0),
                     0,
                   ),
                 )}
               </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {filteredVehicleExpenses.filter(e => e.category === "salary").length} comissão(ões)
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <DollarSign className="text-emerald-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Total Filtrado
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-emerald-400">
+                {formatCurrency(
+                  filteredVehicleExpenses.reduce((acc, e) => acc + e.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {filteredVehicleExpenses.length} despesa(s)
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <Car className="text-blue-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Veículos Únicos
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {new Set(filteredVehicleExpenses.map(e => e.vehicleId)).size}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Com despesas
+              </p>
             </Card>
           </div>
 
           <Card title="Detalhamento por Carro" className="overflow-visible">
-            <div className="mb-4 flex flex-col md:flex-row gap-3 md:items-center">
-              <div className="relative flex-1">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar por veículo, placa ou descrição..."
-                  value={vehicleSearch}
-                  onChange={(e) => setVehicleSearch(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg pl-10 p-2.5 outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="relative">
+            <div className="mb-4 space-y-3">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar por veículo, placa ou descrição..."
+                    value={vehicleSearch}
+                    onChange={(e) => setVehicleSearch(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg pl-10 p-2.5 outline-none focus:border-indigo-500"
+                  />
+                </div>
                 <button
                   onClick={() => setShowVehicleFilters((prev) => !prev)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white whitespace-nowrap"
                 >
                   <Filter size={16} />
-                  Filtros: {activeVehicleCategoryLabel}
+                  {showVehicleFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
                 </button>
-                {showVehicleFilters && (
-                  <div className="absolute right-0 mt-2 z-20 w-[320px] bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-xl">
-                    <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
-                      {(
-                        [
-                          "all",
-                          "maintenance",
-                          "bodywork",
-                          "tires",
-                          "document",
-                          "marketing",
-                          "salary",
-                          "other",
-                        ] as (ExpenseCategory | "all")[]
-                      ).map((cat) => {
-                        return (
-                          <button
-                            key={cat}
-                            onClick={() => {
-                              setVehicleCategoryFilter(cat);
-                              setShowVehicleFilters(false);
-                            }}
-                            className={`px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap transition-all duration-200 border ${
-                              vehicleCategoryFilter === cat
-                                ? "bg-slate-100 text-slate-900 border-slate-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                                : "bg-slate-900/50 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white"
-                            }`}
-                          >
-                            {vehicleCategoryLabels[cat]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {showVehicleFilters && (
+                <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Categoria</span>
+                      <select
+                        value={vehicleCategoryFilter}
+                        onChange={(e) => setVehicleCategoryFilter(e.target.value as ExpenseCategory | "all")}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {(["all", "maintenance", "bodywork", "tires", "document", "marketing", "salary", "other"] as (ExpenseCategory | "all")[]).map((cat) => (
+                          <option key={cat} value={cat}>
+                            {vehicleCategoryLabels[cat]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Status do Veículo</span>
+                      <select
+                        value={vehicleStatusFilter}
+                        onChange={(e) => setVehicleStatusFilter(e.target.value as 'all' | 'available' | 'sold')}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="all">Todos</option>
+                        <option value="available">Em Estoque</option>
+                        <option value="sold">Vendidos</option>
+                      </select>
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Data Inicial</span>
+                      <input
+                        type="date"
+                        value={vehicleDateStart}
+                        onChange={(e) => setVehicleDateStart(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Data Final</span>
+                      <input
+                        type="date"
+                        value={vehicleDateEnd}
+                        onChange={(e) => setVehicleDateEnd(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Valor Mínimo</span>
+                      <input
+                        type="text"
+                        value={vehicleMinAmount}
+                        onChange={(e) => setVehicleMinAmount(maskCurrencyInput(e.target.value))}
+                        placeholder="R$ 0,00"
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Valor Máximo</span>
+                      <input
+                        type="text"
+                        value={vehicleMaxAmount}
+                        onChange={(e) => setVehicleMaxAmount(maskCurrencyInput(e.target.value))}
+                        placeholder="R$ 0,00"
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+                    <span className="text-sm text-slate-400">
+                      <span className="font-medium text-white">{filteredVehicleExpenses.length}</span> despesa(s) encontrada(s)
+                    </span>
+                    <Button
+                      onClick={() => {
+                        setVehicleCategoryFilter('all');
+                        setVehicleStatusFilter('all');
+                        setVehicleDateStart('');
+                        setVehicleDateEnd('');
+                        setVehicleMinAmount('');
+                        setVehicleMaxAmount('');
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs py-1.5 px-3"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="max-h-[500px] overflow-y-auto">
               <table className="w-full text-left border-collapse">
@@ -500,65 +642,301 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             </div>
           )}
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <DollarSign className="text-rose-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Total OPEX Filtrado
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(
+                  storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = new Date(item.date);
+                          if (opexDateStart) {
+                            const [y, m, d] = opexDateStart.split('-').map(Number);
+                            const startDate = new Date(y, m - 1, d);
+                            if (expenseDate < startDate) matchesDate = false;
+                          }
+                          if (opexDateEnd) {
+                            const [y, m, d] = opexDateEnd.split('-').map(Number);
+                            const endDate = new Date(y, m - 1, d);
+                            endDate.setHours(23, 59, 59);
+                            if (expenseDate > endDate) matchesDate = false;
+                          }
+                        } catch { matchesDate = false; }
+                      }
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+                    })
+                    .reduce((acc, item) => acc + item.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Despesas operacionais
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <Wallet className="text-green-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Despesas Pagas
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-green-400">
+                {formatCurrency(
+                  storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = new Date(item.date);
+                          if (opexDateStart) {
+                            const [y, m, d] = opexDateStart.split('-').map(Number);
+                            const startDate = new Date(y, m - 1, d);
+                            if (expenseDate < startDate) matchesDate = false;
+                          }
+                          if (opexDateEnd) {
+                            const [y, m, d] = opexDateEnd.split('-').map(Number);
+                            const endDate = new Date(y, m - 1, d);
+                            endDate.setHours(23, 59, 59);
+                            if (expenseDate > endDate) matchesDate = false;
+                          }
+                        } catch { matchesDate = false; }
+                      }
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount && item.paid;
+                    })
+                    .reduce((acc, item) => acc + item.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Status: Pago
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <AlertCircle className="text-amber-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Despesas Pendentes
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-amber-400">
+                {formatCurrency(
+                  storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = new Date(item.date);
+                          if (opexDateStart) {
+                            const [y, m, d] = opexDateStart.split('-').map(Number);
+                            const startDate = new Date(y, m - 1, d);
+                            if (expenseDate < startDate) matchesDate = false;
+                          }
+                          if (opexDateEnd) {
+                            const [y, m, d] = opexDateEnd.split('-').map(Number);
+                            const endDate = new Date(y, m - 1, d);
+                            endDate.setHours(23, 59, 59);
+                            if (expenseDate > endDate) matchesDate = false;
+                          }
+                        } catch { matchesDate = false; }
+                      }
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount && !item.paid;
+                    })
+                    .reduce((acc, item) => acc + item.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Status: Pendente
+              </p>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="md:col-span-2 overflow-visible">
-              <div className="mb-3 flex flex-col gap-3">
-                <div className="relative flex-1 md:min-w-[280px]">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar por descrição ou categoria..."
-                    value={opexSearch}
-                    onChange={(e) => setOpexSearch(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl pl-12 pr-4 py-3 md:h-14 h-11 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div className="relative">
+              <div className="mb-3 space-y-3">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                      size={18}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Buscar por descrição ou categoria..."
+                      value={opexSearch}
+                      onChange={(e) => setOpexSearch(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                   <button
                     onClick={() => setShowOpexFilters((prev) => !prev)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white whitespace-nowrap"
                   >
                     <Filter size={16} />
-                    Filtros: {activeOpexCategoryLabel}
+                    {showOpexFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
                   </button>
-                  {showOpexFilters && (
-                    <div className="absolute left-0 mt-2 z-20 w-[340px] bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-xl">
-                      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
-                        {(
-                          ["all", ...OPEX_CATEGORIES.map((c) => c.id)] as (
-                            | OpexCategory
-                            | "all"
-                          )[]
-                        ).map((cat) => {
-                          const label =
-                            cat === "all"
-                              ? "Todas"
-                              : OPEX_CATEGORIES.find((c) => c.id === cat)?.label ||
-                                cat;
-                          return (
-                            <button
-                              key={cat}
-                              onClick={() => {
-                                setOpexCategoryFilter(cat);
-                                setShowOpexFilters(false);
-                              }}
-                              className={`px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap transition-all duration-200 border ${
-                                opexCategoryFilter === cat
-                                  ? "bg-slate-100 text-slate-900 border-slate-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                                  : "bg-slate-900/50 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white"
-                              }`}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {showOpexFilters && (
+                  <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Categoria</span>
+                        <select
+                          value={opexCategoryFilter}
+                          onChange={(e) => setOpexCategoryFilter(e.target.value as OpexCategory | "all")}
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="all">Todas</option>
+                          {OPEX_CATEGORIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Status</span>
+                        <select
+                          value={opexPaidFilter}
+                          onChange={(e) => setOpexPaidFilter(e.target.value as 'all' | 'paid' | 'pending')}
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="all">Todos</option>
+                          <option value="paid">Pagos</option>
+                          <option value="pending">Pendentes</option>
+                        </select>
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Data Inicial</span>
+                        <input
+                          type="date"
+                          value={opexDateStart}
+                          onChange={(e) => setOpexDateStart(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Data Final</span>
+                        <input
+                          type="date"
+                          value={opexDateEnd}
+                          onChange={(e) => setOpexDateEnd(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Valor Mínimo</span>
+                        <input
+                          type="text"
+                          value={opexMinAmount}
+                          onChange={(e) => setOpexMinAmount(maskCurrencyInput(e.target.value))}
+                          placeholder="R$ 0,00"
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Valor Máximo</span>
+                        <input
+                          type="text"
+                          value={opexMaxAmount}
+                          onChange={(e) => setOpexMaxAmount(maskCurrencyInput(e.target.value))}
+                          placeholder="R$ 0,00"
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+                      <span className="text-sm text-slate-400">
+                        <span className="font-medium text-white">{
+                          storeExpenses.filter((item) => {
+                            const term = opexSearch.toLowerCase();
+                            const matchesSearch =
+                              item.description.toLowerCase().includes(term) ||
+                              (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                            const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                            const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
+                            let matchesDate = true;
+                            if (opexDateStart || opexDateEnd) {
+                              try {
+                                const expenseDate = new Date(item.date);
+                                if (opexDateStart) {
+                                  const [y, m, d] = opexDateStart.split('-').map(Number);
+                                  const startDate = new Date(y, m - 1, d);
+                                  if (expenseDate < startDate) matchesDate = false;
+                                }
+                                if (opexDateEnd) {
+                                  const [y, m, d] = opexDateEnd.split('-').map(Number);
+                                  const endDate = new Date(y, m - 1, d);
+                                  endDate.setHours(23, 59, 59);
+                                  if (expenseDate > endDate) matchesDate = false;
+                                }
+                              } catch { matchesDate = false; }
+                            }
+
+                            const matchesAmount = 
+                              (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                              (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+
+                            return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+                          }).length
+                        }</span> despesa(s) encontrada(s)
+                      </span>
+                      <Button
+                        onClick={() => {
+                          setOpexCategoryFilter('all');
+                          setOpexPaidFilter('all');
+                          setOpexDateStart('');
+                          setOpexDateEnd('');
+                          setOpexMinAmount('');
+                          setOpexMaxAmount('');
+                        }}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs py-1.5 px-3"
+                      >
+                        Limpar Filtros
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
               <table className="w-full text-left border-collapse">
                 <thead className="text-slate-400 text-sm border-b border-slate-800">
@@ -583,7 +961,33 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       const matchesCategory =
                         opexCategoryFilter === "all" ||
                         item.category === opexCategoryFilter;
-                      return matchesSearch && matchesCategory;
+                      
+                      const matchesPaid = opexPaidFilter === 'all' || 
+                        (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = new Date(item.date);
+                          if (opexDateStart) {
+                            const [y, m, d] = opexDateStart.split('-').map(Number);
+                            const startDate = new Date(y, m - 1, d);
+                            if (expenseDate < startDate) matchesDate = false;
+                          }
+                          if (opexDateEnd) {
+                            const [y, m, d] = opexDateEnd.split('-').map(Number);
+                            const endDate = new Date(y, m - 1, d);
+                            endDate.setHours(23, 59, 59);
+                            if (expenseDate > endDate) matchesDate = false;
+                          }
+                        } catch { matchesDate = false; }
+                      }
+
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
                     })
                     .map((item) => (
                       <tr key={item.id} className="hover:bg-slate-800/30 group">

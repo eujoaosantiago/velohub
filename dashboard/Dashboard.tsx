@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { StatCard, Card } from '../components/ui/Card';
 import { DollarSign, TrendingUp, AlertCircle, Clock, PieChart as PieChartIcon, Lock, Crown, MessageSquare, Send, CheckCircle2, Building2, Car, ShoppingBag, Plus, BadgeCheck, Filter } from 'lucide-react';
 import { Vehicle, User, checkPermission, Page } from '../types';
-import { formatCurrency, calculateRealProfit } from '../lib/utils';
+import { formatCurrency, calculateRealProfit, maskCurrencyInput, parseCurrencyInput } from '../lib/utils';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { getPlanLimits } from '../lib/plans';
 import { Button } from '../components/ui/Button';
@@ -32,8 +32,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         | 'last_month'
         | 'this_quarter'
         | 'this_year'
+        | 'custom'
     >('last_6');
     const [chartBrand, setChartBrand] = useState<string>('all');
+    const [chartModel, setChartModel] = useState<string>('all');
+    const [chartPaymentMethod, setChartPaymentMethod] = useState<string>('all');
+    const [chartMinProfit, setChartMinProfit] = useState('');
+    const [chartMaxProfit, setChartMaxProfit] = useState('');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // --- REAL TIME CALCULATIONS ---
   
@@ -54,13 +62,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   });
 
     const periodLabelMap: Record<string, string> = {
-        last_3: 'Ultimos 3 meses',
-        last_6: 'Ultimos 6 meses',
-        last_12: 'Ultimos 12 meses',
-        this_month: 'Este mes',
-        last_month: 'Mes anterior',
+        last_3: 'Últimos 3 meses',
+        last_6: 'Últimos 6 meses',
+        last_12: 'Últimos 12 meses',
+        this_month: 'Este mês',
+        last_month: 'Mês anterior',
         this_quarter: 'Trimestre atual',
         this_year: 'Ano atual',
+        custom: 'Período customizado',
     };
 
     const getChartDateRange = (period: typeof chartPeriod) => {
@@ -68,7 +77,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         let start = new Date(now.getFullYear(), now.getMonth(), 1);
         let end = new Date(now);
 
-        if (period === 'last_3' || period === 'last_6' || period === 'last_12') {
+        if (period === 'custom') {
+            if (customStartDate) {
+                const [y, m, d] = customStartDate.split('-').map(Number);
+                start = new Date(y, m - 1, d);
+            }
+            if (customEndDate) {
+                const [y, m, d] = customEndDate.split('-').map(Number);
+                end = new Date(y, m - 1, d);
+            }
+        } else if (period === 'last_3' || period === 'last_6' || period === 'last_12') {
             const monthsBack = period === 'last_3' ? 2 : period === 'last_6' ? 5 : 11;
             start = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
         } else if (period === 'last_month') {
@@ -89,9 +107,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         return ['all', ...unique.sort((a, b) => a.localeCompare(b))];
     }, [soldVehicles]);
 
+    const chartModels = useMemo(() => {
+        const filtered = chartBrand === 'all' ? soldVehicles : soldVehicles.filter(v => v.make === chartBrand);
+        const unique = Array.from(new Set(filtered.map((v) => v.model).filter(Boolean)));
+        return ['all', ...unique.sort((a, b) => (a || '').localeCompare(b || ''))];
+    }, [soldVehicles, chartBrand]);
+
+    const paymentMethods = useMemo(() => {
+        const unique = Array.from(new Set(soldVehicles.map((v) => v.paymentMethod).filter(Boolean)));
+        return ['all', ...unique.sort((a, b) => (a || '').localeCompare(b || ''))];
+    }, [soldVehicles]);
+
     const { start: chartStart, end: chartEnd } = useMemo(
         () => getChartDateRange(chartPeriod),
-        [chartPeriod],
+        [chartPeriod, customStartDate, customEndDate],
     );
 
     const filteredChartVehicles = useMemo(() => {
@@ -105,6 +134,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                         const soldAt = new Date(year, month - 1, day);
                         if (soldAt < chartStart || soldAt > chartEnd) return false;
                         if (chartBrand !== 'all' && v.make !== chartBrand) return false;
+                        if (chartModel !== 'all' && v.model !== chartModel) return false;
+                        if (chartPaymentMethod !== 'all' && v.paymentMethod !== chartPaymentMethod) return false;
+                        
+                        // Filtro de lucro
+                        const profit = calculateRealProfit(v);
+                        if (chartMinProfit && profit < parseCurrencyInput(chartMinProfit)) return false;
+                        if (chartMaxProfit && profit > parseCurrencyInput(chartMaxProfit)) return false;
+                        
                         return true;
                     }
                 }
@@ -113,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                 return false;
             }
         });
-    }, [soldVehicles, chartStart, chartEnd, chartBrand]);
+    }, [soldVehicles, chartStart, chartEnd, chartBrand, chartModel, chartPaymentMethod, chartMinProfit, chartMaxProfit]);
 
     const buildMonthKeys = (start: Date, end: Date) => {
         const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -383,18 +420,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
 
             {/* Chart Filters */}
             {canViewAnalytics && (
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm">
-                        <Filter size={16} />
-                        Filtros dos graficos
+                <Card className="bg-slate-900/50 border-slate-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Filter size={18} className="text-indigo-400" />
+                            <h3 className="text-white font-semibold">Filtros Avançados de Análise</h3>
+                        </div>
+                        <button
+                            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                            className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                        >
+                            {showAdvancedFilters ? 'Ocultar' : 'Expandir'}
+                        </button>
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                        <label className="text-xs text-slate-400 flex flex-col gap-1">
-                            Periodo
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                            <span className="font-medium">Período</span>
                             <select
                                 value={chartPeriod}
-                                onChange={(e) => setChartPeriod(e.target.value as typeof chartPeriod)}
-                                className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                onChange={(e) => {
+                                    const val = e.target.value as typeof chartPeriod;
+                                    setChartPeriod(val);
+                                    if (val !== 'custom') {
+                                        setCustomStartDate('');
+                                        setCustomEndDate('');
+                                    }
+                                }}
+                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
                                 {Object.entries(periodLabelMap).map(([value, label]) => (
                                     <option key={value} value={value}>
@@ -403,12 +456,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                                 ))}
                             </select>
                         </label>
-                        <label className="text-xs text-slate-400 flex flex-col gap-1">
-                            Marca
+                        
+                        <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                            <span className="font-medium">Marca</span>
                             <select
                                 value={chartBrand}
-                                onChange={(e) => setChartBrand(e.target.value)}
-                                className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                onChange={(e) => {
+                                    setChartBrand(e.target.value);
+                                    setChartModel('all');
+                                }}
+                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
                                 {chartBrands.map((brand) => (
                                     <option key={brand} value={brand}>
@@ -417,8 +474,119 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                                 ))}
                             </select>
                         </label>
+
+                        <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                            <span className="font-medium">Modelo</span>
+                            <select
+                                value={chartModel}
+                                onChange={(e) => setChartModel(e.target.value)}
+                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                disabled={chartBrand === 'all'}
+                            >
+                                {chartModels.map((model) => (
+                                    <option key={model} value={model}>
+                                        {model === 'all' ? 'Todos' : model}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                            <span className="font-medium">Forma de Pagamento</span>
+                            <select
+                                value={chartPaymentMethod}
+                                onChange={(e) => setChartPaymentMethod(e.target.value)}
+                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {paymentMethods.map((method) => (
+                                    <option key={method} value={method}>
+                                        {method === 'all' ? 'Todas' : method}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                     </div>
-                </div>
+
+                    {showAdvancedFilters && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-800">
+                            {chartPeriod === 'custom' && (
+                                <>
+                                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                                        <span className="font-medium">Data Inicial</span>
+                                        <input
+                                            type="date"
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                    </label>
+                                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                                        <span className="font-medium">Data Final</span>
+                                        <input
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                    </label>
+                                </>
+                            )}
+                            
+                            <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                                <span className="font-medium">Lucro Mínimo</span>
+                                <input
+                                    type="text"
+                                    value={chartMinProfit}
+                                    onChange={(e) => setChartMinProfit(maskCurrencyInput(e.target.value))}
+                                    placeholder="R$ 0,00"
+                                    className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </label>
+                            
+                            <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                                <span className="font-medium">Lucro Máximo</span>
+                                <input
+                                    type="text"
+                                    value={chartMaxProfit}
+                                    onChange={(e) => setChartMaxProfit(maskCurrencyInput(e.target.value))}
+                                    placeholder="R$ 0,00"
+                                    className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </label>
+
+                            <div className="flex items-end">
+                                <Button
+                                    onClick={() => {
+                                        setChartPeriod('last_6');
+                                        setChartBrand('all');
+                                        setChartModel('all');
+                                        setChartPaymentMethod('all');
+                                        setChartMinProfit('');
+                                        setChartMaxProfit('');
+                                        setCustomStartDate('');
+                                        setCustomEndDate('');
+                                    }}
+                                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                                >
+                                    Limpar Filtros
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {canViewCosts && (
+                        <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-sm">
+                            <span className="text-slate-400">
+                                <span className="font-medium text-white">{filteredChartVehicles.length}</span> venda(s) encontrada(s)
+                            </span>
+                            {filteredChartVehicles.length > 0 && (
+                                <span className="text-emerald-400 font-medium">
+                                    Lucro Total: {formatCurrency(filteredChartVehicles.reduce((acc, v) => acc + calculateRealProfit(v), 0))}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </Card>
             )}
 
       {/* Main Charts Area */}
