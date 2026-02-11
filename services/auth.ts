@@ -105,7 +105,7 @@ export const AuthService = {
     
     if (error) throw new Error(error.message);
     
-    // Enviar email de confirmação via Mailgun
+    // Enviar email de confirmação via Resend
     if (data.user) {
         try {
             const confirmToken = data.user.id;
@@ -185,7 +185,7 @@ export const AuthService = {
       });
       if (error) throw new Error(error.message);
       
-      // Enviar email de reset de senha via Mailgun
+      // Enviar email de reset de senha via Resend
       try {
           if (SUPABASE_URL) {
               await fetch(`${SUPABASE_URL}/functions/v1/send-reset-password`, {
