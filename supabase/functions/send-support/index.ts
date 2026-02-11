@@ -46,20 +46,20 @@ serve(async (req) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Novo Chamado de Suporte</title>
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1a1f3a 0%, #0f172a 100%);">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #0f172a; padding: 40px 0;">
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #2b2a2a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #2b2a2a; padding: 40px 0;">
           <tbody>
             <tr>
               <td align="center">
-                <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);">
+                <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="background: #3d3c3c; border-radius: 12px; border: 1px solid #757474; overflow: hidden; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);">
                   
                   <!-- Header with Logo -->
-                  <tr style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                  <tr style="background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%);">
                     <td style="padding: 40px 20px; text-align: center;">
-                      <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                        VELO<span style="color: #e0e7ff;">HUB</span>
+                      <h1 style="margin: 0; color: #2b2a2a; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                        VELO<span style="color: #ece8e8;">HUB</span>
                       </h1>
-                      <p style="margin: 8px 0 0 0; color: #e0e7ff; font-size: 14px; font-weight: 500;">Centro de Suporte</p>
+                      <p style="margin: 8px 0 0 0; color: #ece8e8; font-size: 14px; font-weight: 500;">Centro de Suporte</p>
                     </td>
                   </tr>
 
@@ -68,42 +68,42 @@ serve(async (req) => {
                     <td style="padding: 40px;">
                       
                       <!-- Title -->
-                      <h2 style="margin: 0 0 30px 0; color: white; font-size: 24px; font-weight: 700;">Novo Chamado Recebido</h2>
+                      <h2 style="margin: 0 0 30px 0; color: #ece8e8; font-size: 24px; font-weight: 700;">Novo Chamado Recebido</h2>
 
                       <!-- Info Cards -->
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
                         <tr>
-                          <td style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-                            <p style="margin: 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">De:</p>
-                            <p style="margin: 6px 0 0 0; color: white; font-size: 16px; font-weight: 600;">${name}</p>
-                            <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">${email}</p>
+                          <td style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">De:</p>
+                            <p style="margin: 6px 0 0 0; color: #ece8e8; font-size: 16px; font-weight: 600;">${name}</p>
+                            <p style="margin: 4px 0 0 0; color: #757474; font-size: 14px;">${email}</p>
                           </td>
                         </tr>
                         <tr>
-                          <td style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-                            <p style="margin: 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Tipo:</p>
-                            <p style="margin: 6px 0 0 0; color: white; font-size: 16px; font-weight: 600;">${isClient ? '👤 Cliente Logado' : '🌐 Visitante'}</p>
+                          <td style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Tipo:</p>
+                            <p style="margin: 6px 0 0 0; color: #ece8e8; font-size: 16px; font-weight: 600;">${isClient ? '👤 Cliente Logado' : '🌐 Visitante'}</p>
                           </td>
                         </tr>
                         <tr>
-                          <td style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px;">
-                            <p style="margin: 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Assunto:</p>
-                            <p style="margin: 6px 0 0 0; color: #4f46e5; font-size: 16px; font-weight: 600;">${subject}</p>
+                          <td style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 16px;">
+                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Assunto:</p>
+                            <p style="margin: 6px 0 0 0; color: #ff6035; font-size: 16px; font-weight: 600;">${subject}</p>
                           </td>
                         </tr>
                       </table>
 
                       <!-- Message -->
-                      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                        <p style="margin: 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Mensagem:</p>
-                        <p style="margin: 0; color: #e2e8f0; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${message}</p>
+                      <div style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                        <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Mensagem:</p>
+                        <p style="margin: 0; color: #ece8e8; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${message}</p>
                       </div>
 
                       <!-- Action Button -->
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
                         <tr>
                           <td align="center">
-                            <a href="mailto:${email}" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer;">
+                            <a href="mailto:${email}" style="display: inline-block; background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%); color: #2b2a2a; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer;">
                               Responder por Email
                             </a>
                           </td>
@@ -114,11 +114,11 @@ serve(async (req) => {
                   </tr>
 
                   <!-- Footer -->
-                  <tr style="background: #0f172a; border-top: 1px solid #334155;">
+                  <tr style="background: #2b2a2a; border-top: 1px solid #757474;">
                     <td style="padding: 24px; text-align: center;">
-                      <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.6;">
+                      <p style="margin: 0; color: #757474; font-size: 12px; line-height: 1.6;">
                         © 2026 Velohub Tecnologia. Todos os direitos reservados.<br>
-                        <a href="https://velohub-theta.vercel.app" style="color: #4f46e5; text-decoration: none; font-weight: 500;">Voltar ao Painel</a>
+                        <a href="https://velohub-theta.vercel.app" style="color: #ff6035; text-decoration: none; font-weight: 500;">Voltar ao Painel</a>
                       </p>
                     </td>
                   </tr>
@@ -163,20 +163,20 @@ serve(async (req) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Recebemos sua Mensagem</title>
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1a1f3a 0%, #0f172a 100%);">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #0f172a; padding: 40px 0;">
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #2b2a2a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #2b2a2a; padding: 40px 0;">
           <tbody>
             <tr>
               <td align="center">
-                <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);">
+                <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" style="background: #3d3c3c; border-radius: 12px; border: 1px solid #757474; overflow: hidden; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);">
                   
                   <!-- Header with Logo -->
-                  <tr style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                  <tr style="background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%);">
                     <td style="padding: 40px 20px; text-align: center;">
-                      <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                        VELO<span style="color: #d1fae5;">HUB</span>
+                      <h1 style="margin: 0; color: #2b2a2a; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                        VELO<span style="color: #ece8e8;">HUB</span>
                       </h1>
-                      <p style="margin: 8px 0 0 0; color: #d1fae5; font-size: 14px; font-weight: 500;">Obrigado por Entrar em Contato</p>
+                      <p style="margin: 8px 0 0 0; color: #ece8e8; font-size: 14px; font-weight: 500;">Obrigado por Entrar em Contato</p>
                     </td>
                   </tr>
 
@@ -185,60 +185,60 @@ serve(async (req) => {
                     <td style="padding: 40px;">
                       
                       <!-- Greeting -->
-                      <h2 style="margin: 0 0 8px 0; color: white; font-size: 24px; font-weight: 700;">Olá, ${name}!</h2>
-                      <p style="margin: 0 0 30px 0; color: #94a3b8; font-size: 16px; line-height: 1.6;">
+                      <h2 style="margin: 0 0 8px 0; color: #ece8e8; font-size: 24px; font-weight: 700;">Olá, ${name}!</h2>
+                      <p style="margin: 0 0 30px 0; color: #757474; font-size: 16px; line-height: 1.6;">
                         Recebemos sua mensagem com sucesso. Nossa equipe de especialistas já foi notificada e entrará em contato em breve.
                       </p>
 
                       <!-- Status Box -->
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 24px; margin-bottom: 30px; border-left: 4px solid #10b981;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 24px; margin-bottom: 30px; border-left: 4px solid #ff6035;">
                         <tr>
                           <td>
-                            <p style="margin: 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Status do Seu Chamado</p>
-                            <p style="margin: 8px 0 0 0; color: #10b981; font-size: 16px; font-weight: 700;">✓ Recebido e Em Processamento</p>
+                            <p style="margin: 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Status do Seu Chamado</p>
+                            <p style="margin: 8px 0 0 0; color: #ff6035; font-size: 16px; font-weight: 700;">✓ Recebido e Em Processamento</p>
                           </td>
                         </tr>
                       </table>
 
                       <!-- Details -->
-                      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                        <p style="margin: 0 0 16px 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Detalhes da Sua Mensagem:</p>
+                      <div style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                        <p style="margin: 0 0 16px 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Detalhes da Sua Mensagem:</p>
                         
                         <p style="margin: 0 0 12px 0;">
-                          <span style="color: #94a3b8; font-size: 13px;">Assunto:</span><br>
-                          <span style="color: #10b981; font-size: 15px; font-weight: 600;">${subject}</span>
+                          <span style="color: #757474; font-size: 13px;">Assunto:</span><br>
+                          <span style="color: #ff6035; font-size: 15px; font-weight: 600;">${subject}</span>
                         </p>
 
                         <p style="margin: 0;">
-                          <span style="color: #94a3b8; font-size: 13px;">Mensagem:</span><br>
-                          <span style="color: #e2e8f0; font-size: 14px; line-height: 1.6; display: block; margin-top: 8px; padding: 12px; background: #0a0e27; border-radius: 6px; border-left: 3px solid #10b981; white-space: pre-wrap; word-wrap: break-word;">${message}</span>
+                          <span style="color: #757474; font-size: 13px;">Mensagem:</span><br>
+                          <span style="color: #ece8e8; font-size: 14px; line-height: 1.6; display: block; margin-top: 8px; padding: 12px; background: #2b2a2a; border-radius: 6px; border-left: 3px solid #ff6035; white-space: pre-wrap; word-wrap: break-word;">${message}</span>
                         </p>
                       </div>
 
                       <!-- Timeline -->
-                      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                        <p style="margin: 0 0 16px 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Próximos Passos:</p>
+                      <div style="background: #2b2a2a; border: 1px solid #757474; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                        <p style="margin: 0 0 16px 0; color: #757474; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Próximos Passos:</p>
                         
                         <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                           <tr>
                             <td style="vertical-align: top; padding-bottom: 16px;">
-                              <span style="display: inline-block; width: 32px; height: 32px; background: #10b981; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">1</span>
-                              <p style="margin: 0; color: #e2e8f0; font-size: 14px; font-weight: 500; overflow: hidden;">Sua mensagem foi recebida</p>
-                              <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13px; overflow: hidden;">Confirmado em ${new Date().toLocaleDateString('pt-BR')}</p>
+                              <span style="display: inline-block; width: 32px; height: 32px; background: #ff6035; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">1</span>
+                              <p style="margin: 0; color: #ece8e8; font-size: 14px; font-weight: 500; overflow: hidden;">Sua mensagem foi recebida</p>
+                              <p style="margin: 4px 0 0 0; color: #757474; font-size: 13px; overflow: hidden;">Confirmado em ${new Date().toLocaleDateString('pt-BR')}</p>
                             </td>
                           </tr>
                           <tr>
                             <td style="vertical-align: top; padding-bottom: 16px;">
-                              <span style="display: inline-block; width: 32px; height: 32px; background: #4f46e5; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">2</span>
-                              <p style="margin: 0; color: #e2e8f0; font-size: 14px; font-weight: 500; overflow: hidden;">Nossa equipe analisará</p>
-                              <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13px; overflow: hidden;">Em até 24 horas úteis</p>
+                              <span style="display: inline-block; width: 32px; height: 32px; background: #ff6035; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">2</span>
+                              <p style="margin: 0; color: #ece8e8; font-size: 14px; font-weight: 500; overflow: hidden;">Nossa equipe analisará</p>
+                              <p style="margin: 4px 0 0 0; color: #757474; font-size: 13px; overflow: hidden;">Em até 24 horas úteis</p>
                             </td>
                           </tr>
                           <tr>
                             <td style="vertical-align: top;">
-                              <span style="display: inline-block; width: 32px; height: 32px; background: #64748b; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">3</span>
-                              <p style="margin: 0; color: #e2e8f0; font-size: 14px; font-weight: 500; overflow: hidden;">Você receberá uma resposta</p>
-                              <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13px; overflow: hidden;">Por email neste endereço</p>
+                              <span style="display: inline-block; width: 32px; height: 32px; background: #757474; color: white; border-radius: 50%; text-align: center; line-height: 32px; font-weight: 700; margin-right: 12px; float: left;">3</span>
+                              <p style="margin: 0; color: #ece8e8; font-size: 14px; font-weight: 500; overflow: hidden;">Você receberá uma resposta</p>
+                              <p style="margin: 4px 0 0 0; color: #757474; font-size: 13px; overflow: hidden;">Por email neste endereço</p>
                             </td>
                           </tr>
                         </table>
@@ -248,7 +248,7 @@ serve(async (req) => {
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
                         <tr>
                           <td align="center">
-                            <a href="https://velohub-theta.vercel.app" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer;">
+                            <a href="https://velohub-theta.vercel.app" style="display: inline-block; background: linear-gradient(135deg, #ff6035 0%, #ff7a52 100%); color: #2b2a2a; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer;">
                               Voltar ao Velohub
                             </a>
                           </td>
@@ -256,18 +256,18 @@ serve(async (req) => {
                       </table>
 
                       <!-- Help Text -->
-                      <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center; line-height: 1.6;">
+                      <p style="margin: 0; color: #757474; font-size: 13px; text-align: center; line-height: 1.6;">
                         Tem alguma dúvida adicional?<br>
-                        <a href="https://velohub-theta.vercel.app/legal" style="color: #10b981; text-decoration: none; font-weight: 500;">Acesse nossa Central de Ajuda</a>
+                        <a href="https://velohub-theta.vercel.app/legal" style="color: #ff6035; text-decoration: none; font-weight: 500;">Acesse nossa Central de Ajuda</a>
                       </p>
 
                     </td>
                   </tr>
 
                   <!-- Footer -->
-                  <tr style="background: #0f172a; border-top: 1px solid #334155;">
+                  <tr style="background: #2b2a2a; border-top: 1px solid #757474;">
                     <td style="padding: 24px; text-align: center;">
-                      <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.6;">
+                      <p style="margin: 0; color: #757474; font-size: 12px; line-height: 1.6;">
                         © 2026 Velohub Tecnologia. Todos os direitos reservados.<br>
                         Este é um email automático. Por favor, não responda a este endereço.
                       </p>
