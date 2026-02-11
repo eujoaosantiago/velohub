@@ -13,6 +13,7 @@ Bem-vindo ao repositório oficial do **Velohub**. Este é um sistema SaaS (Softw
 4.  [📧 CONFIGURAÇÃO DE EMAIL (OBRIGATÓRIO)](#-configuração-de-email-obrigatório)
 5.  [🚀 GUIA DE PRODUÇÃO & WEBHOOKS](#-guia-de-produção--webhooks-obrigatório)
 6.  [Deploy na Vercel](#-deploy-na-vercel)
+7.  [🔧 Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -192,16 +193,20 @@ Se você quer testar rápido **sem configurar email ainda**:
 Configure o **Resend** (gratuito até 3000 emails/mês):
 
 1.  Crie uma conta em [Resend.com](https://resend.com)
-2.  Gere uma **API Key** no Resend
+2.  Gere uma **API Key** no Resend (aparece no dashboard)
 3.  Vá no Supabase Dashboard > **Authentication** → **Email Provider** (ou **Settings**)
 4.  Selecione **Resend** como provider
-5.  Cole a **API Key** e clique em **Save**
-6.  Use `onboarding@resend.dev` como **Sender Email** (teste; para produção, valide seu domínio)
-7.  Pronto! Seus emails chegarão instantaneamente
+5.  Cole a **API Key** (começa com `re_`) e clique em **Save**
+6.  Use `onboarding@resend.dev` como **Sender Email** (para testes; para produção, valide seu domínio)
+7.  Pronto! Teste criando uma nova conta
+
+⚠️ **IMPORTANTE**: No Resend, você inicialmente **só pode enviar para o email com o qual criou a conta**. Para enviar para qualquer email, adicione um domínio verificado no Resend.
 
 **🔗 Documentação Completa:**
+- **↓ Email não chega? Segue esse passo a passo**: [`docs/DEBUG_EMAIL.md`](./docs/DEBUG_EMAIL.md) ← **Comece por aqui se não receber emails!**
+- **Comparar provedores de email**: [`docs/EMAIL_PROVIDERS_COMPARISON.md`](./docs/EMAIL_PROVIDERS_COMPARISON.md)
 - **Guia rápido para dev**: [`docs/QUICK_EMAIL_FIX.md`](./docs/QUICK_EMAIL_FIX.md)
-- **Guia completo**: [`docs/SETUP_EMAIL_CONFIGURATION.md`](./docs/SETUP_EMAIL_CONFIGURATION.md) (incluindo SendGrid e troubleshooting)
+- **Guia completo com SendGrid**: [`docs/SETUP_EMAIL_CONFIGURATION.md`](./docs/SETUP_EMAIL_CONFIGURATION.md)
 
 ---
 
