@@ -63,7 +63,11 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
 
   // Atualiza data para HOJE sempre que o modal abrir, ganhar foco ou periodicamente
   useEffect(() => {
-    const updateDate = () => setDate(getBrazilDateISO());
+    const updateDate = () => {
+      const newDate = getBrazilDateISO();
+      console.log('📅 QuickSaleModal - Atualizando data:', newDate, new Date().toISOString());
+      setDate(newDate);
+    };
     
     // Atualiza quando monta ou vehicle.id muda
     updateDate();
@@ -225,6 +229,8 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
               },
               expenses: updatedExpenses
           };
+          
+          console.log('💾 QuickSaleModal - Salvando venda com data:', date, '| Date atual:', new Date().toISOString());
 
           // Adiciona info de troca no registro do carro vendido
           if (paymentMethod === 'Troca + Volta') {

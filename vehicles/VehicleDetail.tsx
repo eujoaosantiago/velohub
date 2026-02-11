@@ -4,7 +4,7 @@ import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermis
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO } from '../lib/utils';
-import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
 import { sanitizeInput } from '../lib/security';
@@ -126,6 +126,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const [cameraState, setCameraState] = useState({ isOpen: false, isUploading: false });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [photoIndex, setPhotoIndex] = useState(0); // Índice da foto atual no carrossel
 
   const [expenseData, setExpenseData] = useState({ 
       desc: '', 
@@ -171,7 +172,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   useEffect(() => {
     const updateDate = () => {
       if (!vehicle.soldDate) {
-        setSaleData(prev => ({ ...prev, date: getBrazilDateISO() }));
+        const newDate = getBrazilDateISO();
+        console.log('📅 VehicleDetail - Atualizando data:', newDate, new Date().toISOString());
+        setSaleData(prev => ({ ...prev, date: newDate }));
       }
     };
 
@@ -414,6 +417,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           }
 
           setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newUrls] }));
+          setPhotoIndex(0); // Reseta para primeira foto ao adicionar novas
 
       } catch (err) {
           showToast("Erro ao enviar foto.", "error");
@@ -425,6 +429,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   const handlePhotoDelete = async (index: number) => {
       setFormData(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
+      // Ajusta o índice se a foto deletada era a atual ou posterior
+      setPhotoIndex(prev => {
+          const newLength = formData.photos.length - 1;
+          if (newLength === 0) return 0;
+          if (prev >= newLength) return newLength - 1;
+          return prev;
+      });
   };
 
   const handleCpfChange = (val: string) => {
@@ -509,6 +520,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           },
           expenses: updatedExpenses
       };
+      
+      console.log('💾 VehicleDetail - Salvando venda com data:', saleData.date, '| Date atual:', new Date().toISOString());
 
       if (saleData.method === 'Troca + Volta') {
           saleUpdate.tradeInInfo = {
@@ -1035,29 +1048,117 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                       </button>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {formData.photos.map((photo, idx) => (
-                          <div key={idx} className="aspect-[4/3] relative group rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
-                              <img src={photo} className="w-full h-full object-cover" />
-                              <button onClick={() => handlePhotoDelete(idx)} className="absolute top-2 right-2 p-1.5 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-lg"><Trash2 size={14}/></button>
+                  {/* Carrossel de Fotos com Swipe */}
+                  {formData.photos.length > 0 && (
+                      <div className="relative">
+                          <div 
+                              className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-slate-900 border border-slate-800"
+                              onTouchStart={(e) => {
+                                  const touch = e.touches[0];
+                                  (e.currentTarget as any)._startX = touch.clientX;
+                                  (e.currentTarget as any)._startY = touch.clientY;
+                              }}
+                              onTouchEnd={(e) => {
+                                  const touch = e.changedTouches[0];
+                                  const startX = (e.currentTarget as any)._startX || 0;
+                                  const startY = (e.currentTarget as any)._startY || 0;
+                                  const diffX = touch.clientX - startX;
+                                  const diffY = Math.abs(touch.clientY - startY);
+                                  
+                                  // Só responde a swipes horizontais (não verticais)
+                                  if (Math.abs(diffX) > 50 && diffY < 100) {
+                                      if (diffX > 0) {
+                                          // Swipe right - foto anterior
+                                          setPhotoIndex(prev => prev === 0 ? formData.photos.length - 1 : prev - 1);
+                                      } else {
+                                          // Swipe left - próxima foto
+                                          setPhotoIndex(prev => prev === formData.photos.length - 1 ? 0 : prev + 1);
+                                      }
+                                  }
+                              }}
+                          >
+                              <img 
+                                  src={formData.photos[photoIndex]} 
+                                  className="w-full h-full object-contain" 
+                                  alt={`Foto ${photoIndex + 1}`}
+                              />
                               
-                              {idx !== 0 && (
-                                  <button onClick={async () => {
-                                      const newPhotos = [...formData.photos];
-                                      const p = newPhotos.splice(idx, 1)[0];
-                                      newPhotos.unshift(p);
-                                      setFormData({...formData, photos: newPhotos});
-                                  }} className="absolute bottom-2 right-2 px-2 py-1 bg-slate-900/80 rounded text-white text-xs opacity-0 group-hover:opacity-100 backdrop-blur-sm">Definir Capa</button>
+                              {/* Navegação com setas */}
+                              {formData.photos.length > 1 && (
+                                  <>
+                                      <button 
+                                          onClick={() => setPhotoIndex(prev => prev === 0 ? formData.photos.length - 1 : prev - 1)}
+                                          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-slate-900/80 backdrop-blur-sm rounded-full text-white hover:bg-indigo-600 transition-all shadow-lg"
+                                      >
+                                          <ChevronLeft size={24} />
+                                      </button>
+                                      <button 
+                                          onClick={() => setPhotoIndex(prev => prev === formData.photos.length - 1 ? 0 : prev + 1)}
+                                          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-slate-900/80 backdrop-blur-sm rounded-full text-white hover:bg-indigo-600 transition-all shadow-lg"
+                                      >
+                                          <ChevronRight size={24} />
+                                      </button>
+                                  </>
+                              )}
+                              
+                              {/* Indicador de posição */}
+                              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                                  <span className="text-white text-sm font-medium">{photoIndex + 1} / {formData.photos.length}</span>
+                              </div>
+                              
+                              {/* Botão de excluir foto atual */}
+                              <button 
+                                  onClick={() => handlePhotoDelete(photoIndex)}
+                                  className="absolute top-4 right-4 p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-lg transition-colors"
+                              >
+                                  <Trash2 size={18}/>
+                              </button>
+                              
+                              {/* Botão de definir como capa */}
+                              {photoIndex !== 0 && (
+                                  <button 
+                                      onClick={() => {
+                                          const newPhotos = [...formData.photos];
+                                          const p = newPhotos.splice(photoIndex, 1)[0];
+                                          newPhotos.unshift(p);
+                                          setFormData({...formData, photos: newPhotos});
+                                          setPhotoIndex(0);
+                                      }}
+                                      className="absolute top-4 left-4 px-3 py-2 bg-slate-900/80 backdrop-blur-sm rounded-lg text-white text-sm hover:bg-indigo-600 transition-colors shadow-lg flex items-center gap-2"
+                                  >
+                                      <Star size={16} /> Definir Capa
+                                  </button>
                               )}
                           </div>
-                      ))}
-                      {formData.photos.length === 0 && (
-                          <div className="col-span-full py-10 text-center text-slate-500">
-                              <Camera size={32} className="mx-auto mb-2 opacity-30" />
-                              Nenhuma foto cadastrada.
-                          </div>
-                      )}
-                  </div>
+                          
+                          {/* Miniaturas */}
+                          {formData.photos.length > 1 && (
+                              <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                                  {formData.photos.map((photo, idx) => (
+                                      <button
+                                          key={idx}
+                                          onClick={() => setPhotoIndex(idx)}
+                                          className={`flex-shrink-0 aspect-[4/3] w-20 rounded-lg overflow-hidden border-2 transition-all ${
+                                              idx === photoIndex 
+                                                  ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
+                                                  : 'border-slate-700 hover:border-slate-600'
+                                          }`}
+                                      >
+                                          <img src={photo} className="w-full h-full object-cover" alt={`Miniatura ${idx + 1}`} />
+                                      </button>
+                                  ))}
+                              </div>
+                          )}
+                      </div>
+                  )}
+                  
+                  {formData.photos.length === 0 && (
+                      <div className="py-16 text-center text-slate-500">
+                          <Camera size={48} className="mx-auto mb-4 opacity-30" />
+                          <p className="text-lg font-medium">Nenhuma foto cadastrada</p>
+                          <p className="text-sm mt-1">Adicione fotos usando os botões acima</p>
+                      </div>
+                  )}
               </div>
           )}
 
