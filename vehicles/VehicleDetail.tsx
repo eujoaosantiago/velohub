@@ -197,6 +197,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       };
   }, [formData, vehicle]);
 
+  // Sincroniza o estado local com a prop quando o registro é atualizado no banco (ex: após salvar com sucesso)
+  useEffect(() => {
+      if (vehicle.updatedAt !== formData.updatedAt) {
+          setFormData(vehicle);
+      }
+  }, [vehicle]);
+
   useEffect(() => {
     if (isNew || (useFipeSearch && fipeData.brands.length === 0)) {
         loadBrands();
