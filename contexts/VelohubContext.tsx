@@ -69,6 +69,11 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
             const params = new URLSearchParams(window.location.search);
             const isPaymentReturn = params.get('success') === 'true';
 
+            if (!supabase) {
+                if (mounted) setIsLoading(false);
+                return;
+            }
+
             const { data: { session }, error } = await supabase.auth.getSession();
             
             if (error) throw error;

@@ -29,7 +29,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
 
     try {
       const user = await AuthService.login(email, password);
-      onLoginSuccess(user);
+      if (user) {
+        onLoginSuccess(user);
+      } else {
+        setError('Erro ao obter dados do usuário.');
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao realizar login.');
     } finally {
