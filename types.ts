@@ -26,6 +26,7 @@ export interface User extends BaseEntity {
   storeName?: string;
   cnpj?: string;
   phone?: string;
+  whatsapp?: string; // Novo campo para WhatsApp da loja
   cep?: string;   // Novo campo
   city?: string;  
   state?: string; 

@@ -34,6 +34,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   // Novos campos
   const [cnpj, setCnpj] = useState('');
   const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState(''); // Novo campo
   const [cep, setCep] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -93,7 +94,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
     }
 
     try {
-      const storeData = inviteStoreId ? undefined : { cnpj, phone, cep, city, state };
+      const storeData = inviteStoreId ? undefined : { cnpj, phone, whatsapp, cep, city, state }; // Novo campo
       
       const user = await AuthService.register(name, email, password, storeName, storeData, inviteStoreId || undefined);
       

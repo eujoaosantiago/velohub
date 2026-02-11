@@ -31,6 +31,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
   const [name, setName] = useState(user.name);
   const [storeName, setStoreName] = useState(user.storeName || '');
   const [cnpj, setCnpj] = useState(user.cnpj || '');
+  const [whatsapp, setWhatsapp] = useState(user.whatsapp || ''); // Novo estado
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [contractTemplate, setContractTemplate] = useState(user.contractTemplate || DEFAULT_CONTRACT);
@@ -57,6 +58,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
             name,
             storeName: user.role === 'owner' ? storeName : undefined,
             cnpj: user.role === 'owner' ? cnpj : undefined,
+            whatsapp: user.role === 'owner' ? whatsapp : undefined, // Novo campo
             contractTemplate: user.role === 'owner' ? contractTemplate : undefined
         };
 
