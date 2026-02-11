@@ -64,6 +64,7 @@ const AppContent: React.FC = () => {
   // Local UI State
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [draftVehicle, setDraftVehicle] = useState<Vehicle | null>(null);
+  const [returnPage, setReturnPage] = useState<Page | null>(null);
 
   // Invite & Public Share Logic State
   const [inviteStoreId, setInviteStoreId] = useState<string | null>(null);
@@ -104,12 +105,18 @@ const AppContent: React.FC = () => {
   const handleSelectVehicle = (id: string) => {
     setDraftVehicle(null);
     setSelectedVehicleId(id);
+    setReturnPage(currentPage);
     navigateTo(Page.VEHICLE_DETAIL);
   };
 
   const handleBackToVehicles = () => {
       setDraftVehicle(null);
-      navigateTo(Page.VEHICLES);
+      const targetPage =
+        returnPage && returnPage !== Page.VEHICLE_DETAIL
+          ? returnPage
+          : Page.VEHICLES;
+      setReturnPage(null);
+      navigateTo(targetPage);
   }
 
   const handleUpdateVehicle = async (updatedVehicle: Vehicle) => {
@@ -119,7 +126,12 @@ const AppContent: React.FC = () => {
             await ApiService.createVehicle(updatedVehicle, user);
             setDraftVehicle(null);
             setSelectedVehicleId(null);
-            navigateTo(Page.VEHICLES);
+          const targetPage =
+            returnPage && returnPage !== Page.VEHICLE_DETAIL
+            ? returnPage
+            : Page.VEHICLES;
+          setReturnPage(null);
+          navigateTo(targetPage);
         } else {
             await ApiService.updateVehicle(updatedVehicle);
         }
@@ -147,7 +159,12 @@ const AppContent: React.FC = () => {
         await ApiService.deleteVehicle(id, user.storeId);
         await refreshData();
         if (currentPage === Page.VEHICLE_DETAIL) {
-            navigateTo(Page.VEHICLES);
+          const targetPage =
+            returnPage && returnPage !== Page.VEHICLE_DETAIL
+            ? returnPage
+            : Page.VEHICLES;
+          setReturnPage(null);
+          navigateTo(targetPage);
         }
       } catch (e) {
         alert("Erro ao excluir veículo.");
@@ -189,6 +206,7 @@ const AppContent: React.FC = () => {
     };
     
     setDraftVehicle(newVehicle);
+    setReturnPage(currentPage);
     navigateTo(Page.VEHICLE_DETAIL);
   };
 
@@ -273,7 +291,10 @@ const AppContent: React.FC = () => {
           />
         );
       case Page.SALES: return <SalesList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />;
-      case Page.EXPENSES: return <ExpensesList vehicles={vehicles} />;
+      case Page.EXPENSES:
+        return (
+          <ExpensesList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+        );
       case Page.CUSTOMERS: return <CustomerList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />;
       case Page.TEAM: return <TeamInvite user={user} />;
       case Page.PROFILE: return <ProfilePage user={user} onUpdateUser={(u) => login(u)} />;

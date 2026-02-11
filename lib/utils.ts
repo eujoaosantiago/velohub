@@ -6,14 +6,13 @@ import { Vehicle } from '../types';
 ======================= */
 
 export const getBrazilDateISO = (): string => {
-  const date = new Date().toLocaleDateString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  // pt-BR retorna DD/MM/YYYY. Input date precisa de YYYY-MM-DD
-  const [day, month, year] = date.split('/');
+  // Pega a data LOCAL do sistema (sem conversões de timezone)
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // Mês começa em 0
+  const day = String(now.getDate()).padStart(2, '0');
+  
+  // Retorna no formato ISO (YYYY-MM-DD)
   return `${year}-${month}-${day}`;
 };
 

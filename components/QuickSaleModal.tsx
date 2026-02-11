@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Vehicle, Buyer } from '../types';
 import { Button } from './ui/Button';
 import { X, DollarSign, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle, Briefcase } from 'lucide-react';
@@ -60,6 +60,26 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
   const [saleComplete, setSaleComplete] = useState(false);
   const [showContract, setShowContract] = useState(false); // New state to handle manual contract viewing
   const user = AuthService.getCurrentUser();
+
+  // Atualiza data para HOJE sempre que o modal abrir, ganhar foco ou periodicamente
+  useEffect(() => {
+    const updateDate = () => setDate(getBrazilDateISO());
+    
+    // Atualiza quando monta ou vehicle.id muda
+    updateDate();
+    
+    // Atualiza quando a aba ganha foco (usuário volta para o navegador)
+    const handleFocus = () => updateDate();
+    window.addEventListener('focus', handleFocus);
+
+    // Atualiza a cada 5 minutos (garante data correta mesmo se ficar aberto por horas)
+    const interval = setInterval(updateDate, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [vehicle.id]);
 
   const handlePriceChange = (val: string) => {
       setPrice(maskCurrencyInput(val));
@@ -122,7 +142,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
               }
           }
 
-          // --- LOGICA DE SOMA (Troca + Volta) ---
+          // --- LÓGICA DE SOMA (Troca + Volta) ---
           // Se for troca, assume que o input principal é o valor da "Volta" (Dinheiro)
           // O valor total da venda será: Volta + Valor da Troca.
           let finalSalePrice = saleValue;
@@ -167,18 +187,43 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
               phone: sanitizeInput(buyerPhone)
           };
 
+          // --- LÓGICA DE COMISSÃO COMO DESPESA REAL ---
+          const commissionVal = parseCurrencyInput(commission);
+          let updatedExpenses = [...vehicle.expenses];
+
+          // Evita duplicar se já houver salário/comissão lançada
+          const existingCommissionSum = updatedExpenses
+              .filter(e => e.category === 'salary')
+              .reduce((acc, e) => acc + e.amount, 0);
+
+          const commissionDifference = commissionVal - existingCommissionSum;
+
+          if (commissionDifference > 0.01) {
+              updatedExpenses.push({
+                  id: Math.random().toString(),
+                  vehicleId: vehicle.id,
+                  description: 'Comissão de Venda',
+                  amount: commissionDifference,
+                  date,
+                  category: 'salary',
+                  employeeName: commissionTo || undefined
+              });
+          }
+
           const saleData: Partial<Vehicle> = {
               status: 'sold',
               soldPrice: finalSalePrice, // Save total price
               soldDate: date,
               paymentMethod,
-              saleCommission: commission ? parseCurrencyInput(commission) : 0,
+              // Comissão agora entra como despesa (salary) para refletir no lucro real
+              saleCommission: 0,
               saleCommissionTo: commissionTo, // Save employee name
               buyer,
               warrantyDetails: {
                   time: warrantyTime,
                   km: warrantyKm
-              }
+              },
+              expenses: updatedExpenses
           };
 
           // Adiciona info de troca no registro do carro vendido
@@ -232,9 +277,9 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
         {saleComplete && <Confetti />}
         
-        <div className={`bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl relative my-8 transition-all ${saleComplete ? 'animate-pop-in border-emerald-500/50 shadow-emerald-500/10' : ''}`}>
+        <div className={`bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl relative my-8 transition-all max-h-[90vh] flex flex-col overflow-hidden ${saleComplete ? 'animate-pop-in border-emerald-500/50 shadow-emerald-500/10' : ''}`}>
             {!saleComplete && (
-                <div className="bg-slate-800/50 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 backdrop-blur-md z-10 rounded-t-2xl">
+            <div className="bg-slate-800/50 p-4 border-b border-slate-700 flex justify-between items-center rounded-t-2xl shrink-0">
                     <div>
                         <h3 className="text-lg font-bold text-white">
                             Fechar Venda
@@ -247,9 +292,10 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                 </div>
             )}
 
-            {saleComplete ? (
-                // SUCCESS STATE VIEW
-                <div className="p-8 text-center relative overflow-hidden rounded-2xl">
+                        {saleComplete ? (
+                                // SUCCESS STATE VIEW
+                                <div className="flex-1 overflow-y-auto">
+                                    <div className="p-8 text-center relative overflow-hidden rounded-2xl">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-indigo-500"></div>
                     
                     <div className="relative">
@@ -275,15 +321,23 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                             Fechar
                         </Button>
                     </div>
+                  </div>
                 </div>
             ) : (
                 // FORM VIEW
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-1">
-                            <label className="block text-xs font-medium text-indigo-300 mb-1 uppercase tracking-wider">
-                                {paymentMethod === 'Troca + Volta' ? 'Valor em Dinheiro (Volta)' : 'Valor Final'}
-                            </label>
+                        <div>
+                                                        <label className="block text-xs font-medium text-indigo-300 mb-1 uppercase tracking-wider leading-tight min-h-[32px]">
+                                                                {paymentMethod === 'Troca + Volta' ? (
+                                                                    <>
+                                                                        <span className="md:hidden">Valor (Volta)</span>
+                                                                        <span className="hidden md:inline">Valor em Dinheiro (Volta)</span>
+                                                                    </>
+                                                                ) : (
+                                                                    'Valor Final'
+                                                                )}
+                                                        </label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input 
@@ -297,8 +351,8 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 />
                             </div>
                         </div>
-                        <div className="col-span-1">
-                            <label className="block text-xs font-medium text-indigo-300 mb-1 uppercase tracking-wider">Comissão (R$)</label>
+                        <div>
+                            <label className="block text-xs font-medium text-indigo-300 mb-1 uppercase tracking-wider leading-tight min-h-[32px]">Comissão (R$)</label>
                             <div className="relative">
                                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input 

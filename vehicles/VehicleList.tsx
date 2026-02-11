@@ -192,24 +192,24 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Meu Estoque</h1>
-          <p className="text-slate-400">
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Meu Estoque</h1>
+          <p className="text-slate-400 text-sm md:text-base">
              {userRole === 'owner' ? 'Gerencie custos e margens do seu estoque.' : 'Catálogo de veículos disponíveis para venda.'}
           </p>
         </div>
-        <Button onClick={onAddVehicle} icon={<Plus size={18} />}>
+        <Button onClick={onAddVehicle} icon={<Plus size={18} />} className="w-full md:w-auto justify-center">
           Adicionar Veículo
         </Button>
       </div>
 
       {staleInventoryCount > 0 && userRole === 'owner' && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center gap-3">
-              <div className="p-2 bg-amber-500/20 rounded-full text-amber-500">
+              <div className="p-2 bg-amber-500/20 rounded-full text-amber-500 shrink-0">
                   <AlertTriangle size={20} />
               </div>
               <div>
-                  <h4 className="text-amber-400 font-bold">Atenção Necessária</h4>
-                  <p className="text-sm text-amber-200/70">
+                  <h4 className="text-amber-400 font-bold text-sm">Atenção Necessária</h4>
+                  <p className="text-xs md:text-sm text-amber-200/70">
                       Você tem <span className="font-bold text-white">{staleInventoryCount}</span> veículos parados há mais de 60 dias.
                       Considere revisar os preços.
                   </p>
@@ -229,7 +229,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
             />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
             {['all', 'available', 'reserved', 'preparation'].map(status => {
                 let label = '';
                 switch(status) {
@@ -260,17 +260,34 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
             const daysInStock = Math.floor((new Date().getTime() - new Date(vehicle.purchaseDate).getTime()) / (1000 * 3600 * 24));
             const isStale = vehicle.status === 'available' && daysInStock > 60;
             const borderColorClass = getStatusBorderColor(vehicle.status);
-            const addedDate = new Date(vehicle.purchaseDate || vehicle.createdAt).toLocaleDateString('pt-BR');
+            // Parse correto da data para evitar problemas de timezone
+            const dateStr = vehicle.purchaseDate || vehicle.createdAt;
+            const addedDate = (() => {
+              if (!dateStr) return 'Data não informada';
+              try {
+                if (dateStr.includes('-')) {
+                  const [year, month, day] = dateStr.split(/[-T]/).slice(0, 3).map(Number);
+                  if (year && month && day) {
+                    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+                  }
+                }
+                // Fallback para ISO string completo
+                return new Date(dateStr).toLocaleDateString('pt-BR');
+              } catch {
+                return 'Data inválida';
+              }
+            })();
             const isDropdownOpen = openStatusId === vehicle.id;
 
             return (
               <div 
                 key={vehicle.id} 
                 onClick={() => onSelectVehicle(vehicle.id)}
-                className={`group bg-slate-900/40 backdrop-blur-sm border-l-4 ${borderColorClass} border-y border-r border-slate-800/60 rounded-2xl p-4 hover:bg-slate-800/60 transition-all cursor-pointer flex flex-col gap-4 ${isStale && userRole === 'owner' ? 'shadow-[0_0_15px_-5px_rgba(245,158,11,0.2)]' : ''}`}
+                className={`group bg-slate-900/40 backdrop-blur-sm border-l-4 ${borderColorClass} border-y border-r border-slate-800/60 rounded-2xl p-4 hover:bg-slate-800/60 transition-all cursor-pointer flex flex-col gap-4 relative overflow-hidden ${isStale && userRole === 'owner' ? 'shadow-[0_0_15px_-5px_rgba(245,158,11,0.2)]' : ''}`}
               >
                 <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-64 h-48 md:h-40 rounded-xl bg-slate-800 flex-shrink-0 overflow-hidden relative border border-slate-800">
+                    {/* Imagem: Topo no Mobile, Esquerda no Desktop */}
+                    <div className="w-full h-48 md:w-64 md:h-44 rounded-xl bg-slate-800 flex-shrink-0 overflow-hidden relative border border-slate-800">
                     {vehicle.photos.length > 0 ? (
                         <img 
                             src={vehicle.photos[0]} 
@@ -283,90 +300,97 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                             <span className="text-xs">Sem foto</span>
                         </div>
                     )}
+                        {/* Mobile Status Badge Overlay */}
+                        <div className="absolute top-2 right-2 md:hidden">
+                             <span className={`text-[10px] font-bold px-2 py-1 rounded-full shadow-md uppercase tracking-wide border ${vehicle.status === 'reserved' ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-900/80 text-white border-white/20 backdrop-blur-md'}`}>
+                                {getStatusLabel(vehicle.status)}
+                             </span>
+                        </div>
                     </div>
 
-                    <div className="flex-1 min-w-0 w-full">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-bold text-white truncate">{vehicle.make} {vehicle.model}</h3>
-                                {isStale && userRole === 'owner' && (
-                                    <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full animate-pulse">
-                                        <Clock size={10} />
-                                        +60 Dias
-                                    </span>
-                                )}
-                            </div>
-                            
-                            <div className="relative group min-w-[140px]" onClick={(e) => e.stopPropagation()}>
-                                <button 
-                                    onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
-                                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}
-                                >
-                                    <span className="text-xs font-bold uppercase tracking-wide truncate">
-                                        {getStatusLabel(vehicle.status)}
-                                    </span>
-                                    {vehicle.status !== 'sold' && <ChevronDown size={14} className={`opacity-80 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />}
-                                </button>
-                                
-                                {isDropdownOpen && vehicle.status !== 'sold' && (
-                                    <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in origin-top-right">
-                                        {[
-                                            { val: 'available', label: 'Em Estoque', color: 'text-emerald-400' },
-                                            { val: 'reserved', label: 'Reservado', color: 'text-amber-400' },
-                                            { val: 'preparation', label: 'Preparação', color: 'text-indigo-400' },
-                                            // 'sold' option removed per user request
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.val}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleStatusUpdate(vehicle, opt.val as VehicleStatus);
-                                                }}
-                                                className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between group/item hover:bg-slate-800 transition-colors text-slate-300`}
-                                            >
-                                                <span className={opt.color.includes('text') ? opt.color : ''}>{opt.label}</span>
-                                                {vehicle.status === opt.val && <Check size={14} className="text-emerald-400"/>}
-                                            </button>
-                                        ))}
+                    <div className="flex-1 min-w-0 w-full flex flex-col justify-between">
+                        <div>
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-2 mb-2">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="text-lg md:text-xl font-bold text-white truncate">{vehicle.make} {vehicle.model}</h3>
+                                        {isStale && userRole === 'owner' && (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full animate-pulse shrink-0">
+                                                <Clock size={10} />
+                                                +60 Dias
+                                            </span>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                        
-                        <p className="text-slate-300 font-medium mb-1">{vehicle.version}</p>
-                        
-                        {vehicle.status === 'reserved' && vehicle.reservationDetails && (
-                            <div className="mb-3 flex flex-col gap-1 text-xs bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded text-amber-200">
-                                <div className="flex items-center gap-2">
-                                    <Lock size={12} />
-                                    <span>Reservado para <strong>{vehicle.reservationDetails.reservedBy}</strong></span>
+                                    <p className="text-slate-300 font-medium text-sm md:text-base truncate">{vehicle.version}</p>
                                 </div>
-                                <span className="opacity-80">Sinal: {formatCurrency(vehicle.reservationDetails.signalValue)}</span>
+                                
+                                {/* Status Dropdown - Desktop Only */}
+                                <div className="relative group min-w-[140px] hidden md:block" onClick={(e) => e.stopPropagation()}>
+                                    <button 
+                                        onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
+                                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}
+                                    >
+                                        <span className="text-xs font-bold uppercase tracking-wide truncate">
+                                            {getStatusLabel(vehicle.status)}
+                                        </span>
+                                        {vehicle.status !== 'sold' && <ChevronDown size={14} className={`opacity-80 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />}
+                                    </button>
+                                    
+                                    {isDropdownOpen && vehicle.status !== 'sold' && (
+                                        <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in origin-top-right">
+                                            {[
+                                                { val: 'available', label: 'Em Estoque', color: 'text-emerald-400' },
+                                                { val: 'reserved', label: 'Reservado', color: 'text-amber-400' },
+                                                { val: 'preparation', label: 'Preparação', color: 'text-indigo-400' },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.val}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleStatusUpdate(vehicle, opt.val as VehicleStatus);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between group/item hover:bg-slate-800 transition-colors text-slate-300`}
+                                                >
+                                                    <span className={opt.color.includes('text') ? opt.color : ''}>{opt.label}</span>
+                                                    {vehicle.status === opt.val && <Check size={14} className="text-emerald-400"/>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="text-slate-500 text-xs bg-slate-800/50 px-2 py-0.5 rounded border border-slate-800">{vehicle.plate || 'S/ Placa'}</span>
                             
-                            <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.ipvaPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-                                {vehicle.ipvaPaid ? <FileCheck size={10} /> : <FileX size={10} />} IPVA
-                            </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.licensingPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-                                {vehicle.licensingPaid ? <FileCheck size={10} /> : <FileX size={10} />} Licenciamento
-                            </span>
+                            {vehicle.status === 'reserved' && vehicle.reservationDetails && (
+                                <div className="mb-3 flex flex-col gap-1 text-xs bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded text-amber-200">
+                                    <div className="flex items-center gap-2">
+                                        <Lock size={12} />
+                                        <span className="truncate">Reservado para <strong>{vehicle.reservationDetails.reservedBy}</strong></span>
+                                    </div>
+                                    <span className="opacity-80">Sinal: {formatCurrency(vehicle.reservationDetails.signalValue)}</span>
+                                </div>
+                            )}
 
-                            <span className="text-slate-600 text-xs flex items-center gap-1 ml-auto md:ml-0">• Adicionado em {addedDate}</span>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-                            <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
-                            <Calendar size={14} className="text-indigo-400" /> {vehicle.year}
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                <span className="text-slate-500 text-xs bg-slate-800/50 px-2 py-0.5 rounded border border-slate-800 uppercase font-mono">{vehicle.plate || 'S/ Placa'}</span>
+                                
+                                <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.ipvaPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                    {vehicle.ipvaPaid ? <FileCheck size={10} /> : <FileX size={10} />} IPVA
+                                </span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.licensingPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                    {vehicle.licensingPaid ? <FileCheck size={10} /> : <FileX size={10} />} Licenciamento
+                                </span>
                             </div>
-                            <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
-                            <Fuel size={14} className="text-indigo-400" /> {vehicle.fuel}
-                            </div>
-                            <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
-                            <span className="font-bold text-indigo-400">KM</span> {vehicle.km.toLocaleString()}
+                            
+                            <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+                                <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
+                                    <Calendar size={12} className="text-indigo-400" /> {vehicle.year}
+                                </div>
+                                <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
+                                    <Fuel size={12} className="text-indigo-400" /> {vehicle.fuel}
+                                </div>
+                                <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
+                                    <span className="font-bold text-indigo-400 text-[10px]">KM</span> {vehicle.km.toLocaleString()}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -375,7 +399,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                     <div className="hidden md:flex flex-col items-end justify-between min-w-[160px] pl-6 border-l border-slate-800">
                         <div className="text-right w-full">
                             <p className="text-xs text-slate-500 mb-1">Preço de Venda</p>
-                            <p className="text-2xl font-bold text-white tracking-tight">{formatCurrency(vehicle.expectedSalePrice)}</p>
+                            <p className="text-2xl font-bold text-white tracking-tight truncate">{formatCurrency(vehicle.expectedSalePrice)}</p>
                             
                             {canViewCosts ? (
                                 <>
@@ -438,46 +462,44 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                 </div>
 
                 {/* ACTIONS - MOBILE VIEW (Bottom Bar) */}
-                <div className="flex flex-col md:hidden gap-4 mt-2 pt-4 border-t border-slate-800">
+                <div className="flex flex-col md:hidden gap-3 mt-2 pt-3 border-t border-slate-800/50">
                     <div className="flex justify-between items-center">
-                        <p className="text-xs text-slate-500">Preço</p>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(vehicle.expectedSalePrice)}</p>
+                        <p className="text-xs text-slate-500">Valor</p>
+                        <p className="text-xl font-bold text-white">{formatCurrency(vehicle.expectedSalePrice)}</p>
                     </div>
                     
                     {vehicle.status !== 'sold' && (
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                             {canManageSales && vehicle.status !== 'preparation' && (
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setQuickSaleVehicle(vehicle);
                                     }}
-                                    className="flex-1 bg-gradient-to-r from-indigo-500 to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                    className="flex-1 bg-gradient-to-r from-indigo-500 to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm"
                                 >
-                                    <DollarSign size={20} />
+                                    <DollarSign size={18} />
                                     VENDER
                                 </button>
                             )}
-                            <div className="flex gap-2">
+                            <button 
+                                onClick={(e) => handleShareClick(e, vehicle)}
+                                className={`px-4 rounded-xl border flex items-center justify-center active:bg-slate-700 transition-colors ${
+                                    canShare
+                                    ? 'bg-slate-800 text-white border-slate-700'
+                                    : 'bg-slate-900 text-slate-600 border-slate-800'
+                                }`}
+                            >
+                                {canShare ? <Share2 size={18} /> : <Lock size={18} />}
+                            </button>
+                            {userRole === 'owner' && onDeleteVehicle && (
                                 <button 
-                                    onClick={(e) => handleShareClick(e, vehicle)}
-                                    className={`px-4 py-3 rounded-xl border flex items-center justify-center active:bg-slate-700 transition-colors ${
-                                        canShare
-                                        ? 'bg-slate-800 text-white border-slate-700'
-                                        : 'bg-slate-900 text-slate-600 border-slate-800'
-                                    }`}
+                                    onClick={(e) => { e.stopPropagation(); onDeleteVehicle(vehicle.id); }} 
+                                    className="px-4 rounded-xl border border-slate-800 bg-slate-900 text-rose-500 flex items-center justify-center active:bg-rose-500 active:text-white transition-colors"
                                 >
-                                    {canShare ? <Share2 size={20} /> : <Lock size={20} />}
+                                    <Trash2 size={18} />
                                 </button>
-                                {userRole === 'owner' && onDeleteVehicle && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onDeleteVehicle(vehicle.id); }} 
-                                        className="px-4 py-3 rounded-xl border border-slate-800 bg-slate-900 text-rose-500 flex items-center justify-center active:bg-rose-500 active:text-white transition-colors"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
-                                )}
-                            </div>
+                            )}
                         </div>
                     )}
                 </div>

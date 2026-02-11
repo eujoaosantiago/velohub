@@ -30,6 +30,13 @@ export const ApiService = {
         purchaseDate: v.created_at, 
         expenses: v.expenses || [],
         paymentMethod: v.payment_method,
+        // Campos de venda / comprador
+        buyer: v.buyer || undefined,
+        warrantyDetails: v.warranty_details || undefined,
+        reservationDetails: v.reservation_details || undefined,
+        tradeInInfo: v.trade_in_info || undefined,
+        saleCommission: v.sale_commission || 0,
+        saleCommissionTo: v.sale_commission_to || '',
         // Mapping boolean fields explicitly
         ipvaPaid: v.ipva_paid,
         licensingPaid: v.licensing_paid

@@ -17,6 +17,16 @@ interface SalesListProps {
 
 export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle }) => {
   const [searchTerm, setSearchTerm] = useState('');
+    const [chartPeriod, setChartPeriod] = useState<
+        | 'last_3'
+        | 'last_6'
+        | 'last_12'
+        | 'this_month'
+        | 'last_month'
+        | 'this_quarter'
+        | 'this_year'
+    >('last_6');
+    const [chartBrand, setChartBrand] = useState<string>('all');
   const { navigateTo } = useVelohub();
   const currentUser = AuthService.getCurrentUser();
   const planLimits = currentUser ? getPlanLimits(currentUser) : null;
@@ -29,7 +39,21 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
 
   const filteredSales = soldVehicles.filter(v => {
     const term = searchTerm.toLowerCase();
-    const saleDate = v.soldDate ? new Date(v.soldDate).toLocaleDateString('pt-BR') : '';
+    // Parse correto da data para evitar problemas de timezone
+    const saleDate = v.soldDate ? (() => {
+      try {
+        if (v.soldDate.includes('-')) {
+          const [year, month, day] = v.soldDate.split('-').map(Number);
+          if (year && month && day) {
+            return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+          }
+        }
+        // Fallback: tenta usar new Date diretamente
+        return new Date(v.soldDate).toLocaleDateString('pt-BR');
+      } catch {
+        return '';
+      }
+    })() : '';
     const priceStr = v.soldPrice ? v.soldPrice.toString() : '';
     
     return (
@@ -54,33 +78,115 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
   const averageTicket = soldVehicles.length > 0 ? totalRevenue / soldVehicles.length : 0;
   const averageMargin = soldVehicles.length > 0 ? totalProfit / soldVehicles.length : 0;
 
-  // --- CHART DATA: Revenue vs Profit (Monthly) ---
-  const timelineData = useMemo(() => {
-      const data: Record<string, { name: string, revenue: number, profit: number }> = {};
-      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-      
-      // Init last 6 months
-      const currentMonth = new Date().getMonth();
-      for(let i=5; i>=0; i--) {
-          const d = new Date();
-          d.setMonth(currentMonth - i);
-          const key = `${months[d.getMonth()]}/${d.getFullYear().toString().substr(2)}`;
-          data[key] = { name: key, revenue: 0, profit: 0 };
-      }
+    const periodLabelMap: Record<string, string> = {
+        last_3: 'Ultimos 3 meses',
+        last_6: 'Ultimos 6 meses',
+        last_12: 'Ultimos 12 meses',
+        this_month: 'Este mes',
+        last_month: 'Mes anterior',
+        this_quarter: 'Trimestre atual',
+        this_year: 'Ano atual',
+    };
 
-      soldVehicles.forEach(v => {
-          if (!v.soldDate) return;
-          const d = new Date(v.soldDate);
-          const key = `${months[d.getMonth()]}/${d.getFullYear().toString().substr(2)}`;
-          
-          if(data[key]) {
-              data[key].revenue += v.soldPrice || 0;
-              data[key].profit += calculateRealProfit(v);
-          }
-      });
+    const getChartDateRange = (period: typeof chartPeriod) => {
+        const now = new Date();
+        let start = new Date(now.getFullYear(), now.getMonth(), 1);
+        let end = new Date(now);
 
-      return Object.values(data);
-  }, [soldVehicles]);
+        if (period === 'last_3' || period === 'last_6' || period === 'last_12') {
+            const monthsBack = period === 'last_3' ? 2 : period === 'last_6' ? 5 : 11;
+            start = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+        } else if (period === 'last_month') {
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (period === 'this_quarter') {
+            const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+            start = new Date(now.getFullYear(), quarterStart, 1);
+        } else if (period === 'this_year') {
+            start = new Date(now.getFullYear(), 0, 1);
+        }
+
+        return { start, end };
+    };
+
+    const chartBrands = useMemo(() => {
+        const unique = Array.from(new Set(soldVehicles.map((v) => v.make).filter(Boolean)));
+        return ['all', ...unique.sort((a, b) => a.localeCompare(b))];
+    }, [soldVehicles]);
+
+    const { start: chartStart, end: chartEnd } = useMemo(
+        () => getChartDateRange(chartPeriod),
+        [chartPeriod],
+    );
+
+    const filteredChartVehicles = useMemo(() => {
+        return soldVehicles.filter((v) => {
+            if (!v.soldDate) return false;
+            try {
+                // Parse correto da data ISO para evitar problemas de timezone
+                if (v.soldDate.includes('-')) {
+                    const [year, month, day] = v.soldDate.split('-').map(Number);
+                    if (year && month && day) {
+                        const soldAt = new Date(year, month - 1, day);
+                        if (soldAt < chartStart || soldAt > chartEnd) return false;
+                        if (chartBrand !== 'all' && v.make !== chartBrand) return false;
+                        return true;
+                    }
+                }
+                return false;
+            } catch {
+                return false;
+            }
+        });
+    }, [soldVehicles, chartStart, chartEnd, chartBrand]);
+
+    const buildMonthKeys = (start: Date, end: Date) => {
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const keys: string[] = [];
+        const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+        const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+        while (cursor <= endMonth) {
+            const key = `${months[cursor.getMonth()]}/${cursor.getFullYear().toString().slice(2)}`;
+            keys.push(key);
+            cursor.setMonth(cursor.getMonth() + 1);
+        }
+
+        return keys;
+    };
+
+    // --- CHART DATA: Revenue vs Profit (Monthly) ---
+    const timelineData = useMemo(() => {
+        const data: Record<string, { name: string; revenue: number; profit: number }> = {};
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        buildMonthKeys(chartStart, chartEnd).forEach((key) => {
+            data[key] = { name: key, revenue: 0, profit: 0 };
+        });
+
+        filteredChartVehicles.forEach((v) => {
+            if (!v.soldDate) return;
+            try {
+                // Parse correto da data ISO para evitar problemas de timezone
+                if (v.soldDate.includes('-')) {
+                    const [year, month, day] = v.soldDate.split('-').map(Number);
+                    if (year && month && day) {
+                        const d = new Date(year, month - 1, day);
+                        const key = `${months[d.getMonth()]}/${d.getFullYear().toString().slice(2)}`;
+
+                        if (data[key]) {
+                            data[key].revenue += v.soldPrice || 0;
+                            data[key].profit += calculateRealProfit(v);
+                        }
+                    }
+                }
+            } catch {
+                // Ignora datas inválidas
+            }
+        });
+
+        return Object.values(data);
+    }, [filteredChartVehicles, chartStart, chartEnd]);
 
   // --- CHART DATA: Top Brands ---
   const brandData = useMemo(() => {
@@ -122,14 +228,14 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
   );
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 md:space-y-8 animate-fade-in">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-white">Inteligência Comercial</h1>
-        <p className="text-slate-400">Métricas de performance para escalar sua operação.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Inteligência Comercial</h1>
+        <p className="text-slate-400 text-sm md:text-base">Métricas de performance para escalar sua operação.</p>
       </div>
 
       {/* Strategic KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard 
               label="Faturamento Total" 
               value={formatCurrency(totalRevenue)} 
@@ -161,12 +267,53 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
           />
       </div>
 
+      {/* Chart Filters */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <Filter size={16} />
+              Filtros dos graficos
+          </div>
+          <div className="flex flex-wrap gap-3">
+              <label className="text-xs text-slate-400 flex flex-col gap-1">
+                  Periodo
+                  <select
+                      value={chartPeriod}
+                      onChange={(e) => setChartPeriod(e.target.value as typeof chartPeriod)}
+                      className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                      {Object.entries(periodLabelMap).map(([value, label]) => (
+                          <option key={value} value={value}>
+                              {label}
+                          </option>
+                      ))}
+                  </select>
+              </label>
+              <label className="text-xs text-slate-400 flex flex-col gap-1">
+                  Marca
+                  <select
+                      value={chartBrand}
+                      onChange={(e) => setChartBrand(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                      {chartBrands.map((brand) => (
+                          <option key={brand} value={brand}>
+                              {brand === 'all' ? 'Todas' : brand}
+                          </option>
+                      ))}
+                  </select>
+              </label>
+          </div>
+      </div>
+
       {/* CHARTS ROW */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Revenue vs Profit Chart */}
-          <Card title="Evolução Financeira (6 meses)" className="lg:col-span-2 relative overflow-hidden">
+          <Card
+              title={`Evolução Financeira (${periodLabelMap[chartPeriod]})`}
+              className="lg:col-span-2 relative overflow-hidden min-h-[350px]"
+          >
               {!canViewCharts && <LockedOverlay title="Análise Financeira Avançada" />}
-              <div className={`h-80 w-full ${!canViewCharts ? 'opacity-20 pointer-events-none filter blur-sm' : ''}`}>
+              <div className={`h-64 md:h-80 w-full ${!canViewCharts ? 'opacity-20 pointer-events-none filter blur-sm' : ''}`}>
                   <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <defs>
@@ -195,9 +342,9 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
           </Card>
 
           {/* Top Brands Chart */}
-          <Card title="Marcas Mais Vendidas" className="relative overflow-hidden">
+          <Card title="Marcas Mais Vendidas" className="relative overflow-hidden min-h-[350px]">
               {!canViewCharts && <LockedOverlay title="Ranking de Marcas" />}
-              <div className={`h-80 w-full ${!canViewCharts ? 'opacity-20 pointer-events-none filter blur-sm' : ''}`}>
+              <div className={`h-64 md:h-80 w-full ${!canViewCharts ? 'opacity-20 pointer-events-none filter blur-sm' : ''}`}>
                   <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={brandData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" opacity={0.3} />
@@ -235,17 +382,17 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
           </div>
 
           <Card className="p-0 overflow-hidden">
-              <div className="overflow-x-auto custom-scrollbar">
+              <div className="overflow-x-auto custom-scrollbar -mx-4 md:mx-0 px-4 md:px-0">
                 <table className="w-full text-left min-w-[800px]">
                     <thead>
                         <tr className="border-b border-slate-800 text-slate-400 text-sm bg-slate-900/50">
-                            <th className="px-6 py-4 font-medium">Data</th>
+                            <th className="px-6 py-4 font-medium pl-6">Data</th>
                             <th className="px-6 py-4 font-medium">Veículo</th>
                             <th className="px-6 py-4 font-medium">Cliente</th>
                             <th className="px-6 py-4 font-medium text-right">Valor Venda</th>
                             <th className="px-6 py-4 font-medium text-right">ROI</th>
                             <th className="px-6 py-4 font-medium text-right">Lucro</th>
-                            <th className="px-6 py-4 font-medium text-center">Ação</th>
+                            <th className="px-6 py-4 font-medium text-center pr-6">Ação</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
@@ -257,15 +404,35 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
 
                             return (
                                 <tr key={sale.id} className="text-sm hover:bg-slate-800/30 transition-colors group">
-                                    <td className="px-6 py-4 text-slate-300 whitespace-nowrap">
+                                    <td className="px-6 py-4 text-slate-300 whitespace-nowrap pl-6">
                                         <div className="flex items-center gap-2">
                                             <Calendar size={14} className="text-slate-500" />
-                                            {new Date(sale.soldDate!).toLocaleDateString()}
+                                            {sale.soldDate ? (() => {
+                                                try {
+                                                    // Parse direto dos componentes para evitar problemas de timezone
+                                                    if (sale.soldDate.includes('-')) {
+                                                        const [year, month, day] = sale.soldDate.split('-').map(Number);
+                                                        if (year && month && day) {
+                                                            return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+                                                        }
+                                                    }
+                                                    // Fallback: tenta usar new Date diretamente
+                                                    return new Date(sale.soldDate).toLocaleDateString('pt-BR');
+                                                } catch {
+                                                    return 'Data inválida';
+                                                }
+                                            })() : 'Data não informada'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
-                                            <span className="text-white font-medium">{sale.make} {sale.model}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => onSelectVehicle(sale.id)}
+                                                className="text-white font-medium text-left hover:text-indigo-300 transition-colors underline-offset-4 hover:underline"
+                                            >
+                                                {sale.make} {sale.model}
+                                            </button>
                                             <span className="text-xs text-slate-500">{sale.version} • {sale.color}</span>
                                         </div>
                                     </td>
@@ -292,7 +459,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                                             {formatCurrency(profit)}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-6 py-4 text-center pr-6">
                                         <button 
                                             onClick={() => onSelectVehicle(sale.id)}
                                             className="text-indigo-400 hover:text-indigo-300 font-bold text-xs flex items-center justify-center gap-1 mx-auto bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20"

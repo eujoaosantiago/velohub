@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { StatCard, Card } from '../components/ui/Card';
-import { DollarSign, TrendingUp, AlertCircle, Clock, PieChart as PieChartIcon, Lock, Crown, MessageSquare, Send, CheckCircle2, Building2, Car, ShoppingBag, Plus, BadgeCheck } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertCircle, Clock, PieChart as PieChartIcon, Lock, Crown, MessageSquare, Send, CheckCircle2, Building2, Car, ShoppingBag, Plus, BadgeCheck, Filter } from 'lucide-react';
 import { Vehicle, User, checkPermission, Page } from '../types';
 import { formatCurrency, calculateRealProfit } from '../lib/utils';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
@@ -24,6 +24,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   // States for Quick Sale Flow
   const [showVehicleSelector, setShowVehicleSelector] = useState(false);
   const [vehicleForSale, setVehicleForSale] = useState<Vehicle | null>(null);
+    const [chartPeriod, setChartPeriod] = useState<
+        | 'last_3'
+        | 'last_6'
+        | 'last_12'
+        | 'this_month'
+        | 'last_month'
+        | 'this_quarter'
+        | 'this_year'
+    >('last_6');
+    const [chartBrand, setChartBrand] = useState<string>('all');
 
   // --- REAL TIME CALCULATIONS ---
   
@@ -43,31 +53,114 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
     return daysInStock > 60;
   });
 
-  // 2. Dynamic Profit Chart Data (By Month)
-  const profitChartData = useMemo(() => {
-    const data: Record<string, number> = {};
-    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const periodLabelMap: Record<string, string> = {
+        last_3: 'Ultimos 3 meses',
+        last_6: 'Ultimos 6 meses',
+        last_12: 'Ultimos 12 meses',
+        this_month: 'Este mes',
+        last_month: 'Mes anterior',
+        this_quarter: 'Trimestre atual',
+        this_year: 'Ano atual',
+    };
 
-    const currentMonthIndex = new Date().getMonth();
-    // Show last 6 months
-    for (let i = 5; i >= 0; i--) {
-        const mIndex = (currentMonthIndex - i + 12) % 12;
-        data[months[mIndex]] = 0; // Initialize with 0
-    }
+    const getChartDateRange = (period: typeof chartPeriod) => {
+        const now = new Date();
+        let start = new Date(now.getFullYear(), now.getMonth(), 1);
+        let end = new Date(now);
 
-    soldVehicles.forEach(v => {
-        if (v.soldDate) {
-            const date = new Date(v.soldDate);
-            const monthName = months[date.getMonth()];
-            // Only add if month is in our range
-            if (data.hasOwnProperty(monthName)) {
-                data[monthName] += calculateRealProfit(v);
-            }
+        if (period === 'last_3' || period === 'last_6' || period === 'last_12') {
+            const monthsBack = period === 'last_3' ? 2 : period === 'last_6' ? 5 : 11;
+            start = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+        } else if (period === 'last_month') {
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (period === 'this_quarter') {
+            const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+            start = new Date(now.getFullYear(), quarterStart, 1);
+        } else if (period === 'this_year') {
+            start = new Date(now.getFullYear(), 0, 1);
         }
-    });
 
-    return Object.entries(data).map(([name, profit]) => ({ name, profit }));
-  }, [soldVehicles]);
+        return { start, end };
+    };
+
+    const chartBrands = useMemo(() => {
+        const unique = Array.from(new Set(soldVehicles.map((v) => v.make).filter(Boolean)));
+        return ['all', ...unique.sort((a, b) => a.localeCompare(b))];
+    }, [soldVehicles]);
+
+    const { start: chartStart, end: chartEnd } = useMemo(
+        () => getChartDateRange(chartPeriod),
+        [chartPeriod],
+    );
+
+    const filteredChartVehicles = useMemo(() => {
+        return soldVehicles.filter((v) => {
+            if (!v.soldDate) return false;
+            try {
+                // Parse correto da data ISO para evitar problemas de timezone
+                if (v.soldDate.includes('-')) {
+                    const [year, month, day] = v.soldDate.split('-').map(Number);
+                    if (year && month && day) {
+                        const soldAt = new Date(year, month - 1, day);
+                        if (soldAt < chartStart || soldAt > chartEnd) return false;
+                        if (chartBrand !== 'all' && v.make !== chartBrand) return false;
+                        return true;
+                    }
+                }
+                return false;
+            } catch {
+                return false;
+            }
+        });
+    }, [soldVehicles, chartStart, chartEnd, chartBrand]);
+
+    const buildMonthKeys = (start: Date, end: Date) => {
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const keys: string[] = [];
+        const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+        const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+        while (cursor <= endMonth) {
+            const key = `${months[cursor.getMonth()]}/${cursor.getFullYear().toString().slice(2)}`;
+            keys.push(key);
+            cursor.setMonth(cursor.getMonth() + 1);
+        }
+
+        return keys;
+    };
+
+    // 2. Dynamic Profit Chart Data (By Month)
+    const profitChartData = useMemo(() => {
+        const data: Record<string, number> = {};
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        buildMonthKeys(chartStart, chartEnd).forEach((key) => {
+            data[key] = 0;
+        });
+
+        filteredChartVehicles.forEach((v) => {
+            if (v.soldDate) {
+                try {
+                    // Parse correto da data ISO para evitar problemas de timezone
+                    if (v.soldDate.includes('-')) {
+                        const [year, month, day] = v.soldDate.split('-').map(Number);
+                        if (year && month && day) {
+                            const date = new Date(year, month - 1, day);
+                            const monthName = `${months[date.getMonth()]}/${date.getFullYear().toString().slice(2)}`;
+                            if (data.hasOwnProperty(monthName)) {
+                                data[monthName] += calculateRealProfit(v);
+                            }
+                        }
+                    }
+                } catch {
+                    // Ignora datas inválidas
+                }
+            }
+        });
+
+        return Object.entries(data).map(([name, profit]) => ({ name, profit }));
+    }, [filteredChartVehicles, chartStart, chartEnd]);
 
   // 3. Dynamic Inventory Composition (By Make/Marca)
   const inventoryChartData = useMemo(() => {
@@ -167,7 +260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 md:space-y-8 animate-fade-in">
       
       {/* --- MODALS DE FLUXO DE VENDA --- */}
       {showVehicleSelector && (
@@ -191,27 +284,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
       )}
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+        <div className="flex flex-col gap-1 w-full md:w-auto">
+            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
                 Visão Geral
             </h1>
             
             {/* Store Name Badge - Enhanced for Employees */}
             {user?.storeName && (
                 <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm font-medium text-slate-400">
+                    <span className="text-xs md:text-sm font-medium text-slate-400">
                         {isOwner ? 'Proprietário em' : 'Colaborador em'}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-indigo-300 text-sm font-bold shadow-sm">
-                        <Building2 size={14} />
-                        {user.storeName}
-                        {!isOwner && <BadgeCheck size={14} className="text-emerald-500 ml-1" />}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-indigo-300 text-xs md:text-sm font-bold shadow-sm max-w-[200px] truncate">
+                        <Building2 size={14} className="shrink-0" />
+                        <span className="truncate">{user.storeName}</span>
+                        {!isOwner && <BadgeCheck size={14} className="text-emerald-500 ml-1 shrink-0" />}
                     </span>
                 </div>
             )}
             
-            <p className="text-slate-400 mt-2">
-                {isOwner ? "Resumo financeiro e operacional do seu estoque." : "Acompanhamento operacional e suas vendas."}
+            <p className="text-slate-400 mt-2 text-sm md:text-base">
+                {isOwner ? "Resumo financeiro e operacional." : "Acompanhamento de vendas."}
             </p>
         </div>
 
@@ -219,7 +312,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         {canManageSales && (
             <Button 
                 onClick={() => setShowVehicleSelector(true)} 
-                className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 border-transparent focus:ring-emerald-500 w-full md:w-auto" 
+                className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 border-transparent focus:ring-emerald-500 w-full md:w-auto justify-center" 
                 icon={<DollarSign size={18} />}
             >
                 Realizar Venda
@@ -227,8 +320,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         )}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards - Grid adaptativo: 1 (mobile) -> 2 (tablet) -> 4 (desktop) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {canViewCosts ? (
             <StatCard 
                 label="Capital Investido"
@@ -288,11 +381,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         />
       </div>
 
+            {/* Chart Filters */}
+            {canViewAnalytics && (
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <Filter size={16} />
+                        Filtros dos graficos
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                        <label className="text-xs text-slate-400 flex flex-col gap-1">
+                            Periodo
+                            <select
+                                value={chartPeriod}
+                                onChange={(e) => setChartPeriod(e.target.value as typeof chartPeriod)}
+                                className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {Object.entries(periodLabelMap).map(([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="text-xs text-slate-400 flex flex-col gap-1">
+                            Marca
+                            <select
+                                value={chartBrand}
+                                onChange={(e) => setChartBrand(e.target.value)}
+                                className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {chartBrands.map((brand) => (
+                                    <option key={brand} value={brand}>
+                                        {brand === 'all' ? 'Todas' : brand}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            )}
+
       {/* Main Charts Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico Financeiro: Só aparece se tiver permissão 'view_analytics' */}
         {canViewAnalytics && (
-            <Card title="Evolução do Lucro Real" className="lg:col-span-2 relative overflow-hidden">
+                        <Card title={`Evolução do Lucro (${periodLabelMap[chartPeriod]})`} className="lg:col-span-2 relative overflow-hidden min-h-[350px]">
                 {!showAdvancedReports && (
                     <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-6 border border-indigo-500/30 rounded-2xl">
                         <div className="bg-indigo-500/20 p-4 rounded-full mb-3">
@@ -308,8 +441,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                     </div>
                 )}
                 
-                {soldVehicles.length > 0 ? (
-                    <div className="h-72 w-full">
+                {filteredChartVehicles.length > 0 ? (
+                    <div className="h-64 md:h-72 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={profitChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
@@ -322,11 +455,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                             <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis 
                                 stroke="#64748b" 
-                                fontSize={12} 
+                                fontSize={10} 
                                 tickLine={false} 
                                 axisLine={false} 
                                 tickFormatter={yAxisTickFormatter}
-                                width={60}
+                                width={35}
                             />
                             <Tooltip 
                                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', color: '#fff' }}
@@ -346,7 +479,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                         </ResponsiveContainer>
                     </div>
                 ) : (
-                    <div className="h-72 w-full flex flex-col items-center justify-center text-slate-500">
+                    <div className="h-64 md:h-72 w-full flex flex-col items-center justify-center text-slate-500">
                         <TrendingUp size={48} className="mb-2 opacity-20" />
                         <p>Realize sua primeira venda para ver o gráfico.</p>
                     </div>
@@ -357,7 +490,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         <Card title="Estoque por Marca" className={!canViewAnalytics ? 'lg:col-span-3' : ''}>
             {availableVehicles.length > 0 ? (
                 <>
-                <div className="h-72 w-full flex items-center justify-center">
+                <div className="h-64 md:h-72 w-full flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
@@ -377,8 +510,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                     </PieChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-400 mt-2">
-                    {inventoryChartData.map((d, i) => (
+                <div className="flex flex-wrap justify-center gap-4 text-xs md:text-sm text-slate-400 mt-2">
+                    {inventoryChartData.slice(0, 5).map((d, i) => (
                     <div key={d.name} className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></span>
                         {d.name} ({d.value})
@@ -387,7 +520,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                 </div>
                 </>
             ) : (
-                <div className="h-72 w-full flex flex-col items-center justify-center text-slate-500">
+                <div className="h-64 md:h-72 w-full flex flex-col items-center justify-center text-slate-500">
                     <PieChartIcon size={48} className="mb-2 opacity-20" />
                     <p>Cadastre veículos para ver a composição.</p>
                 </div>
@@ -397,43 +530,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card title="Precisa de Atenção" className="lg:col-span-2 border-l-4 border-l-amber-500">
-            <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left min-w-[500px]">
-                <thead>
-                <tr className="border-b border-slate-800 text-slate-400 text-sm">
-                    <th className="pb-3 font-medium">Veículo</th>
-                    <th className="pb-3 font-medium">Dias em Estoque</th>
-                    {canViewCosts && <th className="pb-3 font-medium">Valor Investido</th>}
-                    <th className="pb-3 font-medium">Sugestão</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                {attentionVehicles.length > 0 ? attentionVehicles.map(vehicle => {
-                    const daysInStock = Math.floor((new Date().getTime() - new Date(vehicle.purchaseDate).getTime()) / (1000 * 3600 * 24));
-                    return (
-                    <tr key={vehicle.id} className="text-sm">
-                        <td className="py-4 font-medium text-white">{vehicle.make} {vehicle.model}</td>
-                        <td className="py-4 text-slate-300 flex items-center gap-2">
-                        <Clock size={14} className="text-amber-500" />
-                        {daysInStock} dias
-                        </td>
-                        {canViewCosts && <td className="py-4 text-slate-300">{formatCurrency(vehicle.purchasePrice)}</td>}
-                        <td className="py-4">
-                        <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-1 rounded-full border border-amber-500/20">
-                            Baixar preço 5%
-                        </span>
-                        </td>
+            {/* Scroll lateral em mobile para tabelas */}
+            <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                <table className="w-full text-left min-w-[500px]">
+                    <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 text-sm">
+                        <th className="pb-3 font-medium pl-2">Veículo</th>
+                        <th className="pb-3 font-medium">Dias em Estoque</th>
+                        {canViewCosts && <th className="pb-3 font-medium">Valor Investido</th>}
+                        <th className="pb-3 font-medium text-right pr-2">Sugestão</th>
                     </tr>
-                    );
-                }) : (
-                    <tr>
-                    <td colSpan={canViewCosts ? 4 : 3} className="py-8 text-center text-slate-500">
-                        Nenhum veículo com alerta de tempo de estoque (60+ dias).
-                    </td>
-                    </tr>
-                )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                    {attentionVehicles.length > 0 ? attentionVehicles.map(vehicle => {
+                        const daysInStock = Math.floor((new Date().getTime() - new Date(vehicle.purchaseDate).getTime()) / (1000 * 3600 * 24));
+                        return (
+                        <tr key={vehicle.id} className="text-sm">
+                            <td className="py-4 font-medium text-white pl-2">
+                                {vehicle.make} {vehicle.model}
+                                <span className="block text-xs text-slate-500">{vehicle.plate}</span>
+                            </td>
+                            <td className="py-4 text-slate-300">
+                                <div className="flex items-center gap-2">
+                                    <Clock size={14} className="text-amber-500" />
+                                    {daysInStock} dias
+                                </div>
+                            </td>
+                            {canViewCosts && <td className="py-4 text-slate-300">{formatCurrency(vehicle.purchasePrice)}</td>}
+                            <td className="py-4 text-right pr-2">
+                            <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-1 rounded-full border border-amber-500/20 whitespace-nowrap">
+                                Baixar preço 5%
+                            </span>
+                            </td>
+                        </tr>
+                        );
+                    }) : (
+                        <tr>
+                        <td colSpan={canViewCosts ? 4 : 3} className="py-8 text-center text-slate-500">
+                            Nenhum veículo com alerta de tempo de estoque (60+ dias).
+                        </td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
             </div>
           </Card>
 

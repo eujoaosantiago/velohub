@@ -11,6 +11,7 @@ import { sanitizeInput } from '../lib/security';
 import { StorageService } from '../services/storage';
 import { AuthService } from '../services/auth';
 import { ContractModal } from '../components/ContractModal';
+import { ShareModal } from '../components/ShareModal';
 import { ReservationModal } from '../components/ReservationModal';
 import { Confetti } from '../components/ui/Confetti';
 import { useVelohub } from '../contexts/VelohubContext';
@@ -114,6 +115,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const [showContract, setShowContract] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const [showSaleSuccess, setShowSaleSuccess] = useState(false);
+  const [shareVehicle, setShareVehicle] = useState<Vehicle | null>(null);
 
   const [useFipeSearch, setUseFipeSearch] = useState(true);
   const [fipeData, setFipeData] = useState<{ brands: FipeBrand[], models: FipeModel[], years: FipeYear[] }>({ brands: [], models: [], years: [] });
@@ -147,10 +149,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const [saleData, setSaleData] = useState({
-      price: maskCurrencyInput(vehicle.expectedSalePrice ? (vehicle.expectedSalePrice * 100).toString() : '0'),
+      // Se já foi vendido, prioriza o valor de venda real
+      price: maskCurrencyInput(
+          (vehicle.soldPrice ?? vehicle.expectedSalePrice ?? 0) * 100
+              ? ((vehicle.soldPrice ?? vehicle.expectedSalePrice ?? 0) * 100).toString()
+              : '0'
+      ),
       commission: maskCurrencyInput((calculateDefaultCommission() * 100).toString()), 
       commissionTo: getDefaultCommissionTo(),
-      date: getBrazilDateISO(), // Corrigido para data local BR
+      date: vehicle.soldDate || getBrazilDateISO(), // Usa data da venda se já vendido, senão data atual
       method: vehicle.paymentMethod || 'Pix / Transferência',
       buyerName: vehicle.buyer?.name || '',
       buyerCpf: vehicle.buyer?.cpf || '',
@@ -159,6 +166,30 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       warrantyKm: vehicle.warrantyDetails?.km || '3.000 km',
       tradeIn: { make: '', model: '', year: new Date().getFullYear().toString(), value: '', plate: '' }
   });
+
+  // Atualiza a data quando o veículo muda, quando ganha foco ou periodicamente
+  useEffect(() => {
+    const updateDate = () => {
+      if (!vehicle.soldDate) {
+        setSaleData(prev => ({ ...prev, date: getBrazilDateISO() }));
+      }
+    };
+
+    // Atualiza quando monta ou vehicle.id muda
+    updateDate();
+
+    // Atualiza quando a aba ganha foco (usuário volta para o navegador)
+    const handleFocus = () => updateDate();
+    window.addEventListener('focus', handleFocus);
+
+    // Atualiza a cada 5 minutos (garante data correta mesmo se ficar aberto por horas)
+    const interval = setInterval(updateDate, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [vehicle.id, vehicle.soldDate]);
 
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
@@ -629,6 +660,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
       {showContract && <ContractModal vehicle={vehicle} storeName={currentUser?.storeName || 'Loja'} storeCnpj={currentUser?.cnpj} storeCity={currentUser?.city} storeState={currentUser?.state} onClose={() => setShowContract(false)} />}
       {showReservation && <ReservationModal vehicle={vehicle} onClose={() => setShowReservation(false)} onConfirm={handleConfirmReservation} />}
+      {shareVehicle && (
+          <ShareModal 
+              vehicleId={shareVehicle.id}
+              vehicleModel={`${shareVehicle.make} ${shareVehicle.model}`}
+              onClose={() => setShareVehicle(null)}
+          />
+      )}
       
       {showSaleSuccess && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
@@ -763,9 +801,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                 disabled={!canShare}
                                 className={!canShare ? 'opacity-50' : ''}
                                 onClick={() => {
-                                    const url = `${window.location.origin}?vid=${vehicle.id}`;
-                                    navigator.clipboard.writeText(url);
-                                    showToast("Link copiado!", "success");
+                                    if (!canShare) return;
+                                    setShareVehicle(vehicle);
                                 }}
                             >
                                 {canShare ? 'Compartilhar' : 'Bloqueado'}
@@ -1330,6 +1367,33 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               </div>
                           </div>
                       </div>
+
+                      {isSold && formData.paymentMethod === 'Troca + Volta' && formData.tradeInInfo && (
+                          <div className="mt-6 p-4 bg-slate-900 border border-slate-800 rounded-xl text-sm space-y-2">
+                              <h4 className="text-slate-200 font-medium flex items-center gap-2">
+                                  <ArrowRightLeft size={14} className="text-indigo-400" />
+                                  Resumo Troca + Volta
+                              </h4>
+                              <div className="flex justify-between">
+                                  <span className="text-slate-400">Valor recebido em dinheiro</span>
+                                  <span className="text-emerald-400 font-semibold">
+                                      {formatCurrency(cashReceived)}
+                                  </span>
+                              </div>
+                              <div className="flex justify-between">
+                                  <span className="text-slate-400">Veículo recebido na troca</span>
+                                  <span className="text-slate-200 font-semibold text-right">
+                                      {formData.tradeInInfo.make} {formData.tradeInInfo.model} ({formData.tradeInInfo.plate || 'S/ Placa'})
+                                  </span>
+                              </div>
+                              <div className="flex justify-between">
+                                  <span className="text-slate-400">Valor do veículo recebido</span>
+                                  <span className="text-amber-400 font-semibold">
+                                      {formatCurrency(tradeInValue)}
+                                  </span>
+                              </div>
+                          </div>
+                      )}
                       {!isSold && (
                           <div className="mt-6 pt-6 border-t border-slate-800">
                               <Button size="lg" className="w-full" onClick={handleSale} disabled={isSaving || !isCpfValid}>
