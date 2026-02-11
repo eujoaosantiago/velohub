@@ -8,8 +8,7 @@ declare const Deno: {
   };
 };
 
-const MAILGUN_API_KEY = Deno.env.get("MAILGUN_API_KEY");
-const MAILGUN_DOMAIN = Deno.env.get("MAILGUN_DOMAIN");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,8 +32,8 @@ serve(async (req) => {
   try {
     const { email, name, link, storeName, ownerName } = await req.json() as InviteRequest;
 
-    if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
-      throw new Error("MAILGUN_API_KEY or MAILGUN_DOMAIN not configured on server");
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY not configured on server");
     }
 
     const inviteEmailTemplate = `
@@ -195,21 +194,18 @@ serve(async (req) => {
       </html>
     `;
 
-    // Encode credentials for Basic Auth
-    const credentials = btoa(`api:${MAILGUN_API_KEY}`);
-
-    const formData = new FormData();
-    formData.append("from", `Velohub <noreply@${MAILGUN_DOMAIN}>`);
-    formData.append("to", email);
-    formData.append("subject", `${ownerName} convidou você para Velohub`);
-    formData.append("html", inviteEmailTemplate);
-
-    const res = await fetch(`https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`, {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${credentials}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
-      body: formData,
+      body: JSON.stringify({
+        from: "Velohub <onboarding@resend.dev>",
+        to: [email],
+        subject: `${ownerName} convidou você para Velohub`,
+        html: inviteEmailTemplate,
+      }),
     });
 
     const data = await res.json();

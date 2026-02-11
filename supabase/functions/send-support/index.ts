@@ -8,8 +8,7 @@ declare const Deno: {
   };
 };
 
-const MAILGUN_API_KEY = Deno.env.get("MAILGUN_API_KEY");
-const MAILGUN_DOMAIN = Deno.env.get("MAILGUN_DOMAIN");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 // Email da equipe de suporte (para onde as dúvidas vão)
 const SUPPORT_EMAIL = "eujoaopedrosantiago@gmail.com"; 
 
@@ -34,8 +33,8 @@ serve(async (req) => {
   try {
     const { name, email, subject, message, isClient } = await req.json() as SupportRequest;
 
-    if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
-      throw new Error("MAILGUN_API_KEY or MAILGUN_DOMAIN not configured");
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY not configured");
     }
 
     // Template HTML para email interno (notificação para você) - Estilo Apple
@@ -114,21 +113,19 @@ serve(async (req) => {
     `;
 
     // 1. Enviar notificação para a Equipe Velohub
-    const credentials = btoa(`api:${MAILGUN_API_KEY}`);
-    
-    const formDataAdmin = new FormData();
-    formDataAdmin.append("from", `Velohub Suporte <noreply@${MAILGUN_DOMAIN}>`);
-    formDataAdmin.append("to", SUPPORT_EMAIL);
-    formDataAdmin.append("reply_to", email);
-    formDataAdmin.append("subject", `🔔 [Suporte] ${subject} - ${name}`);
-    formDataAdmin.append("html", adminEmailTemplate);
-
-    const resAdmin = await fetch(`https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`, {
+    const resAdmin = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${credentials}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
-      body: formDataAdmin,
+      body: JSON.stringify({
+        from: "Velohub <onboarding@resend.dev>",
+        to: [SUPPORT_EMAIL],
+        reply_to: email,
+        subject: `🔔 [Suporte] ${subject} - ${name}`,
+        html: adminEmailTemplate,
+      }),
     });
 
     if (!resAdmin.ok) {
@@ -254,18 +251,18 @@ serve(async (req) => {
     // 2. Enviar confirmação automática para o Usuário
     const formDataUser = new FormData();
     formDataUser.append("from", `Velohub Suporte <noreply@${MAILGUN_DOMAIN}>`);
-    formDataUser.append("to", email);
-    formDataUser.append("subject", `✓ Recebemos sua Mensagem: ${subject}`);
-    formDataUser.append("html", userEmailTemplate);
-
-    await fetch(`https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`, {
+    await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
-          "Authorization": `Basic ${credentials}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
         },
-        body: formDataUser,
-      });
-
+        body: JSON.stringify({
+          from: "Velohub <onboarding@resend.dev>",
+          to: [email],
+          subject: `✓ Recebemos sua Mensagem: ${subject}`,
+          html: userEmailTemplate,
+        })
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
