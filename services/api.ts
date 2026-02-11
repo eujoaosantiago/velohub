@@ -65,8 +65,8 @@ export const ApiService = {
         fipe_price: vehicle.fipePrice,
         photos: vehicle.photos,
         expenses: vehicle.expenses,
-        ipva_paid: vehicle.ipvaPaid,
-        licensing_paid: vehicle.licensingPaid
+        ipva_paid: !!vehicle.ipvaPaid, // Ensure boolean
+        licensing_paid: !!vehicle.licensingPaid // Ensure boolean
     };
 
     const { data, error } = await supabase.from('vehicles').insert(dbVehicle).select().single();
@@ -96,8 +96,8 @@ export const ApiService = {
         trade_in_info: vehicle.tradeInInfo,
         reservation_details: vehicle.reservationDetails,
         warranty_details: vehicle.warrantyDetails,
-        ipva_paid: vehicle.ipvaPaid,
-        licensing_paid: vehicle.licensingPaid,
+        ipva_paid: !!vehicle.ipvaPaid, // Ensure boolean
+        licensing_paid: !!vehicle.licensingPaid, // Ensure boolean
         sale_commission: vehicle.saleCommission,
         sale_commission_to: vehicle.saleCommissionTo,
         updated_at: new Date().toISOString()
