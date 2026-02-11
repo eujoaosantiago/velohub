@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermission, ExpenseCategory } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2 } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
@@ -150,7 +150,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       price: maskCurrencyInput(vehicle.expectedSalePrice ? (vehicle.expectedSalePrice * 100).toString() : '0'),
       commission: maskCurrencyInput((calculateDefaultCommission() * 100).toString()), 
       commissionTo: getDefaultCommissionTo(),
-      date: new Date().toISOString().split('T')[0],
+      date: getBrazilDateISO(), // Corrigido para data local BR
       method: vehicle.paymentMethod || 'Pix / Transferência',
       buyerName: vehicle.buyer?.name || '',
       buyerCpf: vehicle.buyer?.cpf || '',

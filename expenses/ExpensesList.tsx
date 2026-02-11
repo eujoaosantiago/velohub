@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Vehicle, Expense, ExpenseCategory, StoreExpense, OpexCategory } from '../types';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, maskCurrencyInput, parseCurrencyInput, calculateRealProfit } from '../lib/utils';
+import { formatCurrency, maskCurrencyInput, parseCurrencyInput, calculateRealProfit, getBrazilDateISO } from '../lib/utils';
 import { Search, Filter, Wrench, FileText, Megaphone, Gauge, AlertCircle, Calendar, Tag, Car, User, Building2, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button } from '../components/ui/Button';
@@ -35,7 +35,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
   const [storeExpenses, setStoreExpenses] = useState<StoreExpense[]>([]);
   const [isAddingOpex, setIsAddingOpex] = useState(false);
   const [newOpex, setNewOpex] = useState<{ desc: string, amount: string, category: OpexCategory, date: string }>({
-      desc: '', amount: '', category: 'utilities', date: new Date().toISOString().split('T')[0]
+      desc: '', amount: '', category: 'utilities', date: getBrazilDateISO()
   });
 
   // Load OPEX on mount
@@ -69,7 +69,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({ vehicles }) => {
 
       await ApiService.createStoreExpense(expense);
       setIsAddingOpex(false);
-      setNewOpex({ desc: '', amount: '', category: 'utilities', date: new Date().toISOString().split('T')[0] });
+      setNewOpex({ desc: '', amount: '', category: 'utilities', date: getBrazilDateISO() });
       loadOpex();
   };
 

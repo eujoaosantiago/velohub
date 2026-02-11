@@ -22,7 +22,12 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
     window.print();
   };
 
-  const today = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const today = new Date().toLocaleDateString('pt-BR', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric',
+      timeZone: 'America/Sao_Paulo'
+  });
   const location = storeCity && storeState ? `${storeCity}-${storeState}` : 'Local';
 
   // --- TEMPLATE PROCESSING ---

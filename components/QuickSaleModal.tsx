@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Vehicle, Buyer } from '../types';
 import { Button } from './ui/Button';
 import { X, DollarSign, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle, Briefcase } from 'lucide-react';
-import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone } from '../lib/utils';
+import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO } from '../lib/utils';
 import { sanitizeInput } from '../lib/security';
 import { ContractModal } from './ContractModal';
 import { AuthService } from '../services/auth';
@@ -35,7 +35,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
 
   // Inicializa com o preço esperado ou vazio
   const [price, setPrice] = useState(vehicle.expectedSalePrice ? maskCurrencyInput((vehicle.expectedSalePrice * 100).toString()) : '');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getBrazilDateISO()); // Corrigido para data local BR
   const [buyerName, setBuyerName] = useState('');
   const [buyerCpf, setBuyerCpf] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');

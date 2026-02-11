@@ -2,6 +2,22 @@
 import { Vehicle } from '../types';
 
 /* =======================
+   DATAS & FUSO HORÁRIO
+======================= */
+
+export const getBrazilDateISO = (): string => {
+  const date = new Date().toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  // pt-BR retorna DD/MM/YYYY. Input date precisa de YYYY-MM-DD
+  const [day, month, year] = date.split('/');
+  return `${year}-${month}-${day}`;
+};
+
+/* =======================
    FORMATAÇÃO DE MOEDA
 ======================= */
 
