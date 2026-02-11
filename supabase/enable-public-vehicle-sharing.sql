@@ -24,7 +24,7 @@ ON vehicles
 FOR INSERT
 WITH CHECK (
   auth.uid() IN (
-    SELECT user_id FROM store_users WHERE store_id = vehicles.store_id
+    SELECT id FROM users WHERE store_id = vehicles.store_id
   )
 );
 
@@ -34,12 +34,12 @@ ON vehicles
 FOR UPDATE
 USING (
   auth.uid() IN (
-    SELECT user_id FROM store_users WHERE store_id = vehicles.store_id
+    SELECT id FROM users WHERE store_id = vehicles.store_id
   )
 )
 WITH CHECK (
   auth.uid() IN (
-    SELECT user_id FROM store_users WHERE store_id = vehicles.store_id
+    SELECT id FROM users WHERE store_id = vehicles.store_id
   )
 );
 
@@ -49,7 +49,7 @@ ON vehicles
 FOR DELETE
 USING (
   auth.uid() IN (
-    SELECT user_id FROM store_users WHERE store_id = vehicles.store_id
+    SELECT id FROM users WHERE store_id = vehicles.store_id
   )
 );
 
