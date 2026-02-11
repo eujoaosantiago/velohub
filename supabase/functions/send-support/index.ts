@@ -249,8 +249,6 @@ serve(async (req) => {
     `;
 
     // 2. Enviar confirmação automática para o Usuário
-    const formDataUser = new FormData();
-    formDataUser.append("from", `Velohub Suporte <noreply@${MAILGUN_DOMAIN}>`);
     await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {

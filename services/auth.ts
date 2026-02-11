@@ -2,6 +2,8 @@
 import { User, UserPermissions } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL;
+
 export const DEFAULT_EMPLOYEE_PERMISSIONS: UserPermissions = {
     view_costs: false,
     view_customers: true,
@@ -103,6 +105,25 @@ export const AuthService = {
     
     if (error) throw new Error(error.message);
     
+    // Enviar email de confirmação via Mailgun
+    if (data.user) {
+        try {
+            const confirmToken = data.user.id;
+            const confirmLink = `${window.location.origin}/auth/confirm?token=${confirmToken}`;
+            
+            if (SUPABASE_URL) {
+                await fetch(`${SUPABASE_URL}/functions/v1/send-confirm-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, name, confirmLink })
+                });
+            }
+        } catch (err) {
+            console.error('Erro ao enviar email de confirmação:', err);
+            // Não interrompe o fluxo se o email falhar
+        }
+    }
+    
     // Retorna objeto parcial apenas para feedback visual imediato
     return {
         id: data.user?.id || '',
@@ -167,10 +188,35 @@ export const AuthService = {
       // Enviar email de reset de senha via Mailgun
       try {
           if (SUPABASE_URL) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin, 
+              await fetch(`${SUPABASE_URL}/functions/v1/send-reset-password`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email, name: userName, resetLink })
+              });
+          }
+      } catch (err) {
+          console.error('Erro ao enviar email de reset:', err);
+          // Não interrompe o fluxo se o email falhar
+      }
+  },
+
+  resendConfirmationEmail: async (email: string) => {
+      if (!supabase) throw new Error("Serviço indisponível.");
+      const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email,
       });
       if (error) throw new Error(error.message);
+  },
+
+  getTeam: async (): Promise<User[]> => {
+      if (!supabase) return [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if(!user) return [];
+
+      const { data: profile } = await supabase.from('users').select('store_id').eq('id', user.id).single();
+      if(!profile) return [];
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
