@@ -850,9 +850,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   { label: 'Marca', field: 'make', type: 'text', disabled: useFipeSearch },
                                   { label: 'Modelo', field: 'model', type: 'text', disabled: useFipeSearch },
                                   { label: 'Versão', field: 'version', type: 'text', disabled: false },
-                                  { label: 'Ano', field: 'year', type: 'number', disabled: useFipeSearch },
+                                  { label: 'Ano', field: 'year', type: 'number', disabled: useFipeSearch, inputMode: 'numeric' },
                                   { label: 'Placa', field: 'plate', type: 'text', disabled: false, uppercase: true },
-                                  { label: 'KM', field: 'km', type: 'number', disabled: false },
+                                  { label: 'KM', field: 'km', type: 'number', disabled: false, inputMode: 'numeric' },
                                   { label: 'Cor', field: 'color', type: 'text', disabled: false },
                                   { label: 'Combustível', field: 'fuel', type: 'text', disabled: false },
                                   { label: 'Câmbio', field: 'transmission', type: 'text', disabled: false },
@@ -861,6 +861,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       <label className="text-slate-500 mb-1 block">{item.label}</label>
                                       <input 
                                         type={item.type} 
+                                        inputMode={item.inputMode}
                                         className={`w-full bg-slate-900 border ${dirtyState.isOverviewDirty && formData[item.field as keyof Vehicle] !== vehicle[item.field as keyof Vehicle] ? 'border-amber-500/50' : 'border-slate-700'} rounded p-2 text-white ${item.uppercase ? 'uppercase' : ''}`}
                                         value={(formData as any)[item.field]}
                                         onChange={e => handleChange(item.field, item.type === 'number' ? parseInt(e.target.value) : e.target.value)}
@@ -1246,6 +1247,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                         disabled={isSold}
                                         className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
                                         placeholder="Ex: 3.000 km"
+                                        inputMode="numeric"
                                       />
                                   </div>
                               </div>
@@ -1298,7 +1300,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       <div className="grid grid-cols-2 gap-3 mb-3">
                                           <input placeholder="Marca" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.make} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, make: e.target.value}})} />
                                           <input placeholder="Modelo" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.model} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, model: e.target.value}})} />
-                                          <input placeholder="Ano" type="number" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.year} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, year: e.target.value}})} />
+                                          <input placeholder="Ano" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.year} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, year: e.target.value}})} />
                                           <input placeholder="Placa" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm uppercase" value={saleData.tradeIn.plate} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, plate: maskPlate(e.target.value)}})} />
                                       </div>
                                       <input 
@@ -1319,6 +1321,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <div className="relative">
                                     <input 
                                         placeholder="CPF" 
+                                        inputMode="numeric"
                                         value={isSold ? vehicle.buyer?.cpf : saleData.buyerCpf} 
                                         onChange={e => handleCpfChange(e.target.value)} 
                                         disabled={isSold} 
@@ -1332,6 +1335,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </div>
                                   <input 
                                     placeholder="Telefone" 
+                                    inputMode="tel"
                                     value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
                                     onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
                                     disabled={isSold} 

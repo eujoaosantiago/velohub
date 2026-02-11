@@ -190,6 +190,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input 
                         type="text" 
+                        inputMode="tel"
                         required
                         value={phone}
                         onChange={e => setPhone(maskPhone(e.target.value))}
@@ -224,6 +225,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                             <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                             <input 
                                 type="text" 
+                                inputMode="numeric"
                                 required
                                 value={cnpj}
                                 onChange={e => setCnpj(maskCNPJ(e.target.value))}
@@ -245,6 +247,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                             )}
                             <input 
                                 type="text" 
+                                inputMode="numeric"
                                 required
                                 value={cep}
                                 onChange={handleCepChange}

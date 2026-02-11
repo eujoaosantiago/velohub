@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Vehicle, UserRole, VehicleStatus, checkPermission } from '../types';
 import { Button } from '../components/ui/Button';
 import { formatCurrency, getStatusLabel, getStatusBorderColor } from '../lib/utils';
-import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket } from 'lucide-react';
+import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check } from 'lucide-react';
 import { QuickSaleModal } from '../components/QuickSaleModal';
 import { ReservationModal } from '../components/ReservationModal';
 import { ShareModal } from '../components/ShareModal';
@@ -25,6 +25,9 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
+  // Estado para controlar qual dropdown de status está aberto
+  const [openStatusId, setOpenStatusId] = useState<string | null>(null);
+
   const [quickSaleVehicle, setQuickSaleVehicle] = useState<Vehicle | null>(null);
   const [reservationVehicle, setReservationVehicle] = useState<Vehicle | null>(null);
   const [shareVehicle, setShareVehicle] = useState<Vehicle | null>(null); 
@@ -58,11 +61,8 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
       return daysInStock > 60;
   }).length;
 
-  const handleQuickStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>, vehicle: Vehicle) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const newStatus = e.target.value as VehicleStatus;
+  const handleStatusUpdate = async (vehicle: Vehicle, newStatus: VehicleStatus) => {
+      setOpenStatusId(null); // Fecha o dropdown
       
       if (newStatus === 'sold') {
           setQuickSaleVehicle(vehicle);
@@ -127,7 +127,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" onClick={() => setOpenStatusId(null)}>
       {/* MODALS */}
       {quickSaleVehicle && (
           <QuickSaleModal 
@@ -266,6 +266,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
             const isStale = vehicle.status === 'available' && daysInStock > 60;
             const borderColorClass = getStatusBorderColor(vehicle.status);
             const addedDate = new Date(vehicle.purchaseDate || vehicle.createdAt).toLocaleDateString('pt-BR');
+            const isDropdownOpen = openStatusId === vehicle.id;
 
             return (
               <div 
@@ -303,23 +304,39 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                 )}
                             </div>
                             
+                            {/* CUSTOM STATUS DROPDOWN */}
                             <div className="relative group min-w-[140px]" onClick={(e) => e.stopPropagation()}>
-                                <div className={`flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}>
+                                <button 
+                                    onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
+                                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}
+                                >
                                     <span className="text-xs font-bold uppercase tracking-wide truncate">
                                         {getStatusLabel(vehicle.status)}
                                     </span>
-                                    {vehicle.status !== 'sold' && <ChevronDown size={14} className="opacity-80 shrink-0" />}
-                                </div>
-                                {vehicle.status !== 'sold' && (
-                                    <select 
-                                        value={vehicle.status}
-                                        onChange={(e) => handleQuickStatusChange(e, vehicle)}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    >
-                                        <option value="available">Em Estoque</option>
-                                        <option value="reserved">Reservado</option>
-                                        <option value="preparation">Preparação</option>
-                                    </select>
+                                    {vehicle.status !== 'sold' && <ChevronDown size={14} className={`opacity-80 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />}
+                                </button>
+                                
+                                {isDropdownOpen && vehicle.status !== 'sold' && (
+                                    <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in origin-top-right">
+                                        {[
+                                            { val: 'available', label: 'Em Estoque', color: 'text-emerald-400' },
+                                            { val: 'reserved', label: 'Reservado', color: 'text-amber-400' },
+                                            { val: 'preparation', label: 'Preparação', color: 'text-indigo-400' },
+                                            { val: 'sold', label: 'Vender Agora', color: 'text-white bg-gradient-to-r from-indigo-500 to-orange-600' }
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.val}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleStatusUpdate(vehicle, opt.val as VehicleStatus);
+                                                }}
+                                                className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between group/item hover:bg-slate-800 transition-colors ${opt.val === 'sold' ? 'font-bold text-white bg-slate-800/50' : 'text-slate-300'}`}
+                                            >
+                                                <span className={opt.color.includes('text') ? opt.color : ''}>{opt.label}</span>
+                                                {vehicle.status === opt.val && <Check size={14} className="text-emerald-400"/>}
+                                            </button>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>

@@ -178,6 +178,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
                                             <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                             <input 
                                                 type="text"
+                                                inputMode="numeric"
                                                 value={cnpj}
                                                 onChange={handleCnpjChange}
                                                 placeholder="00.000.000/0000-00"
