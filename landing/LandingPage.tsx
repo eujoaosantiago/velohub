@@ -64,7 +64,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 Login
               </button>
-              <Button onClick={onNavigateRegister} size="sm" className="bg-white text-slate-950 hover:bg-slate-200 border-none font-bold shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+              <Button 
+                onClick={onNavigateRegister} 
+                size="sm" 
+                className="!bg-white !text-slate-950 hover:!bg-slate-200 border-none font-bold shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              >
                 Criar Conta Grátis
               </Button>
             </div>

@@ -144,57 +144,60 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
   const fetchUserProfileWithRetry = async (userId: string, isPaymentWait = false) => {
       if (!supabase) return;
       
-      let attempts = 0;
-      const maxAttempts = isPaymentWait ? 15 : 8; 
-      const interval = 1000; 
-      
-      let profile = null;
+      try {
+          let attempts = 0;
+          const maxAttempts = isPaymentWait ? 15 : 8; 
+          const interval = 1000; 
+          
+          let profile = null;
 
-      while (attempts < maxAttempts) {
-          const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
+          while (attempts < maxAttempts) {
+              const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
 
-          if (data) {
-              profile = data;
-              if (isPaymentWait) {
-                  if (profile.plan !== 'free' && profile.plan !== 'trial') break; 
-              } else {
-                  break; 
+              if (data) {
+                  profile = data;
+                  if (isPaymentWait) {
+                      if (profile.plan !== 'free' && profile.plan !== 'trial') break; 
+                  } else {
+                      break; 
+                  }
+              }
+
+              attempts++;
+              if (attempts < maxAttempts) {
+                  await new Promise(r => setTimeout(r, interval));
               }
           }
 
-          attempts++;
-          if (attempts < maxAttempts) {
-              await new Promise(r => setTimeout(r, interval));
+          if (!profile && !isPaymentWait) {
+              // Se falhar em recuperar o perfil, faz logout para evitar estado inconsistente
+              await supabase.auth.signOut();
+              handleLogoutCleanup();
+              return;
           }
-      }
 
-      if (!profile && !isPaymentWait) {
-          // Se falhar em recuperar o perfil, faz logout para evitar estado inconsistente
-          await supabase.auth.signOut();
-          handleLogoutCleanup();
-          return;
-      }
-
-      if (profile) {
-          const mappedUser = AuthService.mapProfileToUser(profile);
-          setUser(mappedUser);
-          localStorage.setItem('velohub_session_user', JSON.stringify(mappedUser));
-          
-          await loadVehicles(mappedUser.storeId);
-          
-          setIsLoading(false);
-          
-          setCurrentPage(prev => {
-              if ([Page.LANDING, Page.LOGIN, Page.REGISTER].includes(prev)) {
-                  return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
-              }
-              return prev;
-          });
-      } else {
+          if (profile) {
+              const mappedUser = AuthService.mapProfileToUser(profile);
+              setUser(mappedUser);
+              localStorage.setItem('velohub_session_user', JSON.stringify(mappedUser));
+              
+              await loadVehicles(mappedUser.storeId);
+              
+              setCurrentPage(prev => {
+                  if ([Page.LANDING, Page.LOGIN, Page.REGISTER].includes(prev)) {
+                      return mappedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES;
+                  }
+                  return prev;
+              });
+          }
+      } catch (err) {
+          console.error("Critical error fetching profile:", err);
+          if (!isPaymentWait) handleLogoutCleanup();
+      } finally {
           setIsLoading(false);
       }
   };
@@ -213,21 +216,26 @@ export const VelohubProvider: React.FC<{ children: ReactNode }> = ({ children })
         setUser(loggedUser);
         localStorage.setItem('velohub_session_user', JSON.stringify(loggedUser));
         setIsLoading(true);
-        await loadVehicles(loggedUser.storeId);
-        setIsLoading(false);
-        setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
+        try {
+            await loadVehicles(loggedUser.storeId);
+        } finally {
+            setIsLoading(false);
+            setCurrentPage(loggedUser.role === 'owner' ? Page.DASHBOARD : Page.VEHICLES);
+        }
     } else {
         try {
             const { data: { user: authUser } } = await supabase!.auth.getUser();
             if (authUser) {
                 setIsLoading(true);
                 await fetchUserProfileWithRetry(authUser.id);
-            } else {
-                setIsLoading(false);
             }
         } catch (e) {
             console.error("Login flow error", e);
-            setIsLoading(false);
+        } finally {
+            // Garante que o loading para se não entrou no fluxo de retry
+            // Se entrou no fluxo de retry, o finally de lá cuida
+            // Mas por segurança, checamos se o user foi setado
+            if (!user) setIsLoading(false);
         }
     }
   };
