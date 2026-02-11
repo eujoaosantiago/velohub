@@ -262,7 +262,9 @@ serve(async (req) => {
           to: [email],
           subject: `✓ Recebemos sua Mensagem: ${subject}`,
           html: userEmailTemplate,
-        })
+        }),
+      });
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
