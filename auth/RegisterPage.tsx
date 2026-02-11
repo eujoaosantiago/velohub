@@ -107,7 +107,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       console.error(err);
       // Tratamento específico para erro de configuração SMTP comum no desenvolvimento
       if (err.message && err.message.includes("Error sending confirmation email")) {
-          setError("Erro na configuração de Email (SMTP). Verifique se o 'Sender Email' no Supabase é 'onboarding@resend.dev'.");
+          // Mensagem adaptada para o erro 403 do Resend (Test Domain Restriction)
+          setError("Erro no envio do email. Se estiver usando o Resend em modo teste, você só pode cadastrar o MESMO email da sua conta Resend.");
       } else {
           setError(err.message || 'Erro ao criar conta.');
       }

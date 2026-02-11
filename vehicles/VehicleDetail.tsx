@@ -100,7 +100,7 @@ const STATUS_OPTIONS = [
 ];
 
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicles = [], isNew = false, onBack, onUpdate, onDelete, userRole, userPlan = 'starter', onCreateTradeIn }) => {
-  // Use Context to get fresh user data
+  // Use Context to get fresh user data (resolves Share button issue)
   const { user: currentUser } = useVelohub();
   
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -140,6 +140,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   });
   const [activeExpenseFilter, setActiveExpenseFilter] = useState<ExpenseCategory | 'all'>('all');
   
+  // ... (Calculation Logic for Commission) ...
   const calculateDefaultCommission = () => {
       if (vehicle.saleCommission && vehicle.saleCommission > 0) return vehicle.saleCommission;
       return vehicle.expenses
@@ -170,10 +171,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
   
+  // Use current context user plan limits for accurate share button state
   const currentLimits = currentUser ? getPlanLimits(currentUser) : PLAN_CONFIG['free'];
   const canShare = (currentLimits.showShareLink ?? false) && checkPermission(currentUser || null, 'share_vehicles');
 
-  // --- Dirty State Logic ---
+  // ... (Dirty State Logic) ...
   const dirtyState = useMemo(() => {
       const compareExpenses = (a: Expense[], b: Expense[]) => JSON.stringify(a) !== JSON.stringify(b);
       const comparePhotos = (a: string[], b: string[]) => JSON.stringify(a) !== JSON.stringify(b);
@@ -204,18 +206,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       };
   }, [formData, vehicle]);
 
-  // Sync formData if vehicle prop changes (e.g. after external update)
-  useEffect(() => {
-      setFormData(vehicle);
-  }, [vehicle]);
-
   useEffect(() => {
     if (isNew || (useFipeSearch && fipeData.brands.length === 0)) {
         loadBrands();
     }
   }, [isNew, useFipeSearch]);
 
-  // CAMERA LOGIC
+  // CAMERA LOGIC - IMPROVED FOR MOBILE
   useEffect(() => {
       let stream: MediaStream | null = null;
 
@@ -228,6 +225,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   });
                   if (videoRef.current) {
                       videoRef.current.srcObject = stream;
+                      // Necessary for some mobile browsers to start playing
                       videoRef.current.play().catch(e => console.log("Play error", e));
                   }
               } catch (err) {
@@ -280,6 +278,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       }
   };
 
+  // ... (Remaining handlers) ...
   const showToast = (message: string, type: 'success' | 'error') => {
       setNotification({ message, type });
       setTimeout(() => setNotification(null), 4000);
@@ -341,15 +340,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const handleSave = async () => {
       setIsSaving(true);
       try {
-          // Garante que o update é aguardado e erros são capturados
           await onUpdate(formData);
-          
           if (!isNew) {
               showToast("Alterações salvas com sucesso!", "success");
           }
-      } catch (e: any) {
-          console.error("Save Error:", e);
-          showToast(`Erro ao salvar: ${e.message || 'Falha na conexão'}`, "error");
+      } catch (e) {
+          console.error(e);
+          showToast("Erro ao salvar alterações.", "error");
       } finally {
           setIsSaving(false);
       }
@@ -544,6 +541,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const handleAddExpense = async () => {
+      // ... (Expense logic kept same)
       if(!expenseData.desc) {
           showToast("Informe a descrição do gasto.", "error");
           return;
@@ -852,9 +850,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   { label: 'Marca', field: 'make', type: 'text', disabled: useFipeSearch },
                                   { label: 'Modelo', field: 'model', type: 'text', disabled: useFipeSearch },
                                   { label: 'Versão', field: 'version', type: 'text', disabled: false },
-                                  { label: 'Ano', field: 'year', type: 'number', disabled: useFipeSearch, inputMode: 'numeric' },
+                                  { label: 'Ano', field: 'year', type: 'number', disabled: useFipeSearch },
                                   { label: 'Placa', field: 'plate', type: 'text', disabled: false, uppercase: true },
-                                  { label: 'KM', field: 'km', type: 'number', disabled: false, inputMode: 'numeric' },
+                                  { label: 'KM', field: 'km', type: 'number', disabled: false },
                                   { label: 'Cor', field: 'color', type: 'text', disabled: false },
                                   { label: 'Combustível', field: 'fuel', type: 'text', disabled: false },
                                   { label: 'Câmbio', field: 'transmission', type: 'text', disabled: false },
@@ -863,7 +861,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       <label className="text-slate-500 mb-1 block">{item.label}</label>
                                       <input 
                                         type={item.type} 
-                                        inputMode={item.inputMode || 'text'}
                                         className={`w-full bg-slate-900 border ${dirtyState.isOverviewDirty && formData[item.field as keyof Vehicle] !== vehicle[item.field as keyof Vehicle] ? 'border-amber-500/50' : 'border-slate-700'} rounded p-2 text-white ${item.uppercase ? 'uppercase' : ''}`}
                                         value={(formData as any)[item.field]}
                                         onChange={e => handleChange(item.field, item.type === 'number' ? parseInt(e.target.value) : e.target.value)}
@@ -1301,7 +1298,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       <div className="grid grid-cols-2 gap-3 mb-3">
                                           <input placeholder="Marca" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.make} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, make: e.target.value}})} />
                                           <input placeholder="Modelo" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.model} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, model: e.target.value}})} />
-                                          <input placeholder="Ano" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.year} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, year: e.target.value}})} />
+                                          <input placeholder="Ano" type="number" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.year} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, year: e.target.value}})} />
                                           <input placeholder="Placa" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm uppercase" value={saleData.tradeIn.plate} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, plate: maskPlate(e.target.value)}})} />
                                       </div>
                                       <input 
@@ -1326,7 +1323,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                         onChange={e => handleCpfChange(e.target.value)} 
                                         disabled={isSold} 
                                         maxLength={14}
-                                        inputMode="numeric"
                                         className={`w-full bg-slate-950 border rounded p-2 text-white outline-none transition-colors ${
                                             !isSold && saleData.buyerCpf.length > 0 ? (isCpfValid ? 'border-emerald-500' : 'border-rose-500') : 'border-slate-700'
                                         }`}
@@ -1339,7 +1335,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
                                     onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
                                     disabled={isSold} 
-                                    inputMode="tel"
                                     className="bg-slate-900 border border-slate-700 rounded p-2 text-white" 
                                   />
                               </div>

@@ -1,9 +1,9 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Vehicle, UserRole, VehicleStatus, checkPermission } from '../types';
 import { Button } from '../components/ui/Button';
 import { formatCurrency, getStatusLabel, getStatusBorderColor } from '../lib/utils';
-import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check } from 'lucide-react';
+import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket } from 'lucide-react';
 import { QuickSaleModal } from '../components/QuickSaleModal';
 import { ReservationModal } from '../components/ReservationModal';
 import { ShareModal } from '../components/ShareModal';
@@ -29,7 +29,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   const [reservationVehicle, setReservationVehicle] = useState<Vehicle | null>(null);
   const [shareVehicle, setShareVehicle] = useState<Vehicle | null>(null); 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
@@ -59,15 +58,11 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
       return daysInStock > 60;
   }).length;
 
-  // Fecha dropdown ao clicar fora
-  useEffect(() => {
-      const handleClickOutside = () => setOpenDropdownId(null);
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  const handleStatusChange = async (vehicle: Vehicle, newStatus: VehicleStatus) => {
-      setOpenDropdownId(null);
+  const handleQuickStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>, vehicle: Vehicle) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const newStatus = e.target.value as VehicleStatus;
       
       if (newStatus === 'sold') {
           setQuickSaleVehicle(vehicle);
@@ -308,35 +303,23 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                 )}
                             </div>
                             
-                            {/* CUSTOM STATUS DROPDOWN REPLACEMENT */}
-                            <div className="relative" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                    onClick={() => setOpenDropdownId(openDropdownId === vehicle.id ? null : vehicle.id)}
-                                    className={`flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}
-                                >
+                            <div className="relative group min-w-[140px]" onClick={(e) => e.stopPropagation()}>
+                                <div className={`flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}>
                                     <span className="text-xs font-bold uppercase tracking-wide truncate">
                                         {getStatusLabel(vehicle.status)}
                                     </span>
                                     {vehicle.status !== 'sold' && <ChevronDown size={14} className="opacity-80 shrink-0" />}
-                                </button>
-
-                                {openDropdownId === vehicle.id && vehicle.status !== 'sold' && (
-                                    <div className="absolute top-full mt-2 right-0 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in">
-                                        {[
-                                            { id: 'available', label: 'Em Estoque' },
-                                            { id: 'reserved', label: 'Reservado' },
-                                            { id: 'preparation', label: 'Preparação' }
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => handleStatusChange(vehicle, opt.id as VehicleStatus)}
-                                                className="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white flex items-center justify-between group"
-                                            >
-                                                {opt.label}
-                                                {vehicle.status === opt.id && <Check size={14} className="text-emerald-400"/>}
-                                            </button>
-                                        ))}
-                                    </div>
+                                </div>
+                                {vehicle.status !== 'sold' && (
+                                    <select 
+                                        value={vehicle.status}
+                                        onChange={(e) => handleQuickStatusChange(e, vehicle)}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    >
+                                        <option value="available">Em Estoque</option>
+                                        <option value="reserved">Reservado</option>
+                                        <option value="preparation">Preparação</option>
+                                    </select>
                                 )}
                             </div>
                         </div>

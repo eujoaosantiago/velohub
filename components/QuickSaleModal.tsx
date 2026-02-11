@@ -288,7 +288,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input 
                                     type="text" 
-                                    inputMode="decimal"
+                                    inputMode="numeric"
                                     autoFocus
                                     value={price}
                                     onChange={(e) => handlePriceChange(e.target.value)}
@@ -303,7 +303,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input 
                                     type="text" 
-                                    inputMode="decimal"
+                                    inputMode="numeric"
                                     value={commission}
                                     onChange={(e) => handleCommissionChange(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-3 text-lg font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -394,7 +394,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-400">Ano</label>
-                                    <input type="number" inputMode="numeric" value={tradeInYear} onChange={e => setTradeInYear(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
+                                    <input type="number" value={tradeInYear} onChange={e => setTradeInYear(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-400">Placa</label>
@@ -405,7 +405,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 <label className="text-xs text-slate-400">Valor de Avaliação (Entrada)</label>
                                 <input 
                                     type="text" 
-                                    inputMode="decimal"
+                                    inputMode="numeric"
                                     value={tradeInValue} 
                                     onChange={e => handleTradeInValueChange(e.target.value)} 
                                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm font-bold focus:ring-indigo-500 outline-none"
@@ -437,7 +437,6 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         onChange={e => handleCpfChange(e.target.value)}
                                         placeholder="CPF"
                                         maxLength={14}
-                                        inputMode="numeric"
                                         className={`w-full bg-slate-950 border rounded-lg pl-10 pr-8 py-2.5 text-white text-sm focus:ring-2 outline-none transition-colors ${
                                             isCpfInvalid ? 'border-rose-500 focus:ring-rose-500' : 
                                             isCpfValid ? 'border-emerald-500 focus:ring-emerald-500' : 'border-slate-700 focus:ring-indigo-500'
@@ -453,7 +452,6 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         value={buyerPhone}
                                         onChange={e => setBuyerPhone(maskPhone(e.target.value))}
                                         placeholder="(DDD) Telefone"
-                                        inputMode="tel"
                                         className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
                                     />
                                 </div>
