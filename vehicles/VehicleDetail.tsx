@@ -1836,12 +1836,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       <div>
-                                          <label className="block text-sm text-slate-300">Data</label>
-                                          <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+                                          <label className="block text-sm text-slate-300 mb-2">Data</label>
+                                          <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white" />
                                       </div>
                                       <div>
-                                          <label className="block text-sm text-slate-300">Pagamento</label>
-                                          <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full select-premium">
+                                          <label className="block text-sm text-slate-300 mb-2">Pagamento</label>
+                                          <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full select-premium p-3 md:p-4">
                                               <option>Pix / Transferência</option>
                                               <option>Financiamento</option>
                                               <option>Dinheiro</option>
@@ -1852,7 +1852,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                       <div>
-                                          <label className="block text-sm text-slate-300">Valor por extenso</label>
+                                          <label className="block text-sm text-slate-300 mb-2">Valor por extenso</label>
                                           <input
                                             value={saleData.paymentAmountText}
                                             onChange={e => setSaleData({...saleData, paymentAmountText: e.target.value})}
@@ -1862,7 +1862,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                           />
                                       </div>
                                       <div>
-                                          <label className="block text-sm text-slate-300">Forma de pagamento</label>
+                                          <label className="block text-sm text-slate-300 mb-2">Forma de pagamento</label>
                                           <input
                                             value={saleData.paymentMethodDetail}
                                             onChange={e => setSaleData({...saleData, paymentMethodDetail: e.target.value})}
@@ -1872,7 +1872,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                           />
                                       </div>
                                       <div>
-                                          <label className="block text-sm text-slate-300">Data do pagamento</label>
+                                          <label className="block text-sm text-slate-300 mb-2">Data do pagamento</label>
                                           <input
                                             value={saleData.paymentDateDetail}
                                             onChange={e => setSaleData({...saleData, paymentDateDetail: e.target.value})}
@@ -1888,22 +1888,22 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <h4 className="text-sm font-semibold text-white">Garantia e Comissão</h4>
                                   <div className="grid grid-cols-2 gap-4">
                                       <div>
-                                          <label className="block text-sm text-slate-300">Garantia (Tempo)</label>
+                                          <label className="block text-sm text-slate-300 mb-2">Garantia (Tempo)</label>
                                           <input 
                                             value={isSold ? (vehicle.warrantyDetails?.time || '90 dias') : saleData.warrantyTime}
                                             onChange={e => setSaleData({...saleData, warrantyTime: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm"
                                             placeholder="Ex: 90 dias"
                                           />
                                       </div>
                                       <div>
-                                          <label className="block text-sm text-slate-300">Garantia (KM)</label>
+                                          <label className="block text-sm text-slate-300 mb-2">Garantia (KM)</label>
                                           <input 
                                             value={isSold ? (vehicle.warrantyDetails?.km || '3.000 km') : saleData.warrantyKm}
                                             onChange={e => setSaleData({...saleData, warrantyKm: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm"
                                             placeholder="Ex: 3.000 km"
                                             inputMode="numeric"
                                           />
@@ -1913,27 +1913,27 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <div>
                                       <div className="flex gap-4">
                                           <div className="flex-1">
-                                              <label className="block text-sm text-slate-300">Comissão de Venda (R$)</label>
+                                              <label className="block text-sm text-slate-300 mb-2">Comissão de Venda (R$)</label>
                                               <input 
                                                 type="text" 
                                                 inputMode="decimal"
                                                 value={isSold ? maskCurrencyInput((calculateDefaultCommission() * 100).toFixed(0)) : saleData.commission} 
                                                 onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
                                                 disabled={isSold} 
-                                                className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm font-bold" 
+                                                className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm font-bold" 
                                                 placeholder="R$ 0,00"
                                               />
                                           </div>
                                           {hasCommissionInput && !isSold && (
                                               <div className="flex-1 animate-fade-in">
-                                                  <label className="block text-sm text-slate-300">Para Quem? (Vendedor)</label>
+                                                  <label className="block text-sm text-slate-300 mb-2">Para Quem? (Vendedor)</label>
                                                   <div className="relative">
                                                       <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                                                       <input 
                                                         type="text" 
                                                         value={saleData.commissionTo} 
                                                         onChange={e => setSaleData({...saleData, commissionTo: e.target.value})} 
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded p-2 pl-9 text-white text-sm" 
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 pl-9 text-white text-sm" 
                                                         placeholder="Nome do funcionário"
                                                       />
                                                   </div>
@@ -1941,11 +1941,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                           )}
                                           {isSold && calculateDefaultCommission() > 0 && (
                                               <div className="flex-1">
-                                                  <label className="block text-sm text-slate-300">Vendedor (Comissão)</label>
+                                                  <label className="block text-sm text-slate-300 mb-2">Vendedor (Comissão)</label>
                                                   <input 
                                                     disabled
                                                     value={vehicle.saleCommissionTo || 'Não informado'} 
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-400 text-sm" 
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-slate-400 text-sm" 
                                                   />
                                               </div>
                                           )}
@@ -2047,21 +2047,21 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       value={isSold ? vehicle.buyer?.neighborhood : saleData.buyerNeighborhood}
                                       onChange={e => setSaleData({...saleData, buyerNeighborhood: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-4 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
                                   />
                                   <input
                                       placeholder="Cidade"
                                       value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
                                       onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-7 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
                                   />
                                   <input
                                       placeholder="UF"
                                       value={isSold ? vehicle.buyer?.state : saleData.buyerState}
                                       onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
                                       disabled={isSold}
-                                      className="col-span-1 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base text-center font-semibold uppercase"
+                                      className="col-span-12 md:col-span-2 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base text-center font-semibold uppercase"
                                   />
                               </div>
                           </div>
