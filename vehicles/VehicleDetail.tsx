@@ -149,6 +149,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       category: 'maintenance' as ExpenseCategory,
       employeeName: '' 
   });
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [activeExpenseFilter, setActiveExpenseFilter] = useState<ExpenseCategory | 'all'>('all');
   
   const calculateDefaultCommission = () => {
@@ -940,22 +941,44 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           return;
       }
 
-      const newExp: Expense = { 
-          id: Math.random().toString(), 
-          vehicleId: vehicle.id, 
-          description: expenseData.desc, 
-          amount: amountVal, 
-          date: new Date().toISOString(), 
-          category: expenseData.category,
-          employeeName: expenseData.category === 'salary' ? expenseData.employeeName : undefined
-      };
-      
-      const newExpenses = [...formData.expenses, newExp];
-      setFormData(prev => ({ ...prev, expenses: newExpenses }));
+      if (editingExpenseId) {
+          // Editando uma despesa existente
+          const updatedExpenses = formData.expenses.map(exp => 
+              exp.id === editingExpenseId
+                  ? {
+                      ...exp,
+                      description: expenseData.desc,
+                      amount: amountVal,
+                      category: expenseData.category,
+                      employeeName: expenseData.category === 'salary' ? expenseData.employeeName : undefined
+                  }
+                  : exp
+          );
+          setFormData(prev => ({ ...prev, expenses: updatedExpenses }));
+          showToast("Despesa atualizada com sucesso!", "success");
+          setEditingExpenseId(null);
+      } else {
+          // Adicionando nova despesa
+          const newExp: Expense = { 
+              id: Math.random().toString(), 
+              vehicleId: vehicle.id, 
+              description: expenseData.desc, 
+              amount: amountVal, 
+              date: new Date().toISOString(), 
+              category: expenseData.category,
+              employeeName: expenseData.category === 'salary' ? expenseData.employeeName : undefined
+          };
+          
+          const newExpenses = [...formData.expenses, newExp];
+          setFormData(prev => ({ ...prev, expenses: newExpenses }));
+          showToast("Despesa adicionada com sucesso!", "success");
+      }
 
       if (expenseData.category === 'salary') {
           const currentCommission = parseCurrencyInput(saleData.commission);
-          const newTotalCommission = currentCommission + amountVal;
+          const newTotalCommission = editingExpenseId 
+              ? currentCommission 
+              : currentCommission + amountVal;
           setSaleData(prev => ({
               ...prev,
               commission: maskCurrencyInput((newTotalCommission * 100).toString()),
@@ -964,7 +987,27 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       }
       
       setExpenseData({desc: '', amount: '', category: 'maintenance', employeeName: ''});
-      showToast("Gasto adicionado à lista (Não salvo).", "success");
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+      setEditingExpenseId(expense.id);
+      setExpenseData({
+          desc: expense.description,
+          amount: maskCurrencyInput(expense.amount.toString()),
+          category: expense.category,
+          employeeName: expense.employeeName || ''
+      });
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+      const updatedExpenses = formData.expenses.filter(exp => exp.id !== expenseId);
+      setFormData(prev => ({ ...prev, expenses: updatedExpenses }));
+      showToast("Despesa excluída com sucesso!", "success");
+  };
+
+  const handleCancelEditExpense = () => {
+      setEditingExpenseId(null);
+      setExpenseData({desc: '', amount: '', category: 'maintenance', employeeName: ''});
   };
 
   const isSold = formData.status === 'sold';
@@ -1659,7 +1702,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           {activeTab === 'expenses' && canViewCosts && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* ... Same Expenses Code ... */}
-                  <Card title="Adicionar Gasto">
+                  <Card title={editingExpenseId ? "Editar Gasto" : "Adicionar Gasto"}>
                       <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                                                             <select 
@@ -1696,7 +1739,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                           )}
 
                           <input type="text" placeholder="Descrição (ex: Troca de óleo)" className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white" value={expenseData.desc} onChange={e => setExpenseData({...expenseData, desc: e.target.value})} />
-                          <Button onClick={handleAddExpense} className="w-full">Adicionar</Button>
+                          <div className="flex gap-2">
+                              <Button onClick={handleAddExpense} className="flex-1">
+                                  {editingExpenseId ? 'Atualizar' : 'Adicionar'}
+                              </Button>
+                              {editingExpenseId && (
+                                  <Button variant="ghost" onClick={handleCancelEditExpense} className="px-3">
+                                      <X size={18} />
+                                  </Button>
+                              )}
+                          </div>
                       </div>
                   </Card>
                   
@@ -1725,8 +1777,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               const isNewExpense = !vehicle.expenses.find(e => e.id === exp.id);
                               
                               return (
-                                <div key={exp.id} className={`flex justify-between items-center p-2 rounded border ${isNewExpense ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/50 border-slate-800'}`}>
-                                    <div className="flex flex-col">
+                                <div key={exp.id} className={`group flex justify-between items-center p-2 rounded border ${isNewExpense ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/50 border-slate-800'}`}>
+                                    <div className="flex flex-col flex-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-white text-sm font-medium">{exp.description}</span>
                                             {isNewExpense && <span className="text-[10px] bg-emerald-500 text-white px-1 rounded">Novo</span>}
@@ -1736,7 +1788,23 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             {exp.employeeName && <span className="text-indigo-400 text-xs font-bold">• {exp.employeeName}</span>}
                                         </div>
                                     </div>
-                                    <span className="text-white font-bold text-sm">{formatCurrency(exp.amount)}</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-white font-bold text-sm">{formatCurrency(exp.amount)}</span>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button
+                                                onClick={() => handleEditExpense(exp)}
+                                                className="text-slate-500 hover:text-indigo-400 transition-colors p-1"
+                                            >
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteExpense(exp.id)}
+                                                className="text-slate-500 hover:text-rose-500 transition-colors p-1"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                               );
                           })}

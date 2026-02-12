@@ -389,6 +389,27 @@ export const ApiService = {
       return { ...expense, id: data.id };
   },
 
+  updateStoreExpense: async (expense: StoreExpense): Promise<StoreExpense> => {
+      if (!supabase) throw new Error("Conexão segura necessária.");
+
+      const dbExpense = {
+          description: expense.description,
+          amount: expense.amount,
+          date: expense.date,
+          category: expense.category,
+          paid: expense.paid,
+          updated_at: new Date().toISOString()
+      };
+      const { data, error } = await supabase
+        .from('store_expenses')
+        .update(dbExpense)
+        .eq('id', expense.id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return { ...expense, updatedAt: data.updated_at };
+  },
+
   deleteStoreExpense: async (id: string): Promise<void> => {
       if (!supabase) throw new Error("Conexão segura necessária.");
       const { error } = await supabase.from('store_expenses').delete().eq('id', id);
