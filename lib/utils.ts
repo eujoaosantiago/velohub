@@ -40,7 +40,8 @@ export const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Máscara estilo ATM (digita números, completa da direita)
+// Máscara estilo ATM (digita números, completa da direita para esquerda)
+// Funciona bem em mobile também - sempre coloca o cursor na posição correta
 export const maskCurrencyInput = (value: string): string => {
   const onlyDigits = value.replace(/\D/g, '');
   if (!onlyDigits) return '';
@@ -88,6 +89,21 @@ export const maskCNPJ = (value: string) => {
     .replace(/\.(\d{3})(\d)/, '.$1/$2')
     .replace(/(\d{4})(\d)/, '$1-$2')
     .slice(0, 18);
+};
+
+// RENAVAM: suporta 9 dígitos (antigos, preenchidos com zeros) ou 11 dígitos (novos)
+export const maskRenavam = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .slice(0, 11);
+};
+
+// CHASSI: VIN com 17 caracteres (números e letras maiúsculas)
+export const maskChassis = (value: string) => {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 17);
 };
 
 export const isValidPlate = (plate: string): boolean => {

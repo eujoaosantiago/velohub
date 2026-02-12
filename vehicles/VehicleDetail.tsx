@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermission, ExpenseCategory } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo, maskRenavam, maskChassis } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
@@ -140,6 +140,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
     const lastSavedPhotosRef = useRef<string>(JSON.stringify(vehicle.photos || []));
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const priceInputRef = useRef<HTMLInputElement>(null);
   const [photoIndex, setPhotoIndex] = useState(0); // Índice da foto atual no carrossel
 
   const [expenseData, setExpenseData] = useState({ 
@@ -546,6 +547,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   const handleChange = (field: keyof Vehicle, value: any) => {
       if (field === 'plate') value = maskPlate(value);
+      if (field === 'renavam') value = maskRenavam(value);
+      if (field === 'chassis') value = maskChassis(value);
       setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -1265,8 +1268,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   { label: 'Versão', field: 'version', type: 'text', disabled: false },
                                   { label: 'Ano', field: 'year', type: 'number', disabled: useFipeSearch, inputMode: 'numeric' },
                                   { label: 'Placa', field: 'plate', type: 'text', disabled: false, uppercase: true },
-                                  { label: 'RENAVAM', field: 'renavam', type: 'text', disabled: false },
-                                  { label: 'Chassi', field: 'chassis', type: 'text', disabled: false },
+                                  { label: 'RENAVAM', field: 'renavam', type: 'text', disabled: false, inputMode: 'numeric', uppercase: true },
+                                  { label: 'Chassi', field: 'chassis', type: 'text', disabled: false, uppercase: true },
                                   { label: 'KM', field: 'km', type: 'number', disabled: false, inputMode: 'numeric' },
                                   { label: 'Cor', field: 'color', type: 'text', disabled: false },
                                   { label: 'Combustível', field: 'fuel', type: 'text', disabled: false },
@@ -1340,9 +1343,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <input 
                                     type="text" 
                                     inputMode="decimal"
-                                                                        className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums" 
+                                    className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums" 
                                     value={getMaskedValue(formData.fipePrice)} 
-                                    onChange={e => setFormData(prev => ({...prev, fipePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
+                                    onChange={e => setFormData(prev => ({...prev, fipePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))}
+                                    onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
                                   />
                               </div>
 
@@ -1353,7 +1357,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       inputMode="decimal"
                                       className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums" 
                                       value={getMaskedValue(formData.purchasePrice)} 
-                                      onChange={e => setFormData(prev => ({...prev, purchasePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
+                                      onChange={e => setFormData(prev => ({...prev, purchasePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))}
+                                      onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
                                   />
                               </div>
                               
@@ -1364,7 +1369,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       inputMode="decimal"
                                       className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white text-lg font-bold tabular-nums" 
                                       value={getMaskedValue(formData.expectedSalePrice)} 
-                                      onChange={e => setFormData(prev => ({...prev, expectedSalePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
+                                      onChange={e => setFormData(prev => ({...prev, expectedSalePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))}
+                                      onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
                                   />
                               </div>
                           </div>
@@ -1784,11 +1790,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </label>
                                   <input 
                                     type="text" 
+                                    ref={priceInputRef}
                                     inputMode="decimal"
                                     value={saleData.price} 
-                                    onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})} 
+                                    onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})}
+                                    onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
                                     disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-lg font-bold" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-lg font-bold text-right" 
                                   />
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1920,17 +1928,18 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                           <input placeholder="Ano Fabricação" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.yearFab} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, yearFab: e.target.value}})} />
                                           <input placeholder="Ano Modelo" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.yearModel} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, yearModel: e.target.value}})} />
                                           <input placeholder="Placa" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm uppercase" value={saleData.tradeIn.plate} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, plate: maskPlate(e.target.value)}})} />
-                                          <input placeholder="RENAVAM" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.renavam} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, renavam: e.target.value}})} />
-                                          <input placeholder="Chassi" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.chassis} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, chassis: e.target.value}})} />
+                                          <input placeholder="RENAVAM" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm uppercase" inputMode="numeric" value={saleData.tradeIn.renavam} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, renavam: maskRenavam(e.target.value)}})} />
+                                          <input placeholder="Chassi" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm uppercase" value={saleData.tradeIn.chassis} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, chassis: maskChassis(e.target.value)}})} />
                                           <input placeholder="Cor" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.color} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, color: e.target.value}})} />
                                           <input placeholder="Quilometragem" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.km} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, km: e.target.value}})} />
                                       </div>
                                       <input 
                                         placeholder="Valor de Avaliação R$" 
                                         inputMode="decimal"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm font-bold" 
+                                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm font-bold text-right" 
                                         value={saleData.tradeIn.value} 
-                                        onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, value: maskCurrencyInput(e.target.value)}})} 
+                                        onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, value: maskCurrencyInput(e.target.value)}})}
+                                        onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
                                       />
                                   </div>
                               )}
