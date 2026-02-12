@@ -1061,14 +1061,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const allExpensesSum = operatingExpensesValue + expensesCommissionValue;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <React.Fragment>
       {notification && (
-          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top pointer-events-none h-0 overflow-visible ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-              {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
-              <span className="font-medium text-sm">{notification.message}</span>
-          </div>
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top pointer-events-none ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+          {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+          <span className="font-medium text-sm">{notification.message}</span>
+        </div>
       )}
-
+      <div className="space-y-6 animate-fade-in pb-10">
       {showContract && <ContractModal vehicle={vehicle} storeName={currentUser?.storeName || 'Loja'} storeCnpj={currentUser?.cnpj} storeCity={currentUser?.city} storeState={currentUser?.state} onClose={() => setShowContract(false)} />}
       {showReservation && <ReservationModal vehicle={vehicle} onClose={() => setShowReservation(false)} onConfirm={handleConfirmReservation} />}
       {shareVehicle && (
@@ -2245,6 +2245,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               </div>
           )}
       </div>
-    </div>
+      </div>
+    </React.Fragment>
   );
 };
