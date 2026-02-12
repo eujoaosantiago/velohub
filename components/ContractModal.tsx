@@ -53,6 +53,9 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
           '{loja_cnpj}': storeCnpj || '',
           '{comprador_nome}': vehicle.buyer?.name || '',
           '{comprador_cpf}': vehicle.buyer?.cpf || '',
+          '{comprador_cep}': vehicle.buyer?.cep || '',
+          '{comprador_logradouro}': vehicle.buyer?.street || '',
+          '{comprador_numero}': vehicle.buyer?.number || '',
           '{veiculo_marca}': vehicle.make,
           '{veiculo_modelo}': vehicle.model,
           '{veiculo_versao}': vehicle.version,
@@ -62,7 +65,21 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
           '{veiculo_km}': vehicle.km.toLocaleString(),
           '{garantia_tempo}': vehicle.warrantyDetails?.time || '90 dias',
           '{garantia_km}': vehicle.warrantyDetails?.km || '3.000 km',
-          '{valor_venda}': formatCurrency(vehicle.soldPrice || 0)
+          '{valor_venda}': formatCurrency(vehicle.soldPrice || 0),
+          '{pagamento_valor_extenso}': vehicle.paymentDetails?.amountText || '',
+          '{pagamento_forma_detalhada}': vehicle.paymentDetails?.methodDetail || '',
+          '{pagamento_data}': vehicle.paymentDetails?.paymentDateDetail || '',
+          '{troca_marca}': vehicle.tradeInInfo?.make || '',
+          '{troca_modelo}': vehicle.tradeInInfo?.model || '',
+          '{troca_versao}': vehicle.tradeInInfo?.version || '',
+          '{troca_ano_fab}': vehicle.tradeInInfo?.yearFab || '',
+          '{troca_ano_modelo}': vehicle.tradeInInfo?.yearModel || '',
+          '{troca_placa}': vehicle.tradeInInfo?.plate || '',
+          '{troca_renavam}': vehicle.tradeInInfo?.renavam || '',
+          '{troca_chassi}': vehicle.tradeInInfo?.chassis || '',
+          '{troca_cor}': vehicle.tradeInInfo?.color || '',
+          '{troca_km}': vehicle.tradeInInfo?.km || '',
+          '{troca_valor}': vehicle.tradeInInfo ? formatCurrency(vehicle.tradeInInfo.value) : ''
       };
 
       Object.entries(replacements).forEach(([key, value]) => {
@@ -74,10 +91,13 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
   };
 
   const contractBody = processContract(template);
+      const buyerAddress = vehicle.buyer?.street && vehicle.buyer?.number && vehicle.buyer?.cep
+          ? `${vehicle.buyer.street}, nº ${vehicle.buyer.number}${vehicle.buyer?.neighborhood ? `, ${vehicle.buyer.neighborhood}` : ''}${vehicle.buyer?.city ? `, ${vehicle.buyer.city}` : ''}${vehicle.buyer?.state ? `/${vehicle.buyer.state}` : ''}, CEP ${vehicle.buyer.cep}`
+          : '';
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="bg-white text-slate-900 w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none flex flex-col max-h-[90vh]">
+    <div className="contract-print fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto print:p-0 print:bg-white print:static">
+    <div className="bg-white text-slate-900 w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none flex flex-col max-h-[90vh] print:max-h-none print:overflow-visible">
         
         {/* Header Actions (Hidden on Print) */}
         <div className="bg-slate-100 p-4 border-b border-slate-200 flex justify-between items-center print:hidden shrink-0">
@@ -118,7 +138,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
                 </p>
 
                 <p>
-                    <strong>COMPRADOR:</strong> {vehicle.buyer?.name}, portador(a) do CPF nº {vehicle.buyer?.cpf}, residente e domiciliado(a) nesta cidade, doravante denominado(a) COMPRADOR.
+                    <strong>COMPRADOR:</strong> {vehicle.buyer?.name}, portador(a) do CPF nº {vehicle.buyer?.cpf}{buyerAddress ? `, residente e domiciliado(a) à ${buyerAddress}` : ', residente e domiciliado(a) nesta cidade'}, doravante denominado(a) COMPRADOR.
                 </p>
 
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg my-4 font-sans text-sm print:border print:border-black">
@@ -149,8 +169,13 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
                             Como parte do pagamento, o COMPRADOR entrega à VENDEDORA o seguinte veículo, livre e desembaraçado de quaisquer ônus:
                         </p>
                         <div className="grid grid-cols-2 gap-4">
-                            <p><strong>Marca/Modelo:</strong> {vehicle.tradeInInfo.make} {vehicle.tradeInInfo.model}</p>
+                            <p><strong>Marca/Modelo:</strong> {vehicle.tradeInInfo.make} {vehicle.tradeInInfo.model} {vehicle.tradeInInfo.version || ''}</p>
+                            <p><strong>Ano Fab/Mod:</strong> {vehicle.tradeInInfo.yearFab || '-'} / {vehicle.tradeInInfo.yearModel || '-'}</p>
                             <p><strong>Placa:</strong> {vehicle.tradeInInfo.plate}</p>
+                            <p><strong>RENAVAM:</strong> {vehicle.tradeInInfo.renavam || '-'}</p>
+                            <p><strong>Chassi:</strong> {vehicle.tradeInInfo.chassis || '-'}</p>
+                            <p><strong>Cor:</strong> {vehicle.tradeInInfo.color || '-'}</p>
+                            <p><strong>KM Atual:</strong> {vehicle.tradeInInfo.km || '-'}</p>
                             <p><strong>Valor de Avaliação (Acordado):</strong> {formatCurrency(vehicle.tradeInInfo.value)}</p>
                         </div>
                         <p className="mt-2 text-xs italic text-slate-500">
@@ -164,8 +189,13 @@ export const ContractModal: React.FC<ContractModalProps> = ({ vehicle, storeName
                     <strong>RESUMO DO PAGAMENTO:</strong>
                     <br/>
                     Valor Total da Venda: <strong>{formatCurrency(vehicle.soldPrice || 0)}</strong>
+                    {vehicle.paymentDetails?.amountText && (
+                        <span> (por extenso: {vehicle.paymentDetails.amountText})</span>
+                    )}
                     <br />
-                    Forma de pagamento: {vehicle.paymentMethod}
+                    Forma de pagamento: {vehicle.paymentDetails?.methodDetail || vehicle.paymentMethod}
+                    <br />
+                    Data do pagamento: {vehicle.paymentDetails?.paymentDateDetail || 'Não informado'}
                     {vehicle.paymentMethod === 'Troca + Volta' && vehicle.tradeInInfo && (
                         <span> (Sendo {formatCurrency(vehicle.soldPrice! - vehicle.tradeInInfo.value)} em dinheiro + {formatCurrency(vehicle.tradeInInfo.value)} em veículo de troca)</span>
                     )}.

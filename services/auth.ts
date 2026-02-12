@@ -37,6 +37,9 @@ export const AuthService = {
         storeName: profile.store_name,
         cnpj: profile.cnpj,
         phone: profile.phone,
+        cep: profile.cep,
+        street: profile.street,
+        number: profile.number,
         city: profile.city,
         state: profile.state,
         permissions: profile.permissions,
@@ -150,6 +153,14 @@ export const AuthService = {
           cnpj: user.cnpj,
           contract_template: user.contractTemplate
       };
+
+      if (user.role === 'owner') {
+          updates.cep = user.cep;
+          updates.street = user.street;
+          updates.number = user.number;
+          updates.city = user.city;
+          updates.state = user.state;
+      }
       
       const { error } = await supabase.from('users').update(updates).eq('id', user.id);
       if (error) throw new Error(error.message);
@@ -158,7 +169,12 @@ export const AuthService = {
           const sharedUpdates = {
               store_name: user.storeName,
               cnpj: user.cnpj,
-              contract_template: user.contractTemplate
+              contract_template: user.contractTemplate,
+              cep: user.cep,
+              street: user.street,
+              number: user.number,
+              city: user.city,
+              state: user.state
           };
           await supabase.from('users').update(sharedUpdates).eq('store_id', user.storeId);
       }

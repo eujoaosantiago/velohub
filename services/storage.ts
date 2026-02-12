@@ -5,7 +5,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
  * Utilitário para redimensionar e comprimir imagens no navegador antes do upload.
  * Evita estourar o limite de banda e melhora performance.
  */
-const compressImage = (file: File): Promise<string> => {
+const compressImage = (file: File): Promise<{ blob: Blob; contentType: string; extension: string }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -31,10 +31,28 @@ const compressImage = (file: File): Promise<string> => {
         }
         
         ctx.drawImage(img, 0, 0, width, height);
-        
-        // Comprime para JPEG com qualidade 0.8
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(compressedBase64);
+
+        const canvasToBlob = (type: string, quality: number) =>
+          new Promise<Blob | null>((res) => canvas.toBlob(res, type, quality));
+
+        (async () => {
+          let blob = await canvasToBlob('image/webp', 0.8);
+          let contentType = 'image/webp';
+          let extension = 'webp';
+
+          if (!blob) {
+            blob = await canvasToBlob('image/jpeg', 0.8);
+            contentType = 'image/jpeg';
+            extension = 'jpg';
+          }
+
+          if (!blob) {
+            reject(new Error("Erro ao processar imagem"));
+            return;
+          }
+
+          resolve({ blob, contentType, extension });
+        })().catch(reject);
       };
       img.onerror = (err) => reject(err);
     };
@@ -45,22 +63,18 @@ const compressImage = (file: File): Promise<string> => {
 export const StorageService = {
   uploadPhoto: async (file: File, storeId: string): Promise<string> => {
     // 1. Processamento e Compressão
-    const compressedBase64 = await compressImage(file);
+    const { blob, contentType, extension } = await compressImage(file);
 
     // 2. Upload Seguro via Supabase
     if (isSupabaseConfigured() && supabase) {
         try {
-            const res = await fetch(compressedBase64);
-            const blob = await res.blob();
-            
             // SECURITY FIX: Usar UUID para evitar enumeração de arquivos
-            const fileExtension = 'jpg';
-            const fileName = `${storeId}/${crypto.randomUUID()}.${fileExtension}`;
+            const fileName = `${storeId}/${crypto.randomUUID()}.${extension}`;
             
             const { data, error } = await supabase.storage
                 .from('vehicles')
                 .upload(fileName, blob, {
-                    contentType: 'image/jpeg',
+                contentType,
                     upsert: false
                 });
 

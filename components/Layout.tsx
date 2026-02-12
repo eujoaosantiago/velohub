@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Car, Users, DollarSign, LogOut, Menu, X, PlusCircle, UserCog, ShieldCheck, Settings, Sun, Moon, Wrench } from 'lucide-react';
+import { LayoutDashboard, Car, Users, DollarSign, LogOut, Menu, X, PlusCircle, UserCog, ShieldCheck, Settings, Sun, Moon, Wrench, MessageSquare } from 'lucide-react';
 import { Page, User, checkPermission } from '../types';
 import { AuthService } from '../services/auth';
 
@@ -51,6 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
     { id: Page.EXPENSES, label: 'Gestão de Gastos', icon: <Wrench size={20} />, visible: user.role === 'owner' || checkPermission(user, 'view_costs') },
     { id: Page.CUSTOMERS, label: 'Clientes', icon: <Users size={20} />, visible: checkPermission(user, 'view_customers') },
     { id: Page.TEAM, label: 'Equipe', icon: <UserCog size={20} />, visible: user.role === 'owner' },
+    { id: Page.SUPPORT, label: 'Suporte', icon: <MessageSquare size={20} />, visible: true },
   ];
 
   const filteredNavItems = navItems.filter(item => item.visible);

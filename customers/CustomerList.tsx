@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
-import { Vehicle, Buyer, Page } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Vehicle, Page, Customer } from '../types';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, maskCPF, maskPhone } from '../lib/utils';
-import { Search, Phone, Mail, FileText, User, ShoppingBag, MessageCircle, Edit2, X, ChevronRight, Car, Lock, Crown, Users } from 'lucide-react';
+import { fetchCepInfo, formatCurrency, isValidCPF, maskCPF, maskPhone, parseISODate } from '../lib/utils';
+import { Search, Phone, Mail, FileText, User, ShoppingBag, MessageCircle, Edit2, X, ChevronRight, Car, Lock, Crown, Users, MapPin, Loader } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useVelohub } from '../contexts/VelohubContext';
 import { ApiService } from '../services/api';
@@ -15,28 +15,73 @@ interface CustomerListProps {
 }
 
 interface EditCustomerModalProps {
-    customer: { buyer: Buyer, vehicles: Vehicle[] };
+        customer: Customer;
     onClose: () => void;
-    onSave: (oldCpf: string, newBuyer: Buyer) => Promise<void>;
+        onSave: (customer: Customer) => Promise<void>;
 }
 
 const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ customer, onClose, onSave }) => {
-    const [name, setName] = useState(customer.buyer.name);
-    const [phone, setPhone] = useState(customer.buyer.phone);
-    const [email, setEmail] = useState(customer.buyer.email || '');
-    const [cpf, setCpf] = useState(customer.buyer.cpf);
+    const [name, setName] = useState(customer.name);
+    const [phone, setPhone] = useState(customer.phone);
+    const [email, setEmail] = useState(customer.email || '');
+    const [cpf, setCpf] = useState(customer.cpf);
+    const [cep, setCep] = useState(customer.cep || '');
+    const [street, setStreet] = useState(customer.street || '');
+    const [number, setNumber] = useState(customer.number || '');
+    const [neighborhood, setNeighborhood] = useState(customer.neighborhood || '');
+    const [city, setCity] = useState(customer.city || '');
+    const [state, setState] = useState(customer.state || '');
     const [isSaving, setIsSaving] = useState(false);
+    const [cpfError, setCpfError] = useState('');
+    const [isLoadingCep, setIsLoadingCep] = useState(false);
+
+    const handleCepChange = (value: string) => {
+        const digits = value.replace(/\D/g, '').slice(0, 8);
+        const masked = digits.replace(/(\d{5})(\d{0,3})/, (_match, p1, p2) => (p2 ? `${p1}-${p2}` : p1));
+        setCep(masked);
+    };
+
+    const handleCepBlur = async () => {
+        const cleaned = cep.replace(/\D/g, '');
+        if (cleaned.length !== 8) return;
+
+        setIsLoadingCep(true);
+        try {
+            const info = await fetchCepInfo(cleaned);
+            if (!info) return;
+            setStreet((prev) => prev || info.street);
+            setNeighborhood((prev) => prev || info.neighborhood);
+            setCity((prev) => prev || info.city);
+            setState((prev) => prev || info.state);
+        } catch (error) {
+            console.error('Erro ao buscar CEP', error);
+        } finally {
+            setIsLoadingCep(false);
+        }
+    };
 
     const handleSave = async () => {
         setIsSaving(true);
-        const updatedBuyer: Buyer = {
-            ...customer.buyer,
+        if (cpf && !isValidCPF(cpf)) {
+            setCpfError('CPF invalido.');
+            setIsSaving(false);
+            return;
+        }
+        setCpfError('');
+        const updatedCustomer: Customer = {
+            ...customer,
             name,
             phone,
             email,
-            cpf
+            cpf,
+            cep,
+            street,
+            number,
+            neighborhood,
+            city,
+            state
         };
-        await onSave(customer.buyer.cpf, updatedBuyer);
+        await onSave(updatedCustomer);
         setIsSaving(false);
         onClose();
     };
@@ -55,7 +100,16 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ customer, onClose
                     </div>
                     <div>
                         <label className="text-xs text-slate-400 block mb-1">CPF (Chave)</label>
-                        <input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                        <input
+                            value={cpf}
+                            onChange={e => setCpf(maskCPF(e.target.value))}
+                            onBlur={() => setCpfError(cpf && !isValidCPF(cpf) ? 'CPF invalido.' : '')}
+                            inputMode="numeric"
+                            className={`w-full bg-slate-950 border rounded-lg p-2 text-white ${cpfError ? 'border-rose-500' : 'border-slate-700'}`}
+                        />
+                        {cpfError && (
+                            <p className="text-xs text-rose-400 mt-1">{cpfError}</p>
+                        )}
                     </div>
                     <div>
                         <label className="text-xs text-slate-400 block mb-1">Telefone</label>
@@ -64,6 +118,49 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ customer, onClose
                     <div>
                         <label className="text-xs text-slate-400 block mb-1">Email</label>
                         <input value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 block mb-1">CEP</label>
+                        <div className="relative">
+                            {isLoadingCep ? (
+                                <Loader className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 animate-spin" size={16} />
+                            ) : (
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            )}
+                            <input
+                                value={cep}
+                                onChange={e => handleCepChange(e.target.value)}
+                                onBlur={handleCepBlur}
+                                inputMode="numeric"
+                                maxLength={9}
+                                placeholder="00000-000"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 pl-9 text-white"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 block mb-1">Logradouro</label>
+                        <input value={street} onChange={e => setStreet(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-1">
+                            <label className="text-xs text-slate-400 block mb-1">Numero</label>
+                            <input value={number} onChange={e => setNumber(e.target.value)} inputMode="numeric" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-xs text-slate-400 block mb-1">Bairro</label>
+                            <input value={neighborhood} onChange={e => setNeighborhood(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-2">
+                            <label className="text-xs text-slate-400 block mb-1">Cidade</label>
+                            <input value={city} onChange={e => setCity(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="text-xs text-slate-400 block mb-1">UF</label>
+                            <input value={state} onChange={e => setState(e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-center" />
+                        </div>
                     </div>
                     <div className="pt-4">
                         <Button onClick={handleSave} className="w-full" disabled={isSaving}>{isSaving ? 'Salvando...' : 'Salvar Alterações'}</Button>
@@ -76,39 +173,48 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({ customer, onClose
 
 export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVehicle }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { user, refreshData, navigateTo } = useVelohub();
-  const [editingCustomer, setEditingCustomer] = useState<{ buyer: Buyer, vehicles: Vehicle[] } | null>(null);
+    const { user, navigateTo } = useVelohub();
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
 
-  // Group customers logic
-  const customersMap = new Map<string, { buyer: Buyer, vehicles: Vehicle[], totalSpent: number }>();
+  useEffect(() => {
+      const loadCustomers = async () => {
+          if (!user?.storeId) return;
+          setIsLoadingCustomers(true);
+          try {
+              const data = await ApiService.getCustomers(user.storeId);
+              setCustomers(data);
+          } catch (error) {
+              console.error('Erro ao buscar clientes:', error);
+          } finally {
+              setIsLoadingCustomers(false);
+          }
+      };
 
-  vehicles.filter(v => v.status === 'sold' && v.buyer).forEach(v => {
-    // Key priority: CPF -> Phone -> Name
-    const key = v.buyer!.cpf?.replace(/\D/g, '') || v.buyer!.phone?.replace(/\D/g, '') || v.buyer!.name.trim().toLowerCase();
-    
-    if (!customersMap.has(key)) {
-        customersMap.set(key, { 
-            buyer: v.buyer!, 
-            vehicles: [], 
-            totalSpent: 0 
-        });
-    }
-    const customerRecord = customersMap.get(key)!;
-    if (!customerRecord.vehicles.find(veh => veh.id === v.id)) {
-        customerRecord.vehicles.push(v);
-        customerRecord.totalSpent += v.soldPrice || 0;
-    }
-  });
+      loadCustomers();
+  }, [user?.storeId]);
 
-  const customers = Array.from(customersMap.values());
+  const vehiclesByCustomerId = useMemo(() => {
+      const map = new Map<string, Vehicle[]>();
+      vehicles.filter(v => v.status === 'sold').forEach(v => {
+          if (!v.customerId) return;
+          const list = map.get(v.customerId) || [];
+          if (!list.find(item => item.id === v.id)) {
+              list.push(v);
+              map.set(v.customerId, list);
+          }
+      });
+      return map;
+  }, [vehicles]);
 
   const filteredCustomers = customers.filter(c => {
-    const term = searchTerm.toLowerCase();
-    return (
-        c.buyer.name.toLowerCase().includes(term) ||
-        c.buyer.cpf.includes(term) ||
-        c.buyer.phone.includes(term)
-    );
+      const term = searchTerm.toLowerCase();
+      return (
+          c.name.toLowerCase().includes(term) ||
+          c.cpf.includes(term) ||
+          c.phone.includes(term)
+      );
   });
 
   // --- LIMIT LOGIC ---
@@ -132,15 +238,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
       window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const handleUpdateCustomer = async (oldCpf: string, newBuyer: Buyer) => {
-      const targetVehicles = customersMap.get(oldCpf.replace(/\D/g, ''))?.vehicles || [];
-      
+  const handleUpdateCustomer = async (updatedCustomer: Customer) => {
       try {
-          for (const v of targetVehicles) {
-              const updatedVehicle = { ...v, buyer: newBuyer };
-              await ApiService.updateVehicle(updatedVehicle);
-          }
-          await refreshData();
+          await ApiService.updateCustomer(updatedCustomer);
+          const data = await ApiService.getCustomers(updatedCustomer.storeId);
+          setCustomers(data);
           alert("Cadastro atualizado com sucesso!");
       } catch (e) {
           console.error(e);
@@ -174,8 +276,16 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
           />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayedCustomers.length > 0 ? displayedCustomers.map((c, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {isLoadingCustomers ? (
+                        <div className="col-span-full py-12 text-center text-slate-500">
+                                <Loader className="mx-auto mb-3 animate-spin" size={24} />
+                                <p>Carregando clientes...</p>
+                        </div>
+                ) : displayedCustomers.length > 0 ? displayedCustomers.map((c, idx) => {
+            const history = vehiclesByCustomerId.get(c.id) || [];
+            const totalSpent = history.reduce((acc, v) => acc + (v.soldPrice || 0), 0);
+            return (
             <Card key={idx} className="hover:border-slate-700 transition-colors flex flex-col justify-between group relative">
                 <button 
                     onClick={() => setEditingCustomer(c)} 
@@ -189,11 +299,13 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
                     <div className="flex items-start justify-between mb-4 pr-8">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
-                                {c.buyer.name.charAt(0)}
+                                {c.name.charAt(0)}
                             </div>
                             <div>
-                                <h3 className="text-white font-bold truncate max-w-[150px]">{c.buyer.name}</h3>
-                                <p className="text-xs text-slate-400">Cliente desde {new Date(c.vehicles[0].soldDate!).getFullYear()}</p>
+                                <h3 className="text-white font-bold truncate max-w-[150px]">{c.name}</h3>
+                                <p className="text-xs text-slate-400">
+                                    Cliente desde {history[0] ? (parseISODate(history[0].soldDate)?.getFullYear() || '--') : '--'}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -201,16 +313,30 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
                     <div className="space-y-3 mb-4">
                         <div className="flex items-center gap-2 text-sm text-slate-300">
                             <Phone size={14} className="text-slate-500" />
-                            {c.buyer.phone}
+                            {c.phone}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-300">
                             <FileText size={14} className="text-slate-500" />
-                            {c.buyer.cpf}
+                            {c.cpf}
                         </div>
-                        {c.buyer.email && (
+                        {c.email && (
                             <div className="flex items-center gap-2 text-sm text-slate-300 truncate">
                                 <Mail size={14} className="text-slate-500 shrink-0" />
-                                {c.buyer.email}
+                                {c.email}
+                            </div>
+                        )}
+                        {(c.street || c.city || c.state || c.cep) && (
+                            <div className="flex items-center gap-2 text-sm text-slate-300">
+                                <MapPin size={14} className="text-slate-500" />
+                                <span className="truncate">
+                                    {[
+                                        c.street,
+                                        c.number ? `nº ${c.number}` : '',
+                                        c.neighborhood,
+                                        c.city ? `${c.city}${c.state ? `/${c.state}` : ''}` : '',
+                                        c.cep ? `CEP ${c.cep}` : ''
+                                    ].filter(Boolean).join(', ')}
+                                </span>
                             </div>
                         )}
                     </div>
@@ -220,11 +346,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
                     <div className="flex justify-between items-center mb-3">
                         <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Histórico</span>
                         <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
-                            Total: {formatCurrency(c.totalSpent)}
+                            Total: {formatCurrency(totalSpent)}
                         </span>
                     </div>
                     <div className="space-y-2 mb-4 bg-slate-950/50 p-2 rounded-lg">
-                        {c.vehicles.map(v => (
+                        {history.map(v => (
                             <div 
                                 key={v.id} 
                                 className="flex justify-between items-center text-sm text-slate-400 hover:bg-slate-800/50 p-1.5 rounded cursor-pointer transition-colors group/item"
@@ -244,15 +370,16 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
                     </div>
                     
                     <Button 
-                        onClick={() => handleWhatsApp(c.buyer.phone, c.buyer.name)}
-                        className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white border-transparent flex items-center justify-center gap-2"
+                        onClick={() => handleWhatsApp(c.phone, c.name)}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white border-transparent flex items-center justify-center gap-2"
                     >
                         <MessageCircle size={18} />
                         Conversar no WhatsApp
                     </Button>
                 </div>
             </Card>
-        )) : (
+        );
+        }) : (
             <div className="col-span-full py-12 text-center text-slate-500">
                 <User size={48} className="mx-auto mb-4 opacity-50" />
                 <p>Nenhum cliente encontrado.</p>

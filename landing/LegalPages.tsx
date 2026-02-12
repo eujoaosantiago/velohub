@@ -326,7 +326,7 @@ export const SupportPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                         required
                                         value={topic}
                                         onChange={(e) => setTopic(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:border-indigo-500 focus:bg-slate-950 appearance-none transition-all cursor-pointer"
+                                        className="w-full select-premium pl-12 pr-10 py-3.5 cursor-pointer"
                                     >
                                         <option value="" disabled>Selecione um tópico</option>
                                         <option value="planos">Dúvidas sobre Planos</option>

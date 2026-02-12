@@ -6,7 +6,7 @@ import { AuthService } from '../services/auth';
 import { User } from '../types';
 import { Lock, Mail, User as UserIcon, Building2, Loader, ArrowLeft, CheckCircle2, UserPlus, Home, Inbox, Phone, MapPin, FileText, AlertTriangle, Check, RefreshCw } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
-import { maskCNPJ, maskPhone } from '../lib/utils';
+import { fetchCepInfo, maskCNPJ, maskPhone } from '../lib/utils';
 
 interface RegisterPageProps {
   onRegisterSuccess: (user: User) => void;
@@ -37,6 +37,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [cep, setCep] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+    const [street, setStreet] = useState('');
+    const [number, setNumber] = useState('');
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -53,25 +55,26 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   };
 
   // Busca CEP automático
-  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value.replace(/\D/g, '');
       setCep(value);
+  };
 
-      if (value.length === 8) {
-          setIsLoadingCep(true);
-          try {
-              const response = await fetch(`https://viacep.com.br/ws/${value}/json/`);
-              const data = await response.json();
-              
-              if (!data.erro) {
-                  setCity(data.localidade);
-                  setState(data.uf);
-              }
-          } catch (error) {
-              console.error("Erro ao buscar CEP", error);
-          } finally {
-              setIsLoadingCep(false);
-          }
+  const handleCepBlur = async () => {
+      const cleaned = cep.replace(/\D/g, '');
+      if (cleaned.length !== 8) return;
+
+      setIsLoadingCep(true);
+      try {
+          const info = await fetchCepInfo(cleaned);
+          if (!info) return;
+          setStreet((prev) => prev || info.street);
+          setCity((prev) => prev || info.city);
+          setState((prev) => prev || info.state);
+      } catch (error) {
+          console.error('Erro ao buscar CEP', error);
+      } finally {
+          setIsLoadingCep(false);
       }
   };
 
@@ -95,7 +98,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
     }
 
     try {
-      const storeData = inviteStoreId ? undefined : { cnpj, phone, cep, city, state };
+    const storeData = inviteStoreId ? undefined : { cnpj, phone, cep, city, state, street, number };
       
       const user = await AuthService.register(name, email, password, storeName, storeData, inviteStoreId || undefined);
       
@@ -290,6 +293,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                                 required
                                 value={cep}
                                 onChange={handleCepChange}
+                                onBlur={handleCepBlur}
                                 maxLength={8}
                                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
                                 placeholder="00000000"
@@ -317,6 +321,32 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                             maxLength={2}
                             className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all text-center"
                             placeholder="SP"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4">
+                    <div className="col-span-3">
+                        <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Logradouro</label>
+                        <input
+                            type="text"
+                            required
+                            value={street}
+                            onChange={(e) => setStreet(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                            placeholder="Rua, Avenida..."
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Numero</label>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            required
+                            value={number}
+                            onChange={(e) => setNumber(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                            placeholder="123"
                         />
                     </div>
                 </div>

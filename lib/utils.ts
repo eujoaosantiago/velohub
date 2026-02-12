@@ -16,6 +16,19 @@ export const getBrazilDateISO = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+export const parseISODate = (value?: string): Date | null => {
+  if (!value) return null;
+  const cleaned = value.split('T')[0]?.split(' ')[0] || value;
+  if (cleaned.includes('-')) {
+    const [year, month, day] = cleaned.split('-').map(Number);
+    if (year && month && day) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  const fallback = new Date(value);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+};
+
 /* =======================
    FORMATAÇÃO DE MOEDA
 ======================= */
@@ -77,6 +90,12 @@ export const maskCNPJ = (value: string) => {
     .slice(0, 18);
 };
 
+export const isValidPlate = (plate: string): boolean => {
+  const cleaned = plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!cleaned) return false;
+  return /^[A-Z]{3}\d{4}$/.test(cleaned) || /^[A-Z]{3}\d[A-Z]\d{2}$/.test(cleaned);
+};
+
 /* =======================
    CÁLCULOS FINANCEIROS
 ======================= */
@@ -129,13 +148,13 @@ export const calculateROI = (profit: number, invested: number): number => {
 export const getStatusColor = (status: string) => {
   switch (status) {
     case 'available':
-      return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+      return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40';
     case 'sold':
       return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
     case 'reserved':
-      return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+      return 'text-amber-400 bg-amber-500/20 border-amber-500/40';
     case 'preparation':
-      return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
+      return 'text-indigo-400 bg-indigo-500/20 border-indigo-500/40';
     default:
       return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
   }
@@ -150,7 +169,7 @@ export const getStatusBorderColor = (status: string) => {
     case 'reserved':
       return 'border-amber-500/30 hover:border-amber-500/50';
     case 'preparation':
-      return 'border-rose-500/30 hover:border-rose-500/50';
+      return 'border-indigo-500/30 hover:border-indigo-500/50';
     default:
       return 'border-slate-800';
   }
@@ -192,4 +211,20 @@ export const isValidCPF = (cpf: string): boolean => {
     10;
 
   return rest(10) === values[9] && rest(11) === values[10];
+};
+
+export const fetchCepInfo = async (cep: string) => {
+  const cleaned = cep.replace(/\D/g, '');
+  if (cleaned.length !== 8) return null;
+  const response = await fetch(`https://viacep.com.br/ws/${cleaned}/json/`);
+  if (!response.ok) return null;
+  const data = await response.json();
+  if (data?.erro) return null;
+
+  return {
+    street: data.logradouro || '',
+    neighborhood: data.bairro || '',
+    city: data.localidade || '',
+    state: data.uf || ''
+  };
 };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Vehicle, UserRole, VehicleStatus, checkPermission } from '../types';
 import { Button } from '../components/ui/Button';
-import { formatCurrency, getStatusLabel, getStatusBorderColor } from '../lib/utils';
+import { formatCurrency, getStatusLabel, getStatusBorderColor, getStatusColor } from '../lib/utils';
 import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check, Trash2 } from 'lucide-react';
 import { QuickSaleModal } from '../components/QuickSaleModal';
 import { ReservationModal } from '../components/ReservationModal';
@@ -302,7 +302,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                     )}
                         {/* Mobile Status Badge Overlay */}
                         <div className="absolute top-2 right-2 md:hidden">
-                             <span className={`text-[10px] font-bold px-2 py-1 rounded-full shadow-md uppercase tracking-wide border ${vehicle.status === 'reserved' ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-900/80 text-white border-white/20 backdrop-blur-md'}`}>
+                                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full shadow-md uppercase tracking-wide border ${getStatusColor(vehicle.status)}`}>
                                 {getStatusLabel(vehicle.status)}
                              </span>
                         </div>
@@ -328,7 +328,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                 <div className="relative group min-w-[140px] hidden md:block" onClick={(e) => e.stopPropagation()}>
                                     <button 
                                         onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
-                                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${vehicle.status === 'reserved' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-gradient-to-r from-indigo-600 to-orange-600 border-white/10 text-white'}`}
+                                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${getStatusColor(vehicle.status)}`}
                                     >
                                         <span className="text-xs font-bold uppercase tracking-wide truncate">
                                             {getStatusLabel(vehicle.status)}
@@ -337,7 +337,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                     </button>
                                     
                                     {isDropdownOpen && vehicle.status !== 'sold' && (
-                                        <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in origin-top-right">
+                                        <div className="absolute top-full right-0 mt-2 w-48 dropdown-panel overflow-hidden z-20 animate-fade-in origin-top-right">
                                             {[
                                                 { val: 'available', label: 'Em Estoque', color: 'text-emerald-400' },
                                                 { val: 'reserved', label: 'Reservado', color: 'text-amber-400' },
@@ -349,7 +349,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                                         e.stopPropagation();
                                                         handleStatusUpdate(vehicle, opt.val as VehicleStatus);
                                                     }}
-                                                    className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between group/item hover:bg-slate-800 transition-colors text-slate-300`}
+                                                    className="w-full text-left px-4 py-3 text-sm dropdown-item flex items-center justify-between"
                                                 >
                                                     <span className={opt.color.includes('text') ? opt.color : ''}>{opt.label}</span>
                                                     {vehicle.status === opt.val && <Check size={14} className="text-emerald-400"/>}
@@ -421,7 +421,8 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                         <div className="flex flex-col gap-2 w-full mt-4">
                             {canManageSales && vehicle.status !== 'sold' && vehicle.status !== 'preparation' && (
                                 <Button 
-                                    className="w-full bg-gradient-to-r from-indigo-500 to-orange-600 border-none font-bold shadow-lg"
+                                    variant="success"
+                                    className="w-full font-bold"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setQuickSaleVehicle(vehicle);
@@ -476,7 +477,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                         e.stopPropagation();
                                         setQuickSaleVehicle(vehicle);
                                     }}
-                                    className="flex-1 bg-gradient-to-r from-indigo-500 to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm"
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm"
                                 >
                                     <DollarSign size={18} />
                                     VENDER

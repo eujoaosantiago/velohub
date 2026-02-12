@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermission, ExpenseCategory } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
@@ -72,21 +72,21 @@ const FipeSearch: React.FC<{
                     </button>
                 )}
             </label>
-            <select className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={selectedBrand} onChange={onBrandChange} disabled={isLoading}>
+            <select className="w-full select-premium text-sm" value={selectedBrand} onChange={onBrandChange} disabled={isLoading}>
                 <option value="">{isLoading ? 'Carregando...' : 'Selecione...'}</option>
                 {Array.isArray(brands) && brands.map(b => (<option key={b.codigo} value={b.codigo}>{b.nome}</option>))}
             </select>
         </div>
         <div>
             <label className="text-xs text-slate-400 block mb-1">2. Modelo</label>
-            <select className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={selectedModel} onChange={onModelChange} disabled={!selectedBrand || isLoading}>
+            <select className="w-full select-premium text-sm" value={selectedModel} onChange={onModelChange} disabled={!selectedBrand || isLoading}>
                 <option value="">Selecione...</option>
                 {Array.isArray(models) && models.map(m => (<option key={m.codigo} value={m.codigo}>{m.nome}</option>))}
             </select>
         </div>
         <div>
             <label className="text-xs text-slate-400 block mb-1">3. Ano/Versão</label>
-            <select className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={selectedYear} onChange={onYearChange} disabled={!selectedModel || isLoading}>
+            <select className="w-full select-premium text-sm" value={selectedYear} onChange={onYearChange} disabled={!selectedModel || isLoading}>
                 <option value="">Selecione...</option>
                 {Array.isArray(years) && years.map(y => (<option key={y.codigo} value={y.codigo}>{y.nome}</option>))}
             </select>
@@ -104,6 +104,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const { user: currentUser } = useVelohub();
   
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+    const prevTabRef = useRef<Tab>('overview');
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Vehicle>(vehicle);
   
@@ -123,7 +124,20 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const [isLoadingFipe, setIsLoadingFipe] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [cameraState, setCameraState] = useState({ isOpen: false, isUploading: false });
+    const [cameraState, setCameraState] = useState({ isOpen: false, isUploading: false });
+    const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ total: 0, done: 0 });
+    const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
+    const [dragOverPhotoIndex, setDragOverPhotoIndex] = useState<number | null>(null);
+    const [recentlyMovedIndex, setRecentlyMovedIndex] = useState<number | null>(null);
+    const moveTimerRef = useRef<number | null>(null);
+    const [cameraZoom, setCameraZoom] = useState(1);
+    const [cameraZoomRange, setCameraZoomRange] = useState<{ min: number; max: number }>({ min: 1, max: 1 });
+    const [cameraHasZoom, setCameraHasZoom] = useState(false);
+    const [cameraTorchOn, setCameraTorchOn] = useState(false);
+    const [cameraHasTorch, setCameraHasTorch] = useState(false);
+    const videoTrackRef = useRef<MediaStreamTrack | null>(null);
+    const lastSavedPhotosRef = useRef<string>(JSON.stringify(vehicle.photos || []));
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [photoIndex, setPhotoIndex] = useState(0); // Índice da foto atual no carrossel
@@ -163,10 +177,48 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       buyerName: vehicle.buyer?.name || '',
       buyerCpf: vehicle.buyer?.cpf || '',
       buyerPhone: vehicle.buyer?.phone || '',
+      buyerCep: vehicle.buyer?.cep || '',
+      buyerStreet: vehicle.buyer?.street || '',
+      buyerNumber: vehicle.buyer?.number || '',
+    buyerNeighborhood: vehicle.buyer?.neighborhood || '',
+    buyerCity: vehicle.buyer?.city || '',
+    buyerState: vehicle.buyer?.state || '',
+      paymentAmountText: vehicle.paymentDetails?.amountText || '',
+      paymentMethodDetail: vehicle.paymentDetails?.methodDetail || '',
+      paymentDateDetail: vehicle.paymentDetails?.paymentDateDetail || '',
       warrantyTime: vehicle.warrantyDetails?.time || '90 dias',
       warrantyKm: vehicle.warrantyDetails?.km || '3.000 km',
-      tradeIn: { make: '', model: '', year: new Date().getFullYear().toString(), value: '', plate: '' }
+      tradeIn: {
+          make: '',
+          model: '',
+          version: '',
+          yearFab: new Date().getFullYear().toString(),
+          yearModel: new Date().getFullYear().toString(),
+          plate: '',
+          renavam: '',
+          chassis: '',
+          color: '',
+          km: '',
+          value: ''
+      }
   });
+
+    const handleBuyerCepBlur = async () => {
+        if (isSold) return;
+        try {
+            const info = await fetchCepInfo(saleData.buyerCep);
+            if (!info) return;
+            setSaleData(prev => ({
+                ...prev,
+                buyerStreet: prev.buyerStreet || info.street,
+                buyerNeighborhood: prev.buyerNeighborhood || info.neighborhood,
+                buyerCity: prev.buyerCity || info.city,
+                buyerState: prev.buyerState || info.state
+            }));
+        } catch (err) {
+            console.error('CEP lookup failed', err);
+        }
+    };
 
   // Atualiza a data quando o veículo muda, quando ganha foco ou periodicamente
   useEffect(() => {
@@ -221,6 +273,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           !safeCompare(formData.version, vehicle.version) ||
           formData.year !== vehicle.year ||
           !safeCompare(formData.plate, vehicle.plate) ||
+          !safeCompare(formData.renavam, vehicle.renavam) ||
+          !safeCompare(formData.chassis, vehicle.chassis) ||
           formData.km !== vehicle.km ||
           !safeCompare(formData.color, vehicle.color) ||
           formData.purchasePrice !== vehicle.purchasePrice ||
@@ -244,6 +298,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   // Sincroniza o estado local com a prop quando o registro é atualizado no banco
   useEffect(() => {
       setFormData(vehicle);
+      lastSavedPhotosRef.current = JSON.stringify(vehicle.photos || []);
   }, [vehicle]);
 
   useEffect(() => {
@@ -259,6 +314,24 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           if (cameraState.isOpen && videoRef.current) {
               try {
                   stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                  const videoTrack = stream.getVideoTracks()[0] || null;
+                  videoTrackRef.current = videoTrack;
+                  if (videoTrack && typeof videoTrack.getCapabilities === 'function') {
+                      const caps = videoTrack.getCapabilities() as MediaTrackCapabilities & { zoom?: { min?: number; max?: number }; torch?: boolean };
+                      const zoomCaps = caps.zoom;
+                      const hasZoom = !!zoomCaps && typeof zoomCaps.min === 'number' && typeof zoomCaps.max === 'number';
+                      setCameraHasZoom(hasZoom);
+                      if (hasZoom) {
+                          const min = zoomCaps?.min ?? 1;
+                          const max = zoomCaps?.max ?? 1;
+                          setCameraZoomRange({ min, max });
+                          setCameraZoom(min);
+                      }
+
+                      const hasTorch = !!(caps as any).torch;
+                      setCameraHasTorch(hasTorch);
+                      setCameraTorchOn(false);
+                  }
                   if (videoRef.current) {
                       videoRef.current.srcObject = stream;
                       videoRef.current.play().catch(e => console.log("Play error", e));
@@ -270,15 +343,112 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           }
       };
       if (cameraState.isOpen) startCamera();
-      return () => { if (stream) stream.getTracks().forEach(track => track.stop()); };
+      return () => {
+          if (videoTrackRef.current) {
+              videoTrackRef.current.stop();
+              videoTrackRef.current = null;
+          }
+          if (stream) stream.getTracks().forEach(track => track.stop());
+          setCameraHasZoom(false);
+          setCameraHasTorch(false);
+          setCameraTorchOn(false);
+      };
   }, [cameraState.isOpen]);
 
-  const capturePhoto = () => { /* ... same logic ... */ };
+  const applyCameraZoom = async (value: number) => {
+      setCameraZoom(value);
+      const track = videoTrackRef.current;
+      if (!track || typeof track.applyConstraints !== 'function') return;
+      try {
+          await track.applyConstraints({ advanced: [{ zoom: value }] } as unknown as MediaTrackConstraints);
+      } catch (err) {
+          console.warn('Zoom não suportado', err);
+      }
+  };
+
+  const toggleCameraTorch = async () => {
+      const track = videoTrackRef.current;
+      if (!track || typeof track.applyConstraints !== 'function') return;
+      const next = !cameraTorchOn;
+      try {
+          await track.applyConstraints({ advanced: [{ torch: next }] } as unknown as MediaTrackConstraints);
+          setCameraTorchOn(next);
+      } catch (err) {
+          console.warn('Torch não suportado', err);
+      }
+  };
+
+  const capturePhoto = async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      setCameraState(prev => ({ ...prev, isUploading: true }));
+      try {
+          const toBlob = (type: string, quality: number) =>
+              new Promise<Blob | null>((res) => canvas.toBlob(res, type, quality));
+
+          let blob = await toBlob('image/webp', 0.9);
+          if (!blob) blob = await toBlob('image/jpeg', 0.9);
+          if (!blob) throw new Error('Falha ao capturar imagem');
+
+          await handlePhotoUpload(blob);
+      } catch (err) {
+          showToast("Erro ao capturar foto.", "error");
+      } finally {
+          setCameraState(prev => ({ ...prev, isUploading: false }));
+      }
+  };
 
   const showToast = (message: string, type: 'success' | 'error') => {
       setNotification({ message, type });
       setTimeout(() => setNotification(null), 4000);
   };
+
+  const markPhotoMoved = (index: number) => {
+      setRecentlyMovedIndex(index);
+      if (moveTimerRef.current) {
+          window.clearTimeout(moveTimerRef.current);
+      }
+      moveTimerRef.current = window.setTimeout(() => {
+          setRecentlyMovedIndex(null);
+      }, 300);
+  };
+
+  const savePhotoOrder = async () => {
+      const currentPhotos = JSON.stringify(formData.photos || []);
+      if (currentPhotos === lastSavedPhotosRef.current) return;
+      try {
+          await onUpdate({ ...formData, photos: formData.photos });
+          lastSavedPhotosRef.current = currentPhotos;
+          showToast('Ordem das fotos salva.', 'success');
+      } catch (err) {
+          console.error(err);
+          showToast('Erro ao salvar ordem das fotos.', 'error');
+      }
+  };
+
+  useEffect(() => {
+      const previousTab = prevTabRef.current;
+      if (previousTab === 'photos' && activeTab !== 'photos') {
+          if (!isNew && !isPhotoUploading) {
+              void savePhotoOrder();
+          }
+      }
+      prevTabRef.current = activeTab;
+  }, [activeTab, isNew, isPhotoUploading]);
+
+  useEffect(() => {
+      if (!isNew && !isPhotoUploading && activeTab !== 'photos') {
+          void savePhotoOrder();
+      }
+  }, [activeTab, isNew, isPhotoUploading, formData.photos]);
 
   const loadBrands = async () => {
       setIsLoadingFipe(true);
@@ -291,6 +461,41 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
         setIsLoadingFipe(false);
       }
   };
+
+    const splitModelVersion = (fullName: string) => {
+        const trimmed = fullName.trim();
+        if (!trimmed) return { model: '', version: '' };
+        const tokens = trimmed.split(/\s+/);
+        if (tokens.length === 1) {
+            return { model: trimmed, version: '' };
+        }
+
+        const isMarker = (token: string) => /\d/.test(token) || (/^[A-Z]{2,}$/.test(token) && token.length >= 2);
+        let splitIndex = tokens.findIndex((token, index) => index > 0 && isMarker(token));
+        if (splitIndex === -1) {
+            splitIndex = 1;
+        }
+
+        const model = tokens.slice(0, splitIndex).join(' ');
+        const version = tokens.slice(splitIndex).join(' ');
+        return { model, version };
+    };
+
+    const getBestModelPrefix = (fullName: string) => {
+        const normalizedFull = fullName.toLowerCase();
+        let bestMatch = '';
+
+        fipeData.models.forEach((m) => {
+            const name = (m.nome || '').trim();
+            if (!name) return;
+            const normalizedName = name.toLowerCase();
+            if (normalizedFull.startsWith(normalizedName) && name.length > bestMatch.length) {
+                bestMatch = name;
+            }
+        });
+
+        return bestMatch;
+    };
 
   const handleFipeChange = async (type: 'brand' | 'model' | 'year', value: string) => {
       setFipeSelection(prev => ({ ...prev, [type]: value }));
@@ -312,12 +517,27 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           const details = await FipeApi.getDetails(fipeSelection.brand, fipeSelection.model, value);
           if (details) {
               const fipeVal = parseFloat(details.Valor.replace(/[^\d,]/g, '').replace(',', '.'));
+              const modelName = fipeData.models.find(m => m.codigo === fipeSelection.model)?.nome || '';
+              const fullName = details.Modelo || modelName;
+              const bestPrefix = modelName || getBestModelPrefix(fullName);
+              let model = modelName;
+              let version = '';
+
+              if (bestPrefix && fullName.toLowerCase().startsWith(bestPrefix.toLowerCase()) && fullName.length > bestPrefix.length) {
+                  model = bestPrefix;
+                  version = fullName.slice(bestPrefix.length).trim();
+              } else {
+                  const split = splitModelVersion(fullName);
+                  model = split.model || modelName;
+                  version = split.version;
+              }
               setFormData(prev => ({
                   ...prev,
                   year: details.AnoModelo,
                   fuel: details.Combustivel,
                   fipePrice: fipeVal,
-                  version: details.Modelo
+                  model: model || prev.model,
+                  version: version || fullName
               }));
           }
       }
@@ -334,6 +554,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   };
 
   const handleSave = async () => {
+      if (formData.plate && !isValidPlate(formData.plate)) {
+          showToast("Placa inválida. Use o padrão ABC1234 ou ABC1D23.", "error");
+          return;
+      }
+      if (!Number.isFinite(formData.km) || formData.km < 0) {
+          showToast("Quilometragem inválida. Informe um número positivo.", "error");
+          return;
+      }
       setIsSaving(true);
       try {
           await onUpdate(formData);
@@ -397,91 +625,103 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
-          
+
           reader.onload = (event) => {
               const img = new Image();
               img.src = event.target?.result as string;
-              
+
               img.onload = () => {
                   // Calcula novas dimensões mantendo aspect ratio
                   let width = img.width;
                   let height = img.height;
-                  
+
                   if (width > maxWidth) {
                       height = (height * maxWidth) / width;
                       width = maxWidth;
                   }
-                  
+
                   // Cria canvas e desenha imagem redimensionada
                   const canvas = document.createElement('canvas');
                   canvas.width = width;
                   canvas.height = height;
-                  
+
                   const ctx = canvas.getContext('2d');
                   if (!ctx) {
                       reject(new Error('Não foi possível criar contexto do canvas'));
                       return;
                   }
-                  
+
                   ctx.drawImage(img, 0, 0, width, height);
-                  
-                  // Converte canvas para Blob com compressão
-                  canvas.toBlob(
-                      (blob) => {
-                          if (!blob) {
-                              reject(new Error('Erro ao comprimir imagem'));
-                              return;
-                          }
-                          
-                          // Cria novo arquivo com o blob comprimido
-                          const compressedFile = new File([blob], file.name, {
-                              type: 'image/jpeg',
-                              lastModified: Date.now(),
-                          });
-                          
-                          // Log para debug do tamanho
-                          const originalSizeMB = (file.size / 1024 / 1024).toFixed(2);
-                          const compressedSizeMB = (compressedFile.size / 1024 / 1024).toFixed(2);
-                          console.log(`📸 Imagem comprimida: ${originalSizeMB}MB → ${compressedSizeMB}MB (${width}x${height}px)`);
-                          
-                          resolve(compressedFile);
-                      },
-                      'image/jpeg',
-                      quality
-                  );
+
+                  const baseName = file.name.replace(/\.[^/.]+$/, '') || 'photo';
+                  const canvasToBlob = (type: string, q: number) =>
+                      new Promise<Blob | null>((res) => canvas.toBlob(res, type, q));
+
+                  (async () => {
+                      let blob = await canvasToBlob('image/webp', quality);
+                      let fileType = 'image/webp';
+                      let extension = 'webp';
+
+                      if (!blob) {
+                          blob = await canvasToBlob('image/jpeg', quality);
+                          fileType = 'image/jpeg';
+                          extension = 'jpg';
+                      }
+
+                      if (!blob) {
+                          reject(new Error('Erro ao comprimir imagem'));
+                          return;
+                      }
+
+                      const compressedFile = new File([blob], `${baseName}.${extension}`, {
+                          type: fileType,
+                          lastModified: Date.now(),
+                      });
+
+                      const originalSizeMB = (file.size / 1024 / 1024).toFixed(2);
+                      const compressedSizeMB = (compressedFile.size / 1024 / 1024).toFixed(2);
+                      console.log(`📸 Imagem comprimida: ${originalSizeMB}MB → ${compressedSizeMB}MB (${width}x${height}px)`);
+
+                      resolve(compressedFile);
+                  })().catch(reject);
               };
-              
+
               img.onerror = () => reject(new Error('Erro ao carregar imagem'));
           };
-          
+
           reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
       });
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement> | Blob) => {
       setCameraState(prev => ({ ...prev, isUploading: true }));
+      setIsPhotoUploading(true);
       try {
           let files: File[] = [];
 
           if (e instanceof Blob) {
-              files = [new File([e], "camera.jpg", { type: "image/jpeg" })];
+              files = [new File([e], "camera.webp", { type: "image/webp" })];
           } else {
               const target = (e as React.ChangeEvent<HTMLInputElement>).target;
               if (target.files && target.files.length > 0) {
                   files = Array.from(target.files);
               } else {
                   setCameraState(prev => ({ ...prev, isUploading: false }));
+                  setIsPhotoUploading(false);
+                  setUploadProgress({ total: 0, done: 0 });
                   return;
               }
           }
 
           const newUrls: string[] = [];
+          setUploadProgress({ total: files.length, done: 0 });
 
           for (const f of files) {
               // Comprime a imagem antes de enviar
               const compressedFile = await compressImage(f);
               const url = await StorageService.uploadPhoto(compressedFile, vehicle.storeId);
               newUrls.push(url);
+              setUploadProgress(prev => ({ ...prev, done: prev.done + 1 }));
           }
 
           setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newUrls] }));
@@ -492,6 +732,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           throw err;
       } finally {
           setCameraState(prev => ({ ...prev, isUploading: false }));
+          setIsPhotoUploading(false);
+          setUploadProgress({ total: 0, done: 0 });
       }
   };
 
@@ -514,13 +756,19 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           const cleanCpf = masked.replace(/\D/g, '');
           const existingCustomer = allVehicles
               .filter(v => v.buyer?.cpf?.replace(/\D/g, '') === cleanCpf)
-              .sort((a, b) => new Date(b.soldDate || '').getTime() - new Date(a.soldDate || '').getTime())[0]; 
+              .sort((a, b) => (parseISODate(b.soldDate)?.getTime() || 0) - (parseISODate(a.soldDate)?.getTime() || 0))[0]; 
 
           if (existingCustomer && existingCustomer.buyer) {
               setSaleData(prev => ({
                   ...prev,
                   buyerName: existingCustomer.buyer!.name,
-                  buyerPhone: existingCustomer.buyer!.phone
+                  buyerPhone: existingCustomer.buyer!.phone,
+                  buyerCep: existingCustomer.buyer!.cep || '',
+                  buyerStreet: existingCustomer.buyer!.street || '',
+                  buyerNumber: existingCustomer.buyer!.number || '',
+                  buyerNeighborhood: existingCustomer.buyer!.neighborhood || '',
+                  buyerCity: existingCustomer.buyer!.city || '',
+                  buyerState: existingCustomer.buyer!.state || ''
               }));
           }
       }
@@ -537,6 +785,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       if (!saleData.buyerCpf || !isValidCPF(saleData.buyerCpf)) {
           return showToast("CPF inválido ou não preenchido.", "error");
       }
+      if (!saleData.buyerCep || !saleData.buyerStreet || !saleData.buyerNumber || !saleData.buyerNeighborhood || !saleData.buyerCity || !saleData.buyerState) {
+          return showToast("Endereço do comprador obrigatório (CEP, logradouro, número, bairro, cidade e UF).", "error");
+      }
+      if (!saleData.paymentAmountText || !saleData.paymentMethodDetail || !saleData.paymentDateDetail) {
+          return showToast("Detalhes de pagamento obrigatórios (valor por extenso, forma e data).", "error");
+      }
 
       const commissionVal = parseCurrencyInput(saleData.commission);
 
@@ -548,7 +802,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       const buyer: Buyer = {
           name: sanitizeInput(saleData.buyerName),
           cpf: sanitizeInput(saleData.buyerCpf),
-          phone: sanitizeInput(saleData.buyerPhone)
+          phone: sanitizeInput(saleData.buyerPhone),
+          cep: sanitizeInput(saleData.buyerCep),
+          street: sanitizeInput(saleData.buyerStreet),
+          number: sanitizeInput(saleData.buyerNumber),
+          neighborhood: sanitizeInput(saleData.buyerNeighborhood),
+          city: sanitizeInput(saleData.buyerCity),
+          state: sanitizeInput(saleData.buyerState)
       };
 
       // --- LOGICA DE COMISSÃO COMO GASTO REAL ---
@@ -579,6 +839,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           soldPrice: finalSoldPrice,
           soldDate: saleData.date,
           paymentMethod: saleData.method,
+          paymentDetails: {
+              amountText: sanitizeInput(saleData.paymentAmountText),
+              methodDetail: sanitizeInput(saleData.paymentMethodDetail),
+              paymentDateDetail: sanitizeInput(saleData.paymentDateDetail)
+          },
           saleCommission: 0,
           saleCommissionTo: saleData.commissionTo,
           buyer,
@@ -592,10 +857,23 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       console.log('💾 VehicleDetail - Salvando venda com data:', saleData.date, '| Date atual:', new Date().toISOString());
 
       if (saleData.method === 'Troca + Volta') {
+          if (!saleData.tradeIn.make || !saleData.tradeIn.model || !saleData.tradeIn.value) {
+              return showToast("Preencha os dados do veículo de troca (Marca, Modelo e Valor).", "error");
+          }
+          if (!saleData.tradeIn.version || !saleData.tradeIn.yearFab || !saleData.tradeIn.yearModel || !saleData.tradeIn.plate || !saleData.tradeIn.renavam || !saleData.tradeIn.chassis || !saleData.tradeIn.color || !saleData.tradeIn.km) {
+              return showToast("Preencha todos os dados do veículo de troca (versão, anos, placa, renavam, chassi, cor e KM).", "error");
+          }
           saleUpdate.tradeInInfo = {
               make: sanitizeInput(saleData.tradeIn.make),
               model: sanitizeInput(saleData.tradeIn.model),
+              version: sanitizeInput(saleData.tradeIn.version),
+              yearFab: sanitizeInput(saleData.tradeIn.yearFab),
+              yearModel: sanitizeInput(saleData.tradeIn.yearModel),
               plate: maskPlate(saleData.tradeIn.plate),
+              renavam: sanitizeInput(saleData.tradeIn.renavam),
+              chassis: sanitizeInput(saleData.tradeIn.chassis),
+              color: sanitizeInput(saleData.tradeIn.color),
+              km: sanitizeInput(saleData.tradeIn.km),
               value: tradeInVal
           };
       }
@@ -612,13 +890,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   updatedAt: new Date().toISOString(),
                   make: sanitizeInput(saleData.tradeIn.make),
                   model: sanitizeInput(saleData.tradeIn.model),
-                  version: 'Entrada via Troca',
-                  year: parseInt(saleData.tradeIn.year) || new Date().getFullYear(),
+                  version: sanitizeInput(saleData.tradeIn.version) || 'Entrada via Troca',
+                  year: parseInt(saleData.tradeIn.yearModel) || parseInt(saleData.tradeIn.yearFab) || new Date().getFullYear(),
                   plate: maskPlate(saleData.tradeIn.plate),
-                  km: 0,
+                  km: parseInt(saleData.tradeIn.km) || 0,
                   fuel: 'Flex',
                   transmission: 'Automático',
-                  color: '',
+                  color: sanitizeInput(saleData.tradeIn.color),
                   status: 'available',
                   purchasePrice: tradeInVal,
                   purchaseDate: saleData.date,
@@ -785,9 +1063,19 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           <div className="fixed inset-0 z-[100] bg-black flex flex-col">
               <div className="flex justify-between items-center p-4 bg-black/50 backdrop-blur absolute top-0 w-full z-10">
                   <span className="text-white font-bold">Câmera</span>
-                  <button onClick={() => setCameraState(prev => ({...prev, isOpen: false}))} className="text-white p-2">
-                      <X size={24} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                      {cameraHasTorch && (
+                          <button
+                              onClick={toggleCameraTorch}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${cameraTorchOn ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-200'}`}
+                          >
+                              Flash {cameraTorchOn ? 'Ligado' : 'Desligado'}
+                          </button>
+                      )}
+                      <button onClick={() => setCameraState(prev => ({...prev, isOpen: false}))} className="text-white p-2">
+                          <X size={24} />
+                      </button>
+                  </div>
               </div>
               
               <div className="flex-1 flex items-center justify-center relative bg-black overflow-hidden">
@@ -809,10 +1097,26 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   )}
               </div>
 
-              <div className="p-8 bg-black/50 backdrop-blur absolute bottom-0 w-full flex justify-center">
-                  <button onClick={capturePhoto} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all shadow-lg active:scale-95">
-                      <div className="w-16 h-16 bg-white rounded-full"></div>
-                  </button>
+              <div className="p-6 bg-black/50 backdrop-blur absolute bottom-0 w-full">
+                  <div className="flex items-center justify-center gap-6">
+                      {cameraHasZoom && (
+                          <div className="flex items-center gap-2 text-white text-xs">
+                              <span className="text-slate-300">Zoom</span>
+                              <input
+                                  type="range"
+                                  min={cameraZoomRange.min}
+                                  max={cameraZoomRange.max}
+                                  step={0.1}
+                                  value={cameraZoom}
+                                  onChange={(e) => applyCameraZoom(parseFloat(e.target.value))}
+                                  className="w-36"
+                              />
+                          </div>
+                      )}
+                      <button onClick={capturePhoto} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all shadow-lg active:scale-95">
+                          <div className="w-16 h-16 bg-white rounded-full"></div>
+                      </button>
+                  </div>
               </div>
           </div>
       )}
@@ -859,12 +1163,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                             </button>
                             
                             {isStatusOpen && (
-                                <div className="absolute top-full mt-2 left-0 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in">
+                                <div className="absolute top-full mt-2 left-0 w-44 dropdown-panel overflow-hidden z-20 animate-fade-in">
                                     {STATUS_OPTIONS.map(opt => (
                                         <button
                                             key={opt.value}
                                             onClick={() => handleStatusChange(opt.value as VehicleStatus)}
-                                            className="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white flex items-center justify-between group"
+                                            className="w-full text-left px-4 py-3 text-sm dropdown-item flex items-center justify-between"
                                         >
                                             {opt.label}
                                             {formData.status === opt.value && <Check size={14} className="text-emerald-400"/>}
@@ -888,7 +1192,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                             >
                                 {canShare ? 'Compartilhar' : 'Bloqueado'}
                             </Button>
-                            {canManageSales && formData.status !== 'preparation' && <Button onClick={() => setActiveTab('sell')}>Vender</Button>}
+                            {canManageSales && formData.status !== 'preparation' && (
+                                <Button variant="success" onClick={() => setActiveTab('sell')}>
+                                    Vender
+                                </Button>
+                            )}
                         </>
                     )}
                     {isSold && (
@@ -957,6 +1265,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   { label: 'Versão', field: 'version', type: 'text', disabled: false },
                                   { label: 'Ano', field: 'year', type: 'number', disabled: useFipeSearch, inputMode: 'numeric' },
                                   { label: 'Placa', field: 'plate', type: 'text', disabled: false, uppercase: true },
+                                  { label: 'RENAVAM', field: 'renavam', type: 'text', disabled: false },
+                                  { label: 'Chassi', field: 'chassis', type: 'text', disabled: false },
                                   { label: 'KM', field: 'km', type: 'number', disabled: false, inputMode: 'numeric' },
                                   { label: 'Cor', field: 'color', type: 'text', disabled: false },
                                   { label: 'Combustível', field: 'fuel', type: 'text', disabled: false },
@@ -1030,7 +1340,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <input 
                                     type="text" 
                                     inputMode="decimal"
-                                    className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white" 
+                                                                        className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums" 
                                     value={getMaskedValue(formData.fipePrice)} 
                                     onChange={e => setFormData(prev => ({...prev, fipePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
                                   />
@@ -1041,7 +1351,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <input 
                                       type="text" 
                                       inputMode="decimal"
-                                      className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white" 
+                                      className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums" 
                                       value={getMaskedValue(formData.purchasePrice)} 
                                       onChange={e => setFormData(prev => ({...prev, purchasePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
                                   />
@@ -1052,7 +1362,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <input 
                                       type="text" 
                                       inputMode="decimal"
-                                      className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white text-lg font-bold" 
+                                      className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white text-lg font-bold tabular-nums" 
                                       value={getMaskedValue(formData.expectedSalePrice)} 
                                       onChange={e => setFormData(prev => ({...prev, expectedSalePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))} 
                                   />
@@ -1069,6 +1379,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               <div className="flex flex-col items-center justify-center h-full text-slate-500">
                                   <Camera size={48} className="mb-2 opacity-50" />
                                   <span>Sem foto</span>
+                              </div>
+                          )}
+                          {isPhotoUploading && (
+                              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+                                  <RefreshCw className="text-white animate-spin" size={28} />
+                                  {uploadProgress.total > 1 && (
+                                      <span className="text-xs text-slate-200">Enviando {uploadProgress.done}/{uploadProgress.total}</span>
+                                  )}
                               </div>
                           )}
                           <button onClick={() => setActiveTab('photos')} className="absolute bottom-4 right-4 bg-slate-900/80 p-2 rounded-full text-white hover:bg-indigo-600 transition-colors"><Camera size={20}/></button>
@@ -1145,6 +1463,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   }
                               }}
                           >
+                              {isPhotoUploading && (
+                                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 gap-2">
+                                      <RefreshCw className="text-white animate-spin" size={32} />
+                                      {uploadProgress.total > 1 && (
+                                          <span className="text-xs text-slate-200">Enviando {uploadProgress.done}/{uploadProgress.total}</span>
+                                      )}
+                                  </div>
+                              )}
                               <img 
                                   src={formData.photos[photoIndex]} 
                                   className="w-full h-full object-contain" 
@@ -1201,19 +1527,78 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                           
                           {/* Miniaturas */}
                           {formData.photos.length > 1 && (
-                              <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                              <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
                                   {formData.photos.map((photo, idx) => (
-                                      <button
-                                          key={idx}
-                                          onClick={() => setPhotoIndex(idx)}
-                                          className={`flex-shrink-0 aspect-[4/3] w-20 rounded-lg overflow-hidden border-2 transition-all ${
-                                              idx === photoIndex 
-                                                  ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
-                                                  : 'border-slate-700 hover:border-slate-600'
-                                          }`}
-                                      >
-                                          <img src={photo} className="w-full h-full object-cover" alt={`Miniatura ${idx + 1}`} />
-                                      </button>
+                                      <div key={idx} className="flex flex-col items-center gap-1">
+                                          <button
+                                              draggable
+                                              onDragStart={() => setDraggedPhotoIndex(idx)}
+                                              onDragEnd={() => {
+                                                  setDraggedPhotoIndex(null);
+                                                  setDragOverPhotoIndex(null);
+                                              }}
+                                              onDragOver={(e) => {
+                                                  e.preventDefault();
+                                                  setDragOverPhotoIndex(idx);
+                                              }}
+                                              onDrop={() => {
+                                                  if (draggedPhotoIndex === null || draggedPhotoIndex === idx) return;
+                                                  const newPhotos = [...formData.photos];
+                                                  const [moved] = newPhotos.splice(draggedPhotoIndex, 1);
+                                                  newPhotos.splice(idx, 0, moved);
+                                                  setFormData({ ...formData, photos: newPhotos });
+                                                  if (photoIndex === draggedPhotoIndex) setPhotoIndex(idx);
+                                                  markPhotoMoved(idx);
+                                                  setDraggedPhotoIndex(null);
+                                                  setDragOverPhotoIndex(null);
+                                              }}
+                                              onClick={() => setPhotoIndex(idx)}
+                                              className={`flex-shrink-0 aspect-[4/3] w-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                                  idx === photoIndex 
+                                                      ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
+                                                      : 'border-slate-700 hover:border-slate-600'
+                                              } ${dragOverPhotoIndex === idx ? 'ring-2 ring-amber-500/40 border-amber-500/60' : ''} ${recentlyMovedIndex === idx ? 'animate-pop-in' : ''}`}
+                                              title="Arraste para reordenar"
+                                          >
+                                              <img src={photo} className="w-full h-full object-cover" alt={`Miniatura ${idx + 1}`} />
+                                          </button>
+                                          <div className="flex items-center gap-1">
+                                              <button
+                                                  onClick={() => {
+                                                      if (idx === 0) return;
+                                                      const newPhotos = [...formData.photos];
+                                                      const temp = newPhotos[idx - 1];
+                                                      newPhotos[idx - 1] = newPhotos[idx];
+                                                      newPhotos[idx] = temp;
+                                                      setFormData({ ...formData, photos: newPhotos });
+                                                      if (photoIndex === idx) setPhotoIndex(idx - 1);
+                                                      if (photoIndex === idx - 1) setPhotoIndex(idx);
+                                                      markPhotoMoved(idx - 1);
+                                                  }}
+                                                  className="p-1 rounded-full bg-slate-900/70 text-slate-300 hover:text-white"
+                                                  title="Mover para esquerda"
+                                              >
+                                                  <ChevronLeft size={12} />
+                                              </button>
+                                              <button
+                                                  onClick={() => {
+                                                      if (idx === formData.photos.length - 1) return;
+                                                      const newPhotos = [...formData.photos];
+                                                      const temp = newPhotos[idx + 1];
+                                                      newPhotos[idx + 1] = newPhotos[idx];
+                                                      newPhotos[idx] = temp;
+                                                      setFormData({ ...formData, photos: newPhotos });
+                                                      if (photoIndex === idx) setPhotoIndex(idx + 1);
+                                                      if (photoIndex === idx + 1) setPhotoIndex(idx);
+                                                      markPhotoMoved(idx + 1);
+                                                  }}
+                                                  className="p-1 rounded-full bg-slate-900/70 text-slate-300 hover:text-white"
+                                                  title="Mover para direita"
+                                              >
+                                                  <ChevronRight size={12} />
+                                              </button>
+                                          </div>
+                                      </div>
                                   ))}
                               </div>
                           )}
@@ -1236,11 +1621,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   <Card title="Adicionar Gasto">
                       <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
-                              <select 
-                                value={expenseData.category}
-                                onChange={e => setExpenseData({...expenseData, category: e.target.value as ExpenseCategory})}
-                                className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-sm"
-                              >
+                                                            <select 
+                                                                value={expenseData.category}
+                                                                onChange={e => setExpenseData({...expenseData, category: e.target.value as ExpenseCategory})}
+                                                                className="w-full select-premium text-sm"
+                                                            >
                                   {EXPENSE_CATEGORIES.map(cat => (
                                       <option key={cat.id} value={cat.id}>{cat.label}</option>
                                   ))}
@@ -1388,101 +1773,140 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                       </Card>
                   )}
 
-                  <Card title={isSold ? "Detalhes da Venda" : "Concluir Venda"} className="max-w-4xl mx-auto border-indigo-500/30">
+                  <Card title={isSold ? "Detalhes da Venda" : "Concluir Venda"} className="max-w-4xl mx-auto bg-slate-950 border-slate-800">
                       {/* ... (Keep form inputs as is) ... */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div className="space-y-4">
-                              <label className="block text-sm text-slate-300">
-                                  {saleData.method === 'Troca + Volta' && !isSold ? 'Valor em Dinheiro (Volta)' : 'Valor Final da Venda'}
-                              </label>
-                              <input 
-                                type="text" 
-                                inputMode="decimal"
-                                value={saleData.price} 
-                                onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})} 
-                                disabled={isSold} 
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-lg font-bold" 
-                              />
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                      <label className="block text-sm text-slate-300">Data</label>
-                                      <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+                          <div className="space-y-6">
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
+                                  <h4 className="text-sm font-semibold text-white">Pagamento</h4>
+                                  <label className="block text-sm text-slate-300">
+                                      {saleData.method === 'Troca + Volta' && !isSold ? 'Valor em Dinheiro (Volta)' : 'Valor Final da Venda'}
+                                  </label>
+                                  <input 
+                                    type="text" 
+                                    inputMode="decimal"
+                                    value={saleData.price} 
+                                    onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})} 
+                                    disabled={isSold} 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-lg font-bold" 
+                                  />
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Data</label>
+                                          <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+                                      </div>
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Pagamento</label>
+                                          <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full select-premium">
+                                              <option>Pix / Transferência</option>
+                                              <option>Financiamento</option>
+                                              <option>Dinheiro</option>
+                                              <option>Troca + Volta</option>
+                                          </select>
+                                      </div>
                                   </div>
-                                  <div>
-                                      <label className="block text-sm text-slate-300">Pagamento</label>
-                                      <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white">
-                                          <option>Pix / Transferência</option>
-                                          <option>Financiamento</option>
-                                          <option>Dinheiro</option>
-                                          <option>Troca + Volta</option>
-                                      </select>
-                                  </div>
-                              </div>
 
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                      <label className="block text-sm text-slate-300">Garantia (Tempo)</label>
-                                      <input 
-                                        value={isSold ? (vehicle.warrantyDetails?.time || '90 dias') : saleData.warrantyTime}
-                                        onChange={e => setSaleData({...saleData, warrantyTime: e.target.value})}
-                                        disabled={isSold}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
-                                        placeholder="Ex: 90 dias"
-                                      />
-                                  </div>
-                                  <div>
-                                      <label className="block text-sm text-slate-300">Garantia (KM)</label>
-                                      <input 
-                                        value={isSold ? (vehicle.warrantyDetails?.km || '3.000 km') : saleData.warrantyKm}
-                                        onChange={e => setSaleData({...saleData, warrantyKm: e.target.value})}
-                                        disabled={isSold}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
-                                        placeholder="Ex: 3.000 km"
-                                        inputMode="numeric"
-                                      />
-                                  </div>
-                              </div>
-
-                              <div>
-                                  <div className="flex gap-4">
-                                      <div className="flex-1">
-                                          <label className="block text-sm text-slate-300">Comissão de Venda (R$)</label>
-                                          <input 
-                                            type="text" 
-                                            inputMode="decimal"
-                                            value={isSold ? maskCurrencyInput((calculateDefaultCommission() * 100).toFixed(0)) : saleData.commission} 
-                                            onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
-                                            disabled={isSold} 
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm font-bold" 
-                                            placeholder="R$ 0,00"
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Valor por extenso</label>
+                                          <input
+                                            value={saleData.paymentAmountText}
+                                            onChange={e => setSaleData({...saleData, paymentAmountText: e.target.value})}
+                                            disabled={isSold}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            placeholder="Ex: dez mil reais"
                                           />
                                       </div>
-                                      {hasCommissionInput && !isSold && (
-                                          <div className="flex-1 animate-fade-in">
-                                              <label className="block text-sm text-slate-300">Para Quem? (Vendedor)</label>
-                                              <div className="relative">
-                                                  <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                  <input 
-                                                    type="text" 
-                                                    value={saleData.commissionTo} 
-                                                    onChange={e => setSaleData({...saleData, commissionTo: e.target.value})} 
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded p-2 pl-9 text-white text-sm" 
-                                                    placeholder="Nome do funcionário"
-                                                  />
-                                              </div>
-                                          </div>
-                                      )}
-                                      {isSold && calculateDefaultCommission() > 0 && (
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Forma de pagamento</label>
+                                          <input
+                                            value={saleData.paymentMethodDetail}
+                                            onChange={e => setSaleData({...saleData, paymentMethodDetail: e.target.value})}
+                                            disabled={isSold}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            placeholder="Pix, transferencia, especie"
+                                          />
+                                      </div>
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Data do pagamento</label>
+                                          <input
+                                            value={saleData.paymentDateDetail}
+                                            onChange={e => setSaleData({...saleData, paymentDateDetail: e.target.value})}
+                                            disabled={isSold}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            placeholder="Ex: no ato da assinatura"
+                                          />
+                                      </div>
+                                  </div>
+                              </div>
+
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
+                                  <h4 className="text-sm font-semibold text-white">Garantia e Comissão</h4>
+                                  <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Garantia (Tempo)</label>
+                                          <input 
+                                            value={isSold ? (vehicle.warrantyDetails?.time || '90 dias') : saleData.warrantyTime}
+                                            onChange={e => setSaleData({...saleData, warrantyTime: e.target.value})}
+                                            disabled={isSold}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            placeholder="Ex: 90 dias"
+                                          />
+                                      </div>
+                                      <div>
+                                          <label className="block text-sm text-slate-300">Garantia (KM)</label>
+                                          <input 
+                                            value={isSold ? (vehicle.warrantyDetails?.km || '3.000 km') : saleData.warrantyKm}
+                                            onChange={e => setSaleData({...saleData, warrantyKm: e.target.value})}
+                                            disabled={isSold}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            placeholder="Ex: 3.000 km"
+                                            inputMode="numeric"
+                                          />
+                                      </div>
+                                  </div>
+
+                                  <div>
+                                      <div className="flex gap-4">
                                           <div className="flex-1">
-                                              <label className="block text-sm text-slate-300">Vendedor (Comissão)</label>
+                                              <label className="block text-sm text-slate-300">Comissão de Venda (R$)</label>
                                               <input 
-                                                disabled
-                                                value={vehicle.saleCommissionTo || 'Não informado'} 
-                                                className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-400 text-sm" 
+                                                type="text" 
+                                                inputMode="decimal"
+                                                value={isSold ? maskCurrencyInput((calculateDefaultCommission() * 100).toFixed(0)) : saleData.commission} 
+                                                onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
+                                                disabled={isSold} 
+                                                className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm font-bold" 
+                                                placeholder="R$ 0,00"
                                               />
                                           </div>
-                                      )}
+                                          {hasCommissionInput && !isSold && (
+                                              <div className="flex-1 animate-fade-in">
+                                                  <label className="block text-sm text-slate-300">Para Quem? (Vendedor)</label>
+                                                  <div className="relative">
+                                                      <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                      <input 
+                                                        type="text" 
+                                                        value={saleData.commissionTo} 
+                                                        onChange={e => setSaleData({...saleData, commissionTo: e.target.value})} 
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded p-2 pl-9 text-white text-sm" 
+                                                        placeholder="Nome do funcionário"
+                                                      />
+                                                  </div>
+                                              </div>
+                                          )}
+                                          {isSold && calculateDefaultCommission() > 0 && (
+                                              <div className="flex-1">
+                                                  <label className="block text-sm text-slate-300">Vendedor (Comissão)</label>
+                                                  <input 
+                                                    disabled
+                                                    value={vehicle.saleCommissionTo || 'Não informado'} 
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-400 text-sm" 
+                                                  />
+                                              </div>
+                                          )}
+                                      </div>
                                   </div>
                               </div>
 
@@ -1492,8 +1916,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       <div className="grid grid-cols-2 gap-3 mb-3">
                                           <input placeholder="Marca" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.make} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, make: e.target.value}})} />
                                           <input placeholder="Modelo" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.model} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, model: e.target.value}})} />
-                                          <input placeholder="Ano" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.year} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, year: e.target.value}})} />
+                                          <input placeholder="Versão" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.version} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, version: e.target.value}})} />
+                                          <input placeholder="Ano Fabricação" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.yearFab} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, yearFab: e.target.value}})} />
+                                          <input placeholder="Ano Modelo" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.yearModel} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, yearModel: e.target.value}})} />
                                           <input placeholder="Placa" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm uppercase" value={saleData.tradeIn.plate} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, plate: maskPlate(e.target.value)}})} />
+                                          <input placeholder="RENAVAM" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.renavam} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, renavam: e.target.value}})} />
+                                          <input placeholder="Chassi" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.chassis} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, chassis: e.target.value}})} />
+                                          <input placeholder="Cor" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.color} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, color: e.target.value}})} />
+                                          <input placeholder="Quilometragem" type="number" inputMode="numeric" className="bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm" value={saleData.tradeIn.km} onChange={e => setSaleData({...saleData, tradeIn: {...saleData.tradeIn, km: e.target.value}})} />
                                       </div>
                                       <input 
                                         placeholder="Valor de Avaliação R$" 
@@ -1506,8 +1936,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               )}
                           </div>
 
-                          <div className="space-y-4">
-                              <label className="block text-sm text-slate-300">Cliente</label>
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
+                              <h4 className="text-sm font-semibold text-white">Cliente</h4>
                               <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
                               <div className="grid grid-cols-2 gap-4">
                                   <div className="relative">
@@ -1534,6 +1964,54 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     className="bg-slate-900 border border-slate-700 rounded p-2 text-white" 
                                   />
                               </div>
+                                                            <div className="grid grid-cols-3 gap-4">
+                                                                    <input
+                                                                        placeholder="CEP"
+                                                                        inputMode="numeric"
+                                                                        value={isSold ? vehicle.buyer?.cep : saleData.buyerCep}
+                                                                        onChange={e => setSaleData({...saleData, buyerCep: e.target.value})}
+                                                                        onBlur={handleBuyerCepBlur}
+                                                                        disabled={isSold}
+                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white"
+                                                                    />
+                                                                    <input
+                                                                        placeholder="Logradouro"
+                                                                        value={isSold ? vehicle.buyer?.street : saleData.buyerStreet}
+                                                                        onChange={e => setSaleData({...saleData, buyerStreet: e.target.value})}
+                                                                        disabled={isSold}
+                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white col-span-2"
+                                                                    />
+                                                                    <input
+                                                                        placeholder="Número"
+                                                                        value={isSold ? vehicle.buyer?.number : saleData.buyerNumber}
+                                                                        onChange={e => setSaleData({...saleData, buyerNumber: e.target.value})}
+                                                                        disabled={isSold}
+                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white"
+                                                                    />
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-4">
+                                                                    <input
+                                                                        placeholder="Bairro"
+                                                                        value={isSold ? vehicle.buyer?.neighborhood : saleData.buyerNeighborhood}
+                                                                        onChange={e => setSaleData({...saleData, buyerNeighborhood: e.target.value})}
+                                                                        disabled={isSold}
+                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white"
+                                                                    />
+                                                                    <input
+                                                                        placeholder="Cidade"
+                                                                        value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
+                                                                        onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
+                                                                        disabled={isSold}
+                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white col-span-1"
+                                                                    />
+                                                                    <input
+                                                                        placeholder="UF"
+                                                                        value={isSold ? vehicle.buyer?.state : saleData.buyerState}
+                                                                        onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
+                                                                        disabled={isSold}
+                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white uppercase"
+                                                                    />
+                                                            </div>
                           </div>
                       </div>
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Vehicle, Buyer } from '../types';
 import { Button } from './ui/Button';
 import { X, DollarSign, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle, Briefcase } from 'lucide-react';
-import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO } from '../lib/utils';
+import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo } from '../lib/utils';
 import { sanitizeInput } from '../lib/security';
 import { ContractModal } from './ContractModal';
 import { AuthService } from '../services/auth';
@@ -39,7 +39,16 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
   const [buyerName, setBuyerName] = useState('');
   const [buyerCpf, setBuyerCpf] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
+    const [buyerCep, setBuyerCep] = useState('');
+    const [buyerStreet, setBuyerStreet] = useState('');
+    const [buyerNumber, setBuyerNumber] = useState('');
+    const [buyerNeighborhood, setBuyerNeighborhood] = useState('');
+    const [buyerCity, setBuyerCity] = useState('');
+    const [buyerState, setBuyerState] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Pix / Transferência');
+    const [paymentAmountText, setPaymentAmountText] = useState('');
+    const [paymentMethodDetail, setPaymentMethodDetail] = useState('');
+    const [paymentDateDetail, setPaymentDateDetail] = useState('');
   const [commission, setCommission] = useState(maskCurrencyInput((calculateDefaultCommission() * 100).toString())); 
   const [commissionTo, setCommissionTo] = useState(getDefaultCommissionTo()); 
   const [error, setError] = useState('');
@@ -50,16 +59,35 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
   const [warrantyKm, setWarrantyKm] = useState('3.000 km');
 
   // Trade-in States
-  const [tradeInMake, setTradeInMake] = useState('');
-  const [tradeInModel, setTradeInModel] = useState('');
-  const [tradeInYear, setTradeInYear] = useState(new Date().getFullYear().toString());
-  const [tradeInValue, setTradeInValue] = useState('');
-  const [tradeInPlate, setTradeInPlate] = useState('');
+    const [tradeInMake, setTradeInMake] = useState('');
+    const [tradeInModel, setTradeInModel] = useState('');
+    const [tradeInVersion, setTradeInVersion] = useState('');
+    const [tradeInYearFab, setTradeInYearFab] = useState(new Date().getFullYear().toString());
+    const [tradeInYearModel, setTradeInYearModel] = useState(new Date().getFullYear().toString());
+    const [tradeInPlate, setTradeInPlate] = useState('');
+    const [tradeInRenavam, setTradeInRenavam] = useState('');
+    const [tradeInChassis, setTradeInChassis] = useState('');
+    const [tradeInColor, setTradeInColor] = useState('');
+    const [tradeInKm, setTradeInKm] = useState('');
+    const [tradeInValue, setTradeInValue] = useState('');
 
   // Success State
   const [saleComplete, setSaleComplete] = useState(false);
   const [showContract, setShowContract] = useState(false); // New state to handle manual contract viewing
   const user = AuthService.getCurrentUser();
+
+    const handleBuyerCepBlur = async () => {
+        try {
+            const info = await fetchCepInfo(buyerCep);
+            if (!info) return;
+            setBuyerStreet(prev => prev || info.street);
+            setBuyerNeighborhood(prev => prev || info.neighborhood);
+            setBuyerCity(prev => prev || info.city);
+            setBuyerState(prev => prev || info.state);
+        } catch (err) {
+            console.error('CEP lookup failed', err);
+        }
+    };
 
   // Atualiza data para HOJE sempre que o modal abrir, ganhar foco ou periodicamente
   useEffect(() => {
@@ -115,11 +143,17 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
           const cleanCpf = masked.replace(/\D/g, '');
           const existingCustomer = allVehicles
               .filter(v => v.buyer?.cpf?.replace(/\D/g, '') === cleanCpf)
-              .sort((a, b) => new Date(b.soldDate || '').getTime() - new Date(a.soldDate || '').getTime())[0];
+              .sort((a, b) => (parseISODate(b.soldDate)?.getTime() || 0) - (parseISODate(a.soldDate)?.getTime() || 0))[0];
 
           if (existingCustomer && existingCustomer.buyer) {
               setBuyerName(existingCustomer.buyer.name);
               setBuyerPhone(existingCustomer.buyer.phone);
+              setBuyerCep(existingCustomer.buyer.cep || '');
+              setBuyerStreet(existingCustomer.buyer.street || '');
+              setBuyerNumber(existingCustomer.buyer.number || '');
+              setBuyerNeighborhood(existingCustomer.buyer.neighborhood || '');
+              setBuyerCity(existingCustomer.buyer.city || '');
+              setBuyerState(existingCustomer.buyer.state || '');
           }
       }
   };
@@ -139,11 +173,17 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
           if (!buyerName.trim()) {
               throw new Error('Nome do comprador é obrigatório.');
           }
+          if (!buyerCep.trim() || !buyerStreet.trim() || !buyerNumber.trim() || !buyerNeighborhood.trim() || !buyerCity.trim() || !buyerState.trim()) {
+              throw new Error('Endereço do comprador é obrigatório (CEP, logradouro, número, bairro, cidade e UF).');
+          }
           // Validação básica de CPF se preenchido
           if (buyerCpf) {
               if (!isValidCPF(buyerCpf)) {
                   throw new Error('CPF inválido.');
               }
+          }
+          if (!paymentAmountText.trim() || !paymentMethodDetail.trim() || !paymentDateDetail.trim()) {
+              throw new Error('Detalhes de pagamento são obrigatórios (valor por extenso, forma e data).');
           }
 
           // --- LÓGICA DE SOMA (Troca + Volta) ---
@@ -160,6 +200,9 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                if (!tradeInMake || !tradeInModel || !tradeInVal) {
                    throw new Error('Preencha os dados do veículo de troca (Marca, Modelo e Valor).');
                }
+               if (!tradeInVersion || !tradeInYearFab || !tradeInYearModel || !tradeInPlate || !tradeInRenavam || !tradeInChassis || !tradeInColor || !tradeInKm) {
+                   throw new Error('Preencha todos os dados do veículo de troca (versão, anos, placa, renavam, chassi, cor e KM).');
+               }
 
                tradeInVehicle = {
                     id: Math.random().toString(), 
@@ -168,13 +211,13 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                     updatedAt: new Date().toISOString(),
                     make: sanitizeInput(tradeInMake),
                     model: sanitizeInput(tradeInModel),
-                    version: 'Entrada via Troca',
-                    year: parseInt(tradeInYear),
+                    version: sanitizeInput(tradeInVersion) || 'Entrada via Troca',
+                    year: parseInt(tradeInYearModel) || parseInt(tradeInYearFab) || new Date().getFullYear(),
                     plate: maskPlate(tradeInPlate),
-                    km: 0,
+                    km: parseInt(tradeInKm) || 0,
                     fuel: 'Flex',
                     transmission: 'Automático',
-                    color: '',
+                    color: sanitizeInput(tradeInColor),
                     status: 'available',
                     purchasePrice: tradeInVal,
                     purchaseDate: date,
@@ -188,7 +231,13 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
           const buyer: Buyer = {
               name: sanitizeInput(buyerName),
               cpf: sanitizeInput(buyerCpf),
-              phone: sanitizeInput(buyerPhone)
+              phone: sanitizeInput(buyerPhone),
+              cep: sanitizeInput(buyerCep),
+              street: sanitizeInput(buyerStreet),
+              number: sanitizeInput(buyerNumber),
+              neighborhood: sanitizeInput(buyerNeighborhood),
+              city: sanitizeInput(buyerCity),
+              state: sanitizeInput(buyerState)
           };
 
           // --- LÓGICA DE COMISSÃO COMO DESPESA REAL ---
@@ -219,6 +268,11 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
               soldPrice: finalSalePrice, // Save total price
               soldDate: date,
               paymentMethod,
+              paymentDetails: {
+                  amountText: sanitizeInput(paymentAmountText),
+                  methodDetail: sanitizeInput(paymentMethodDetail),
+                  paymentDateDetail: sanitizeInput(paymentDateDetail)
+              },
               // Comissão agora entra como despesa (salary) para refletir no lucro real
               saleCommission: 0,
               saleCommissionTo: commissionTo, // Save employee name
@@ -237,7 +291,14 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
               saleData.tradeInInfo = {
                   make: sanitizeInput(tradeInMake),
                   model: sanitizeInput(tradeInModel),
+                  version: sanitizeInput(tradeInVersion),
+                  yearFab: sanitizeInput(tradeInYearFab),
+                  yearModel: sanitizeInput(tradeInYearModel),
                   plate: maskPlate(tradeInPlate),
+                  renavam: sanitizeInput(tradeInRenavam),
+                  chassis: sanitizeInput(tradeInChassis),
+                  color: sanitizeInput(tradeInColor),
+                  km: sanitizeInput(tradeInKm),
                   value: tradeInVal
               };
           }
@@ -260,10 +321,38 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                 vehicle={{
                     ...vehicle, 
                     status: 'sold', 
-                    buyer: { name: buyerName, cpf: buyerCpf, phone: buyerPhone }, 
+                    buyer: { 
+                        name: buyerName, 
+                        cpf: buyerCpf, 
+                        phone: buyerPhone,
+                        cep: buyerCep,
+                        street: buyerStreet,
+                        number: buyerNumber,
+                        neighborhood: buyerNeighborhood,
+                        city: buyerCity,
+                        state: buyerState
+                    }, 
                     soldPrice: totalSoldPrice,
                     paymentMethod, 
-                    warrantyDetails: { time: warrantyTime, km: warrantyKm }
+                    paymentDetails: {
+                        amountText: paymentAmountText,
+                        methodDetail: paymentMethodDetail,
+                        paymentDateDetail: paymentDateDetail
+                    },
+                    warrantyDetails: { time: warrantyTime, km: warrantyKm },
+                    tradeInInfo: paymentMethod === 'Troca + Volta' ? {
+                        make: tradeInMake,
+                        model: tradeInModel,
+                        version: tradeInVersion,
+                        yearFab: tradeInYearFab,
+                        yearModel: tradeInYearModel,
+                        plate: tradeInPlate,
+                        renavam: tradeInRenavam,
+                        chassis: tradeInChassis,
+                        color: tradeInColor,
+                        km: tradeInKm,
+                        value: parseCurrencyInput(tradeInValue)
+                    } : undefined
                 }} 
                 storeName={user?.storeName || 'Loja'} 
                 storeCnpj={user?.cnpj}
@@ -405,13 +494,43 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                             <select 
                                 value={paymentMethod}
                                 onChange={e => setPaymentMethod(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                className="w-full select-premium text-sm"
                             >
                                 <option>Pix / Transferência</option>
                                 <option>Dinheiro</option>
                                 <option>Financiamento</option>
                                 <option>Troca + Volta</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">Valor por extenso</label>
+                            <input
+                                value={paymentAmountText}
+                                onChange={e => setPaymentAmountText(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                placeholder="Ex: dez mil reais"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">Forma de pagamento</label>
+                            <input
+                                value={paymentMethodDetail}
+                                onChange={e => setPaymentMethodDetail(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                placeholder="Pix, transferencia, especie"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">Data do pagamento</label>
+                            <input
+                                value={paymentDateDetail}
+                                onChange={e => setPaymentDateDetail(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                placeholder="Ex: no ato da assinatura"
+                            />
                         </div>
                     </div>
 
@@ -454,12 +573,36 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                     <input type="text" value={tradeInModel} onChange={e => setTradeInModel(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none" placeholder="Ex: Civic"/>
                                 </div>
                                 <div>
-                                    <label className="text-xs text-slate-400">Ano</label>
-                                    <input type="number" inputMode="numeric" value={tradeInYear} onChange={e => setTradeInYear(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
+                                    <label className="text-xs text-slate-400">Versão</label>
+                                    <input type="text" value={tradeInVersion} onChange={e => setTradeInVersion(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none" placeholder="Ex: EXL 2.0"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400">Ano Fabricação</label>
+                                    <input type="number" inputMode="numeric" value={tradeInYearFab} onChange={e => setTradeInYearFab(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400">Ano Modelo</label>
+                                    <input type="number" inputMode="numeric" value={tradeInYearModel} onChange={e => setTradeInYearModel(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-400">Placa</label>
                                     <input type="text" value={tradeInPlate} onChange={e => setTradeInPlate(maskPlate(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none uppercase"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400">RENAVAM</label>
+                                    <input type="text" value={tradeInRenavam} onChange={e => setTradeInRenavam(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400">Chassi</label>
+                                    <input type="text" value={tradeInChassis} onChange={e => setTradeInChassis(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400">Cor</label>
+                                    <input type="text" value={tradeInColor} onChange={e => setTradeInColor(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400">Quilometragem</label>
+                                    <input type="number" inputMode="numeric" value={tradeInKm} onChange={e => setTradeInKm(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"/>
                                 </div>
                             </div>
                             <div>
@@ -518,6 +661,54 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
                                     />
                                 </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={buyerCep}
+                                    onChange={e => setBuyerCep(e.target.value)}
+                                    onBlur={handleBuyerCepBlur}
+                                    placeholder="CEP"
+                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={buyerStreet}
+                                    onChange={e => setBuyerStreet(e.target.value)}
+                                    placeholder="Logradouro"
+                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none col-span-2"
+                                />
+                                <input
+                                    type="text"
+                                    value={buyerNumber}
+                                    onChange={e => setBuyerNumber(e.target.value)}
+                                    placeholder="Número"
+                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <input
+                                    type="text"
+                                    value={buyerNeighborhood}
+                                    onChange={e => setBuyerNeighborhood(e.target.value)}
+                                    placeholder="Bairro"
+                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={buyerCity}
+                                    onChange={e => setBuyerCity(e.target.value)}
+                                    placeholder="Cidade"
+                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={buyerState}
+                                    onChange={e => setBuyerState(e.target.value.toUpperCase().slice(0, 2))}
+                                    placeholder="UF"
+                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none uppercase"
+                                />
                             </div>
                         </div>
                     </div>

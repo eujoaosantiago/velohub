@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { VelohubProvider, useVelohub } from './contexts/VelohubContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './dashboard/Dashboard';
+import { SupportDashboard } from './dashboard/Support';
 import { VehicleList } from './vehicles/VehicleList';
 import { VehicleDetail } from './vehicles/VehicleDetail';
 import { SalesList } from './sales/SalesList';
@@ -218,6 +219,8 @@ const AppContent: React.FC = () => {
         version: 'Versão',
         year: new Date().getFullYear(),
         plate: '',
+        renavam: '',
+        chassis: '',
         km: 0,
         fuel: 'Flex',
         transmission: 'Automático',
@@ -352,6 +355,7 @@ const AppContent: React.FC = () => {
         );
       case Page.CUSTOMERS: return <CustomerList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />;
       case Page.TEAM: return <TeamInvite user={user} />;
+      case Page.SUPPORT: return <SupportDashboard />;
       case Page.PROFILE: return <ProfilePage user={user} onUpdateUser={(u) => login(u)} />;
       default: return <Dashboard vehicles={vehicles} user={user} />;
     }

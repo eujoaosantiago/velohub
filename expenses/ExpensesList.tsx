@@ -414,7 +414,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       <select
                         value={vehicleCategoryFilter}
                         onChange={(e) => setVehicleCategoryFilter(e.target.value as ExpenseCategory | "all")}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full select-premium text-sm"
                       >
                         {(["all", "maintenance", "bodywork", "tires", "document", "marketing", "salary", "other"] as (ExpenseCategory | "all")[]).map((cat) => (
                           <option key={cat} value={cat}>
@@ -429,7 +429,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       <select
                         value={vehicleStatusFilter}
                         onChange={(e) => setVehicleStatusFilter(e.target.value as 'all' | 'available' | 'sold')}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full select-premium text-sm"
                       >
                         <option value="all">Todos</option>
                         <option value="available">Em Estoque</option>
@@ -581,7 +581,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                     Categoria
                   </label>
                   <select
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm"
+                    className="w-full select-premium text-sm"
                     value={newOpex.category}
                     onChange={(e) =>
                       setNewOpex({
@@ -784,7 +784,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 overflow-visible">
+            <Card className="md:col-span-2 overflow-hidden">
               <div className="mb-3 space-y-3">
                 <div className="flex flex-col md:flex-row gap-3">
                   <div className="relative flex-1">
@@ -817,7 +817,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                         <select
                           value={opexCategoryFilter}
                           onChange={(e) => setOpexCategoryFilter(e.target.value as OpexCategory | "all")}
-                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full select-premium text-sm"
                         >
                           <option value="all">Todas</option>
                           {OPEX_CATEGORIES.map((c) => (
@@ -833,7 +833,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                         <select
                           value={opexPaidFilter}
                           onChange={(e) => setOpexPaidFilter(e.target.value as 'all' | 'paid' | 'pending')}
-                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full select-premium text-sm"
                         >
                           <option value="all">Todos</option>
                           <option value="paid">Pagos</option>
@@ -938,18 +938,19 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                   </div>
                 )}
               </div>
-              <table className="w-full text-left border-collapse">
-                <thead className="text-slate-400 text-sm border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">Data</th>
-                    <th className="p-3">Descrição</th>
-                    <th className="p-3">Categoria</th>
-                    <th className="p-3 text-right">Valor</th>
-                    <th className="p-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 text-sm">
-                  {storeExpenses
+              <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                <table className="w-full min-w-[640px] text-left border-collapse">
+                  <thead className="text-slate-400 text-sm border-b border-slate-800">
+                    <tr>
+                      <th className="p-3 whitespace-nowrap">Data</th>
+                      <th className="p-3">Descrição</th>
+                      <th className="p-3 whitespace-nowrap">Categoria</th>
+                      <th className="p-3 text-right whitespace-nowrap">Valor</th>
+                      <th className="p-3 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-sm">
+                    {storeExpenses
                     .filter((item) => {
                       const term = opexSearch.toLowerCase();
                       const matchesSearch =
@@ -989,42 +990,45 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
                       return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
                     })
-                    .map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-800/30 group">
-                        <td className="p-3 text-slate-400">
-                          {new Date(item.date).toLocaleDateString()}
-                        </td>
-                        <td className="p-3 text-white">{item.description}</td>
-                        <td className="p-3">
-                          <span className={`px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap border transition-colors bg-slate-900/50 text-slate-300 border-slate-800`}>
-                            {OPEX_CATEGORIES.find((c) => c.id === item.category)?.label}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right text-white font-bold">
-                          {formatCurrency(item.amount)}
-                        </td>
-                        <td className="p-3 text-right">
-                          <button
-                            onClick={() => handleDeleteOpex(item.id)}
-                            className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                      .map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-800/30 group">
+                          <td className="p-3 text-slate-400 whitespace-nowrap">
+                            {new Date(item.date).toLocaleDateString()}
+                          </td>
+                          <td className="p-3 text-white max-w-[280px] break-words">
+                            {item.description}
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className="px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap border transition-colors bg-slate-900/50 text-slate-300 border-slate-800">
+                              {OPEX_CATEGORIES.find((c) => c.id === item.category)?.label}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right text-white font-bold whitespace-nowrap">
+                            {formatCurrency(item.amount)}
+                          </td>
+                          <td className="p-3 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => handleDeleteOpex(item.id)}
+                              className="text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    {storeExpenses.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="p-8 text-center text-slate-500"
+                        >
+                          Nenhuma despesa operacional lançada.
                         </td>
                       </tr>
-                    ))}
-                  {storeExpenses.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="p-8 text-center text-slate-500"
-                      >
-                        Nenhuma despesa operacional lançada.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </Card>
             <Card>
               <h3 className="text-sm font-bold text-white mb-4">Resumo OPEX</h3>

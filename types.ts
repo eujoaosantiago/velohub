@@ -27,6 +27,8 @@ export interface User extends BaseEntity {
   cnpj?: string;
   phone?: string;
   cep?: string;   // Novo campo
+  street?: string;
+  number?: string;
   city?: string;  
   state?: string; 
   password?: string; 
@@ -65,6 +67,19 @@ export interface StoreExpense extends BaseEntity {
     paid: boolean;
 }
 
+export interface Customer extends BaseEntity {
+  name: string;
+  cpf: string;
+  phone: string;
+  email?: string;
+  cep?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+}
+
 export interface Buyer {
   name: string;
   cpf: string;
@@ -72,6 +87,11 @@ export interface Buyer {
   email?: string;
   address?: string;
   city?: string;
+  neighborhood?: string;
+  state?: string;
+  cep?: string;
+  street?: string;
+  number?: string;
 }
 
 export interface WarrantyDetails {
@@ -93,6 +113,8 @@ export interface Vehicle extends BaseEntity {
   version: string;
   year: number;
   plate: string;
+  renavam?: string;
+  chassis?: string;
   km: number;
   fuel: string;
   transmission: string;
@@ -109,15 +131,29 @@ export interface Vehicle extends BaseEntity {
   soldPrice?: number;
   soldDate?: string;
   paymentMethod?: string;
+  paymentDetails?: {
+      amountText?: string;
+      methodDetail?: string;
+      paymentDateDetail?: string;
+  };
   saleCommission?: number; // Valor da comissão
   saleCommissionTo?: string; // Nome do funcionário que recebeu
+  customerId?: string;
   buyer?: Buyer;
+  buyerSnapshot?: Buyer;
   warrantyDetails?: WarrantyDetails;
   // Trade In Snapshot (Carro que entrou na troca)
   tradeInInfo?: {
       make: string;
       model: string;
+      version?: string;
+      yearFab?: string;
+      yearModel?: string;
       plate: string;
+      renavam?: string;
+      chassis?: string;
+      color?: string;
+      km?: string;
       value: number;
   };
   // Reservation Data

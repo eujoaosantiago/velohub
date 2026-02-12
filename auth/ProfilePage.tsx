@@ -6,8 +6,9 @@ import { Button } from '../components/ui/Button';
 import { AuthService } from '../services/auth';
 import { PaymentService } from '../services/payment';
 import { SubscriptionModal } from '../components/SubscriptionModal';
-import { User as UserIcon, Building2, Lock, Save, CheckCircle, Clock, Fingerprint, Crown, Zap, AlertCircle, FileText, RotateCcw, Share2, BarChart3, Users, RefreshCw, Phone } from 'lucide-react';
+import { User as UserIcon, Building2, Lock, Save, CheckCircle, Clock, Fingerprint, Crown, Zap, AlertCircle, FileText, RotateCcw, Share2, BarChart3, Users, RefreshCw, Phone, MapPin, Loader } from 'lucide-react';
 import { useVelohub } from '../contexts/VelohubContext'; // Importar contexto para refresh
+import { fetchCepInfo } from '../lib/utils';
 
 interface ProfilePageProps {
   user: User;
@@ -31,6 +32,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
   const [name, setName] = useState(user.name);
   const [storeName, setStoreName] = useState(user.storeName || '');
   const [cnpj, setCnpj] = useState(user.cnpj || '');
+    const [cep, setCep] = useState(user.cep || '');
+    const [street, setStreet] = useState(user.street || '');
+    const [number, setNumber] = useState(user.number || '');
+    const [city, setCity] = useState(user.city || '');
+    const [state, setState] = useState(user.state || '');
+    const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [contractTemplate, setContractTemplate] = useState(user.contractTemplate || DEFAULT_CONTRACT);
@@ -57,6 +64,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
             name,
             storeName: user.role === 'owner' ? storeName : undefined,
             cnpj: user.role === 'owner' ? cnpj : undefined,
+            cep: user.role === 'owner' ? cep : undefined,
+            street: user.role === 'owner' ? street : undefined,
+            number: user.role === 'owner' ? number : undefined,
+            city: user.role === 'owner' ? city : undefined,
+            state: user.role === 'owner' ? state : undefined,
             contractTemplate: user.role === 'owner' ? contractTemplate : undefined
         };
 
@@ -105,6 +117,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
       v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
       v = v.replace(/(\d{4})(\d)/, '$1-$2');
       setCnpj(v);
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+      const masked = digits.replace(/(\d{5})(\d{0,3})/, (_match, p1, p2) => (p2 ? `${p1}-${p2}` : p1));
+      setCep(masked);
+  };
+
+  const handleCepBlur = async () => {
+    const cleaned = cep.replace(/\D/g, '');
+      if (cleaned.length !== 8) return;
+
+      setIsLoadingCep(true);
+      try {
+          const info = await fetchCepInfo(cleaned);
+          if (!info) return;
+          setStreet((prev) => prev || info.street);
+          setCity((prev) => prev || info.city);
+          setState((prev) => prev || info.state);
+      } catch (error) {
+          console.error('Erro ao buscar CEP', error);
+      } finally {
+          setIsLoadingCep(false);
+      }
   };
 
   const restoreDefaultContract = () => {
@@ -185,6 +221,74 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) 
                                                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                             />
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-5 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">CEP</label>
+                                        <div className="relative">
+                                            {isLoadingCep ? (
+                                                <Loader className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 animate-spin" size={18} />
+                                            ) : (
+                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                                            )}
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={cep}
+                                                onChange={handleCepChange}
+                                                onBlur={handleCepBlur}
+                                                maxLength={9}
+                                                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                placeholder="00000-000"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">Cidade</label>
+                                        <input
+                                            type="text"
+                                            value={city}
+                                            onChange={(e) => setCity(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="Cidade"
+                                        />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">UF</label>
+                                        <input
+                                            type="text"
+                                            value={state}
+                                            onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
+                                            maxLength={2}
+                                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                                            placeholder="SP"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-4">
+                                    <div className="col-span-3">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">Logradouro</label>
+                                        <input
+                                            type="text"
+                                            value={street}
+                                            onChange={(e) => setStreet(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="Rua, Avenida..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">Numero</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={number}
+                                            onChange={(e) => setNumber(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="123"
+                                        />
                                     </div>
                                 </div>
                                 

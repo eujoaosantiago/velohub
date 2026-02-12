@@ -129,32 +129,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         [chartPeriod, customStartDate, customEndDate],
     );
 
+    const parseSoldDate = (value?: string) => {
+        if (!value) return null;
+        const cleaned = value.split('T')[0]?.split(' ')[0] || value;
+        if (cleaned.includes('-')) {
+            const [year, month, day] = cleaned.split('-').map(Number);
+            if (year && month && day) {
+                return new Date(year, month - 1, day);
+            }
+        }
+        const fallback = new Date(value);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+    };
+
     const filteredChartVehicles = useMemo(() => {
         return soldVehicles.filter((v) => {
-            if (!v.soldDate) return false;
-            try {
-                // Parse correto da data ISO para evitar problemas de timezone
-                if (v.soldDate.includes('-')) {
-                    const [year, month, day] = v.soldDate.split('-').map(Number);
-                    if (year && month && day) {
-                        const soldAt = new Date(year, month - 1, day);
-                        if (soldAt < chartStart || soldAt > chartEnd) return false;
-                        if (chartBrand !== 'all' && v.make !== chartBrand) return false;
-                        if (chartModel !== 'all' && v.model !== chartModel) return false;
-                        if (chartPaymentMethod !== 'all' && v.paymentMethod !== chartPaymentMethod) return false;
-                        
-                        // Filtro de lucro
-                        const profit = calculateRealProfit(v);
-                        if (chartMinProfit && profit < parseCurrencyInput(chartMinProfit)) return false;
-                        if (chartMaxProfit && profit > parseCurrencyInput(chartMaxProfit)) return false;
-                        
-                        return true;
-                    }
-                }
-                return false;
-            } catch {
-                return false;
-            }
+            const soldAt = parseSoldDate(v.soldDate);
+            if (!soldAt) return false;
+            if (soldAt < chartStart || soldAt > chartEnd) return false;
+            if (chartBrand !== 'all' && v.make !== chartBrand) return false;
+            if (chartModel !== 'all' && v.model !== chartModel) return false;
+            if (chartPaymentMethod !== 'all' && v.paymentMethod !== chartPaymentMethod) return false;
+
+            // Filtro de lucro
+            const profit = calculateRealProfit(v);
+            if (chartMinProfit && profit < parseCurrencyInput(chartMinProfit)) return false;
+            if (chartMaxProfit && profit > parseCurrencyInput(chartMaxProfit)) return false;
+
+            return true;
         });
     }, [soldVehicles, chartStart, chartEnd, chartBrand, chartModel, chartPaymentMethod, chartMinProfit, chartMaxProfit]);
 
@@ -183,27 +185,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         });
 
         filteredChartVehicles.forEach((v) => {
-            if (v.soldDate) {
-                try {
-                    // Parse correto da data ISO para evitar problemas de timezone
-                    if (v.soldDate.includes('-')) {
-                        const [year, month, day] = v.soldDate.split('-').map(Number);
-                        if (year && month && day) {
-                            const date = new Date(year, month - 1, day);
-                            const monthName = `${months[date.getMonth()]}/${date.getFullYear().toString().slice(2)}`;
-                            if (data.hasOwnProperty(monthName)) {
-                                data[monthName] += calculateRealProfit(v);
-                            }
-                        }
-                    }
-                } catch {
-                    // Ignora datas inválidas
-                }
+            const soldAt = parseSoldDate(v.soldDate);
+            if (!soldAt) return;
+            const monthName = `${months[soldAt.getMonth()]}/${soldAt.getFullYear().toString().slice(2)}`;
+            if (Object.prototype.hasOwnProperty.call(data, monthName)) {
+                data[monthName] += calculateRealProfit(v);
             }
         });
 
         return Object.entries(data).map(([name, profit]) => ({ name, profit }));
     }, [filteredChartVehicles, chartStart, chartEnd]);
+
+    const profitSeriesColor = useMemo(() => {
+        const total = profitChartData.reduce((acc, item) => acc + item.profit, 0);
+        return total >= 0 ? '#22c55e' : '#ef4444';
+    }, [profitChartData]);
 
   // 3. Dynamic Inventory Composition (By Make/Marca)
   const inventoryChartData = useMemo(() => {
@@ -367,7 +363,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         {canManageSales && (
             <Button 
                 onClick={() => setShowVehicleSelector(true)} 
-                className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 border-transparent focus:ring-emerald-500 w-full md:w-auto justify-center" 
+                variant="success"
+                className="w-full md:w-auto justify-center" 
                 icon={<DollarSign size={18} />}
             >
                 Realizar Venda
@@ -398,6 +395,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                 label="Lucro Líquido (Total)"
                 value={formatCurrency(totalRealProfit)}
                 icon={<TrendingUp size={24} />}
+                highlight={totalRealProfit >= 0 ? 'positive' : 'negative'}
                 trend="up"
                 subValue={`${soldVehicles.length} vendas realizadas`}
             />
@@ -416,6 +414,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                 label="Lucro Projetado (Estoque)"
                 value={formatCurrency(potentialProfit)}
                 icon={<TrendingUp size={24} />}
+                highlight={potentialProfit >= 0 ? 'positive' : 'negative'}
                 subValue="Se vender estoque atual"
             />
         ) : (
@@ -465,7 +464,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                                         setCustomEndDate('');
                                     }
                                 }}
-                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="select-premium text-sm"
                             >
                                 {Object.entries(periodLabelMap).map(([value, label]) => (
                                     <option key={value} value={value}>
@@ -483,7 +482,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                                     setChartBrand(e.target.value);
                                     setChartModel('all');
                                 }}
-                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="select-premium text-sm"
                             >
                                 {chartBrands.map((brand) => (
                                     <option key={brand} value={brand}>
@@ -498,7 +497,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                             <select
                                 value={chartModel}
                                 onChange={(e) => setChartModel(e.target.value)}
-                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="select-premium text-sm"
                                 disabled={chartBrand === 'all'}
                             >
                                 {chartModels.map((model) => (
@@ -514,7 +513,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                             <select
                                 value={chartPaymentMethod}
                                 onChange={(e) => setChartPaymentMethod(e.target.value)}
-                                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="select-premium text-sm"
                             >
                                 {paymentMethods.map((method) => (
                                     <option key={method} value={method}>
@@ -633,8 +632,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                         <AreaChart data={profitChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#ff6035" stopOpacity={0.4}/>
-                                    <stop offset="95%" stopColor="#ff6035" stopOpacity={0}/>
+                                    <stop offset="5%" stopColor={profitSeriesColor} stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor={profitSeriesColor} stopOpacity={0}/>
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />
@@ -656,7 +655,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                             <Area 
                                 type="monotone" 
                                 dataKey="profit" 
-                                stroke="#ff6035" 
+                                stroke={profitSeriesColor} 
                                 strokeWidth={3}
                                 fillOpacity={1} 
                                 fill="url(#colorProfit)" 
@@ -779,7 +778,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                         <select 
                             value={supportSubject}
                             onChange={(e) => setSupportSubject(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500"
+                            className="w-full select-premium text-sm"
                         >
                             <option value="">Selecione um tópico...</option>
                             <option value="duvida">Dúvida sobre o sistema</option>

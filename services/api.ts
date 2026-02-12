@@ -1,9 +1,126 @@
 
-import { Vehicle, User, StoreExpense } from '../types';
+import { Vehicle, User, StoreExpense, Customer, Buyer } from '../types';
 import { PLAN_CONFIG } from '../lib/plans';
 import { supabase } from '../lib/supabaseClient';
 
 export const ApiService = {
+    // --- CLIENTES ---
+    upsertCustomer: async (storeId: string, buyer: Buyer): Promise<Customer> => {
+        if (!supabase) throw new Error("Conexao segura necessaria.");
+        if (!buyer?.cpf) throw new Error("CPF do cliente obrigatorio.");
+
+        const now = new Date().toISOString();
+        const payload = {
+            store_id: storeId,
+            name: buyer.name,
+            cpf: buyer.cpf,
+            phone: buyer.phone,
+            email: buyer.email || null,
+            cep: buyer.cep || null,
+            street: buyer.street || null,
+            number: buyer.number || null,
+            neighborhood: buyer.neighborhood || null,
+            city: buyer.city || null,
+            state: buyer.state || null,
+            updated_at: now
+        };
+
+        const { data, error } = await supabase
+            .from('customers')
+            .upsert(payload, { onConflict: 'store_id,cpf' })
+            .select('*')
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        return {
+            id: data.id,
+            storeId: data.store_id,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+            name: data.name,
+            cpf: data.cpf,
+            phone: data.phone,
+            email: data.email || undefined,
+            cep: data.cep || undefined,
+            street: data.street || undefined,
+            number: data.number || undefined,
+            neighborhood: data.neighborhood || undefined,
+            city: data.city || undefined,
+            state: data.state || undefined
+        };
+    },
+    getCustomers: async (storeId: string): Promise<Customer[]> => {
+        if (!supabase) return [];
+
+        const { data, error } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('store_id', storeId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        return (data || []).map((c: any) => ({
+            id: c.id,
+            storeId: c.store_id,
+            createdAt: c.created_at,
+            updatedAt: c.updated_at,
+            name: c.name,
+            cpf: c.cpf,
+            phone: c.phone,
+            email: c.email || undefined,
+            cep: c.cep || undefined,
+            street: c.street || undefined,
+            number: c.number || undefined,
+            neighborhood: c.neighborhood || undefined,
+            city: c.city || undefined,
+            state: c.state || undefined
+        }));
+    },
+    updateCustomer: async (customer: Customer): Promise<Customer> => {
+        if (!supabase) throw new Error("Conexao segura necessaria.");
+
+        const updates = {
+            name: customer.name,
+            cpf: customer.cpf,
+            phone: customer.phone,
+            email: customer.email || null,
+            cep: customer.cep || null,
+            street: customer.street || null,
+            number: customer.number || null,
+            neighborhood: customer.neighborhood || null,
+            city: customer.city || null,
+            state: customer.state || null,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('customers')
+            .update(updates)
+            .eq('id', customer.id)
+            .select('*')
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        return {
+            id: data.id,
+            storeId: data.store_id,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+            name: data.name,
+            cpf: data.cpf,
+            phone: data.phone,
+            email: data.email || undefined,
+            cep: data.cep || undefined,
+            street: data.street || undefined,
+            number: data.number || undefined,
+            neighborhood: data.neighborhood || undefined,
+            city: data.city || undefined,
+            state: data.state || undefined
+        };
+    },
   // --- VEÍCULOS ---
 
   getVehicles: async (storeId: string): Promise<Vehicle[]> => {
@@ -28,10 +145,14 @@ export const ApiService = {
         soldPrice: v.sold_price,
         soldDate: v.sold_date,
         purchaseDate: v.created_at, 
+        renavam: v.renavam || '',
+        chassis: v.chassis || '',
         expenses: v.expenses || [],
         paymentMethod: v.payment_method,
+        customerId: v.customer_id || undefined,
         // Campos de venda / comprador
-        buyer: v.buyer || undefined,
+        buyer: v.buyer_snapshot || v.buyer_old || undefined,
+        buyerSnapshot: v.buyer_snapshot || undefined,
         warrantyDetails: v.warranty_details || undefined,
         reservationDetails: v.reservation_details || undefined,
         tradeInInfo: v.trade_in_info || undefined,
@@ -103,9 +224,13 @@ export const ApiService = {
         soldPrice: vehicleData.sold_price,
         soldDate: vehicleData.sold_date,
         purchaseDate: vehicleData.created_at, 
+        renavam: vehicleData.renavam || '',
+        chassis: vehicleData.chassis || '',
         expenses: vehicleData.expenses || [],
         paymentMethod: vehicleData.payment_method,
-        buyer: vehicleData.buyer || undefined,
+        customerId: vehicleData.customer_id || undefined,
+        buyer: vehicleData.buyer_snapshot || vehicleData.buyer_old || undefined,
+        buyerSnapshot: vehicleData.buyer_snapshot || undefined,
         warrantyDetails: vehicleData.warranty_details || undefined,
         reservationDetails: vehicleData.reservation_details || undefined,
         tradeInInfo: vehicleData.trade_in_info || undefined,
@@ -137,6 +262,8 @@ export const ApiService = {
         version: vehicle.version,
         year: vehicle.year,
         plate: vehicle.plate,
+        renavam: vehicle.renavam,
+        chassis: vehicle.chassis,
         km: vehicle.km,
         fuel: vehicle.fuel,
         transmission: vehicle.transmission,
@@ -159,12 +286,26 @@ export const ApiService = {
   updateVehicle: async (vehicle: Vehicle): Promise<Vehicle> => {
     if (!supabase) throw new Error("Conexão segura necessária.");
 
+    const buyerSnapshot = vehicle.buyerSnapshot || vehicle.buyer;
+    let customerId = vehicle.customerId;
+
+    if (vehicle.status === 'sold' && buyerSnapshot?.cpf && vehicle.storeId) {
+        try {
+            const customer = await ApiService.upsertCustomer(vehicle.storeId, buyerSnapshot);
+            customerId = customer.id;
+        } catch (err) {
+            console.error('Erro ao sincronizar cliente:', err);
+        }
+    }
+
     const dbVehicle = {
         make: vehicle.make,
         model: vehicle.model,
         version: vehicle.version,
         year: vehicle.year,
         plate: vehicle.plate,
+        renavam: vehicle.renavam,
+        chassis: vehicle.chassis,
         km: vehicle.km,
         status: vehicle.status,
         purchase_price: vehicle.purchasePrice,
@@ -172,7 +313,8 @@ export const ApiService = {
         sold_price: vehicle.soldPrice,
         sold_date: vehicle.soldDate,
         payment_method: vehicle.paymentMethod,
-        buyer: vehicle.buyer,
+        customer_id: customerId || null,
+        buyer_snapshot: buyerSnapshot || null,
         photos: vehicle.photos,
         expenses: vehicle.expenses,
         trade_in_info: vehicle.tradeInInfo,

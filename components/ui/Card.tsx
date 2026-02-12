@@ -31,8 +31,9 @@ export const StatCard: React.FC<{
   subValue?: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down' | 'neutral';
+  highlight?: 'positive' | 'negative' | 'neutral';
   helpText?: string;
-}> = ({ label, value, subValue, icon, trend, helpText }) => {
+}> = ({ label, value, subValue, icon, trend, highlight = 'neutral', helpText }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -62,24 +63,35 @@ export const StatCard: React.FC<{
           </span>
         )}
       </div>
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 mb-1 relative">
-            <p className="text-xs md:text-sm text-slate-400 font-medium truncate pr-4">{label}</p>
-            {helpText && (
-                <div
-                  className="absolute right-0 top-0.5"
-                  onMouseEnter={() => setShowTooltip(true)}
-                  onClick={(e) => { e.stopPropagation(); setShowTooltip(!showTooltip); }}
-                >
-                    <HelpCircle 
-                        size={14} 
-                        className="text-slate-600 dark:text-slate-500 cursor-pointer hover:text-indigo-400 transition-colors" 
-                    />
-                </div>
-            )}
+        <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-xs md:text-sm text-slate-400 font-medium truncate">{label}</p>
+          {helpText && (
+            <button
+              type="button"
+              className="shrink-0"
+              onMouseEnter={() => setShowTooltip(true)}
+              onClick={(e) => { e.stopPropagation(); setShowTooltip(!showTooltip); }}
+              aria-label="Ajuda"
+            >
+              <HelpCircle 
+                size={14} 
+                className="text-slate-600 dark:text-slate-500 cursor-pointer hover:text-indigo-400 transition-colors" 
+              />
+            </button>
+          )}
         </div>
         {/* Responsive Text Sizing & Truncation */}
-        <h4 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate" title={value}>
+        <h4
+          className={`text-xl sm:text-2xl font-bold tracking-tight truncate ${
+            highlight === 'positive'
+              ? 'text-emerald-400'
+              : highlight === 'negative'
+                ? 'text-rose-400'
+                : 'text-white'
+          }`}
+          title={value}
+        >
             {value}
         </h4>
         {subValue && (

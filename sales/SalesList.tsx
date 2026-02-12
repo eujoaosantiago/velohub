@@ -37,23 +37,22 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
     return new Date(b.soldDate || '').getTime() - new Date(a.soldDate || '').getTime();
   }), [vehicles]);
 
+    const parseSoldDate = (value?: string) => {
+        if (!value) return null;
+        const cleaned = value.split('T')[0]?.split(' ')[0] || value;
+        if (cleaned.includes('-')) {
+            const [year, month, day] = cleaned.split('-').map(Number);
+            if (year && month && day) {
+                return new Date(year, month - 1, day);
+            }
+        }
+        const fallback = new Date(value);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+    };
+
   const filteredSales = soldVehicles.filter(v => {
     const term = searchTerm.toLowerCase();
-    // Parse correto da data para evitar problemas de timezone
-    const saleDate = v.soldDate ? (() => {
-      try {
-        if (v.soldDate.includes('-')) {
-          const [year, month, day] = v.soldDate.split('-').map(Number);
-          if (year && month && day) {
-            return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
-          }
-        }
-        // Fallback: tenta usar new Date diretamente
-        return new Date(v.soldDate).toLocaleDateString('pt-BR');
-      } catch {
-        return '';
-      }
-    })() : '';
+        const saleDate = parseSoldDate(v.soldDate)?.toLocaleDateString('pt-BR') || '';
     const priceStr = v.soldPrice ? v.soldPrice.toString() : '';
     
     return (
@@ -119,24 +118,14 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
         [chartPeriod],
     );
 
+
     const filteredChartVehicles = useMemo(() => {
         return soldVehicles.filter((v) => {
-            if (!v.soldDate) return false;
-            try {
-                // Parse correto da data ISO para evitar problemas de timezone
-                if (v.soldDate.includes('-')) {
-                    const [year, month, day] = v.soldDate.split('-').map(Number);
-                    if (year && month && day) {
-                        const soldAt = new Date(year, month - 1, day);
-                        if (soldAt < chartStart || soldAt > chartEnd) return false;
-                        if (chartBrand !== 'all' && v.make !== chartBrand) return false;
-                        return true;
-                    }
-                }
-                return false;
-            } catch {
-                return false;
-            }
+            const soldAt = parseSoldDate(v.soldDate);
+            if (!soldAt) return false;
+            if (soldAt < chartStart || soldAt > chartEnd) return false;
+            if (chartBrand !== 'all' && v.make !== chartBrand) return false;
+            return true;
         });
     }, [soldVehicles, chartStart, chartEnd, chartBrand]);
 
@@ -165,28 +154,22 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
         });
 
         filteredChartVehicles.forEach((v) => {
-            if (!v.soldDate) return;
-            try {
-                // Parse correto da data ISO para evitar problemas de timezone
-                if (v.soldDate.includes('-')) {
-                    const [year, month, day] = v.soldDate.split('-').map(Number);
-                    if (year && month && day) {
-                        const d = new Date(year, month - 1, day);
-                        const key = `${months[d.getMonth()]}/${d.getFullYear().toString().slice(2)}`;
-
-                        if (data[key]) {
-                            data[key].revenue += v.soldPrice || 0;
-                            data[key].profit += calculateRealProfit(v);
-                        }
-                    }
-                }
-            } catch {
-                // Ignora datas inválidas
+            const soldAt = parseSoldDate(v.soldDate);
+            if (!soldAt) return;
+            const key = `${months[soldAt.getMonth()]}/${soldAt.getFullYear().toString().slice(2)}`;
+            if (data[key]) {
+                data[key].revenue += v.soldPrice || 0;
+                data[key].profit += calculateRealProfit(v);
             }
         });
 
         return Object.values(data);
     }, [filteredChartVehicles, chartStart, chartEnd]);
+
+    const profitSeriesColor = useMemo(() => {
+        const total = timelineData.reduce((acc, item) => acc + item.profit, 0);
+        return total >= 0 ? '#22c55e' : '#ef4444';
+    }, [timelineData]);
 
   // --- CHART DATA: Top Brands ---
   const brandData = useMemo(() => {
@@ -253,6 +236,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
               label="Lucro Líquido Real" 
               value={formatCurrency(totalProfit)} 
               icon={<TrendingUp size={24} />} 
+              highlight={totalProfit >= 0 ? 'positive' : 'negative'}
               trend="up"
               subValue="Após todos os custos"
               helpText="O dinheiro que realmente sobrou no bolso: Valor Venda - (Custo Compra + Gastos)."
@@ -285,7 +269,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                   <select
                       value={chartPeriod}
                       onChange={(e) => setChartPeriod(e.target.value as typeof chartPeriod)}
-                      className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="select-premium text-sm"
                   >
                       {Object.entries(periodLabelMap).map(([value, label]) => (
                           <option key={value} value={value}>
@@ -299,7 +283,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                   <select
                       value={chartBrand}
                       onChange={(e) => setChartBrand(e.target.value)}
-                      className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="select-premium text-sm"
                   >
                       {chartBrands.map((brand) => (
                           <option key={brand} value={brand}>
@@ -328,8 +312,8 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                                   <stop offset="95%" stopColor="rgb(var(--velo-jet))" stopOpacity={0}/>
                               </linearGradient>
                               <linearGradient id="colorProf" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="rgb(var(--velo-orange))" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="rgb(var(--velo-orange))" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor={profitSeriesColor} stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor={profitSeriesColor} stopOpacity={0}/>
                               </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--velo-jet))" vertical={false} opacity={0.3} />
@@ -341,7 +325,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                               labelStyle={{ color: 'rgb(var(--velo-platinum))' }}
                           />
                           <Area type="monotone" dataKey="revenue" name="revenue" stroke="rgb(var(--velo-jet))" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} />
-                          <Area type="monotone" dataKey="profit" name="profit" stroke="rgb(var(--velo-orange))" fillOpacity={1} fill="url(#colorProf)" strokeWidth={3} />
+                          <Area type="monotone" dataKey="profit" name="profit" stroke={profitSeriesColor} fillOpacity={1} fill="url(#colorProf)" strokeWidth={3} />
                       </AreaChart>
                   </ResponsiveContainer>
               </div>
@@ -413,21 +397,9 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                                     <td className="px-6 py-4 text-slate-300 whitespace-nowrap pl-6">
                                         <div className="flex items-center gap-2">
                                             <Calendar size={14} className="text-slate-500" />
-                                            {sale.soldDate ? (() => {
-                                                try {
-                                                    // Parse direto dos componentes para evitar problemas de timezone
-                                                    if (sale.soldDate.includes('-')) {
-                                                        const [year, month, day] = sale.soldDate.split('-').map(Number);
-                                                        if (year && month && day) {
-                                                            return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
-                                                        }
-                                                    }
-                                                    // Fallback: tenta usar new Date diretamente
-                                                    return new Date(sale.soldDate).toLocaleDateString('pt-BR');
-                                                } catch {
-                                                    return 'Data inválida';
-                                                }
-                                            })() : 'Data não informada'}
+                                            {sale.soldDate
+                                                ? (parseSoldDate(sale.soldDate)?.toLocaleDateString('pt-BR') || 'Data inválida')
+                                                : 'Data não informada'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
