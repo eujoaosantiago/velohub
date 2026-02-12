@@ -20,6 +20,11 @@
   --color-slate-950: 248 250 252; /* Fundo vira off-white */
   
   --color-text-main: 26 25 25;    /* text-white vira Velo Black */
+
+  --velo-orange: 255 96 53;
+  --velo-platinum: 236 232 232;
+  --velo-jet: 117 116 116;
+  --velo-black: 43 42 42;
 }
 
 .dark {
@@ -38,6 +43,11 @@
   --color-slate-950: 26 25 25;    /* Fundo */
   
   --color-text-main: 255 255 255; /* text-white puro */
+
+  --velo-orange: 255 96 53;
+  --velo-platinum: 236 232 232;
+  --velo-jet: 117 116 116;
+  --velo-black: 43 42 42;
 }
 
 body {
@@ -87,7 +97,7 @@ body {
   position: fixed;
   width: 10px;
   height: 10px;
-  background-color: #ff6035;
+  background-color: rgb(var(--velo-orange));
   top: -10%;
   z-index: 9999;
   animation: confetti-fall linear forwards;
