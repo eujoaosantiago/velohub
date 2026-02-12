@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Vehicle, Buyer } from '../types';
 import { Button } from './ui/Button';
-import { X, DollarSign, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle, Briefcase } from 'lucide-react';
+import { X, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle } from 'lucide-react';
 import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo } from '../lib/utils';
 import { sanitizeInput } from '../lib/security';
 import { ContractModal } from './ContractModal';
@@ -390,6 +390,22 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                         {saleComplete ? (
                                 // SUCCESS STATE VIEW
                                 <div className="flex-1 overflow-y-auto">
+                                    {/* Vehicle Photo Carousel */}
+                                    {vehicle.photos && vehicle.photos.length > 0 && (
+                                        <div className="relative w-full h-48 bg-slate-800 overflow-hidden">
+                                            <img 
+                                                src={vehicle.photos[0]} 
+                                                alt={`${vehicle.make} ${vehicle.model}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            {vehicle.photos.length > 1 && (
+                                                <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-white">
+                                                    1 / {vehicle.photos.length}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="p-8 text-center relative overflow-hidden rounded-2xl">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-indigo-500"></div>
                     
@@ -405,7 +421,29 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                     </div>
 
                     <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Venda Realizada!</h2>
-                    <p className="text-slate-400 mb-8 max-w-xs mx-auto">
+                    <p className="text-slate-400 mb-6 max-w-xs mx-auto text-sm">
+                        {vehicle.make} {vehicle.model} - {vehicle.plate}
+                    </p>
+
+                    {/* Sale Details Summary */}
+                    <div className="bg-slate-800/30 rounded-xl p-4 mb-6 border border-slate-700/50 space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-400">Valor Final:</span>
+                            <span className="font-bold text-emerald-400">{formatCurrency(paymentMethod === 'Troca + Volta' ? (parseCurrencyInput(price) + parseCurrencyInput(tradeInValue)) : parseCurrencyInput(price))}</span>
+                        </div>
+                        {hasCommissionInput && (
+                            <div className="flex justify-between items-center text-sm border-t border-slate-700/30 pt-2">
+                                <span className="text-slate-400">Comissão:</span>
+                                <span className="font-bold text-indigo-400">{formatCurrency(parseCurrencyInput(commission))}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center text-sm border-t border-slate-700/30 pt-2">
+                            <span className="text-slate-400">Data:</span>
+                            <span className="text-white">{new Date(date).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                    </div>
+
+                    <p className="text-slate-400 mb-8 text-sm">
                         O veículo foi marcado como vendido e o estoque foi atualizado.
                     </p>
                     <div className="flex flex-col gap-3">
@@ -421,44 +459,38 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
             ) : (
                 // FORM VIEW
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                                                        <label className="block text-xs font-medium text-indigo-300 mb-1 uppercase tracking-wider leading-tight min-h-[32px]">
-                                                                {paymentMethod === 'Troca + Volta' ? (
-                                                                    <>
-                                                                        <span className="md:hidden">Valor (Volta)</span>
-                                                                        <span className="hidden md:inline">Valor em Dinheiro (Volta)</span>
-                                                                    </>
-                                                                ) : (
-                                                                    'Valor Final'
-                                                                )}
-                                                        </label>
-                            <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input 
-                                    type="text" 
-                                    inputMode="decimal"
-                                    autoFocus
-                                    value={price}
-                                    onChange={(e) => handlePriceChange(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-3 text-lg font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="R$ 0,00"
-                                />
-                            </div>
+                            <label className="block text-xs font-medium text-indigo-300 mb-2 uppercase tracking-wider">
+                                {paymentMethod === 'Troca + Volta' ? (
+                                    <>
+                                        <span className="md:hidden">Valor (Volta)</span>
+                                        <span className="hidden md:inline">Valor em Dinheiro (Volta)</span>
+                                    </>
+                                ) : (
+                                    'Valor Final'
+                                )}
+                            </label>
+                            <input 
+                                type="text" 
+                                inputMode="decimal"
+                                autoFocus
+                                value={price}
+                                onChange={(e) => handlePriceChange(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-white text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                                placeholder="R$ 0,00"
+                            />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-indigo-300 mb-1 uppercase tracking-wider leading-tight min-h-[32px]">Comissão (R$)</label>
-                            <div className="relative">
-                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input 
-                                    type="text" 
-                                    inputMode="decimal"
-                                    value={commission}
-                                    onChange={(e) => handleCommissionChange(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-3 text-lg font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="R$ 0,00"
-                                />
-                            </div>
+                            <label className="block text-xs font-medium text-indigo-300 mb-2 uppercase tracking-wider">Comissão</label>
+                            <input 
+                                type="text" 
+                                inputMode="decimal"
+                                value={commission}
+                                onChange={(e) => handleCommissionChange(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-white text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                                placeholder="R$ 0,00"
+                            />
                         </div>
                     </div>
 
@@ -478,23 +510,20 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Data da Venda</label>
-                            <div className="relative">
-                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                                <input 
-                                    type="date"
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
-                                />
-                            </div>
+                            <label className="block text-xs font-medium text-indigo-300 mb-2 uppercase tracking-wider">Data da Venda</label>
+                            <input 
+                                type="date"
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                            />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Pagamento</label>
+                            <label className="block text-xs font-medium text-indigo-300 mb-2 uppercase tracking-wider">Pagamento</label>
                             <select 
                                 value={paymentMethod}
                                 onChange={e => setPaymentMethod(e.target.value)}
-                                className="w-full select-premium text-sm"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors cursor-pointer"
                             >
                                 <option>Pix / Transferência</option>
                                 <option>Dinheiro</option>
@@ -662,53 +691,73 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                     />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={buyerCep}
-                                    onChange={e => setBuyerCep(e.target.value)}
-                                    onBlur={handleBuyerCepBlur}
-                                    placeholder="CEP"
-                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
-                                />
-                                <input
-                                    type="text"
-                                    value={buyerStreet}
-                                    onChange={e => setBuyerStreet(e.target.value)}
-                                    placeholder="Logradouro"
-                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none col-span-2"
-                                />
-                                <input
-                                    type="text"
-                                    value={buyerNumber}
-                                    onChange={e => setBuyerNumber(e.target.value)}
-                                    placeholder="Número"
-                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
-                                />
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <input
-                                    type="text"
-                                    value={buyerNeighborhood}
-                                    onChange={e => setBuyerNeighborhood(e.target.value)}
-                                    placeholder="Bairro"
-                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
-                                />
-                                <input
-                                    type="text"
-                                    value={buyerCity}
-                                    onChange={e => setBuyerCity(e.target.value)}
-                                    placeholder="Cidade"
-                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
-                                />
-                                <input
-                                    type="text"
-                                    value={buyerState}
-                                    onChange={e => setBuyerState(e.target.value.toUpperCase().slice(0, 2))}
-                                    placeholder="UF"
-                                    className="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none uppercase"
-                                />
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs text-slate-500 mb-1 block">CEP</label>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={buyerCep}
+                                        onChange={e => setBuyerCep(e.target.value)}
+                                        onBlur={handleBuyerCepBlur}
+                                        placeholder="00000-000"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-500 mb-1 block">Logradouro</label>
+                                    <input
+                                        type="text"
+                                        value={buyerStreet}
+                                        onChange={e => setBuyerStreet(e.target.value)}
+                                        placeholder="Rua, Avenida..."
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs text-slate-500 mb-1 block">Número</label>
+                                        <input
+                                            type="text"
+                                            value={buyerNumber}
+                                            onChange={e => setBuyerNumber(e.target.value)}
+                                            placeholder="Nº"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-500 mb-1 block">Bairro</label>
+                                        <input
+                                            type="text"
+                                            value={buyerNeighborhood}
+                                            onChange={e => setBuyerNeighborhood(e.target.value)}
+                                            placeholder="Bairro"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="col-span-2">
+                                        <label className="text-xs text-slate-500 mb-1 block">Cidade</label>
+                                        <input
+                                            type="text"
+                                            value={buyerCity}
+                                            onChange={e => setBuyerCity(e.target.value)}
+                                            placeholder="Cidade"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-500 mb-1 block">UF</label>
+                                        <input
+                                            type="text"
+                                            value={buyerState}
+                                            onChange={e => setBuyerState(e.target.value.toUpperCase().slice(0, 2))}
+                                            placeholder="SP"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none uppercase text-center"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
