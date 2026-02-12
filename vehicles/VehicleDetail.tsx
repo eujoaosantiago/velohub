@@ -146,6 +146,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
   const [expenseData, setExpenseData] = useState({ 
       desc: '', 
       amount: '', 
+      date: getBrazilDateISO(),
       category: 'maintenance' as ExpenseCategory,
       employeeName: '' 
   });
@@ -942,6 +943,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                       ...exp,
                       description: expenseData.desc,
                       amount: amountVal,
+                      date: normalizeDate(expenseData.date),
                       category: expenseData.category,
                       employeeName: expenseData.category === 'salary' ? expenseData.employeeName : undefined
                   }
@@ -957,7 +959,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               vehicleId: vehicle.id, 
               description: expenseData.desc, 
               amount: amountVal, 
-              date: getBrazilDateISO(), 
+              date: normalizeDate(expenseData.date), 
               category: expenseData.category,
               employeeName: expenseData.category === 'salary' ? expenseData.employeeName : undefined
           };
@@ -979,7 +981,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           }));
       }
       
-      setExpenseData({desc: '', amount: '', category: 'maintenance', employeeName: ''});
+      setExpenseData({desc: '', amount: '', date: getBrazilDateISO(), category: 'maintenance', employeeName: ''});
   };
 
   const handleEditExpense = (expense: Expense) => {
@@ -987,6 +989,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       setExpenseData({
           desc: expense.description,
           amount: numberToMaskedCurrency(expense.amount),
+          date: expense.date,
           category: expense.category,
           employeeName: expense.employeeName || ''
       });
@@ -1000,7 +1003,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
   const handleCancelEditExpense = () => {
       setEditingExpenseId(null);
-      setExpenseData({desc: '', amount: '', category: 'maintenance', employeeName: ''});
+      setExpenseData({desc: '', amount: '', date: getBrazilDateISO(), category: 'maintenance', employeeName: ''});
   };
 
   const isSold = formData.status === 'sold';
@@ -1697,7 +1700,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   {/* ... Same Expenses Code ... */}
                   <Card title={editingExpenseId ? "Editar Gasto" : "Adicionar Gasto"}>
                       <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-3 gap-4">
                                                             <select 
                                                                 value={expenseData.category}
                                                                 onChange={e => setExpenseData({...expenseData, category: e.target.value as ExpenseCategory})}
@@ -1714,6 +1717,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                 className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-sm font-bold" 
                                 value={expenseData.amount} 
                                 onChange={e => setExpenseData({...expenseData, amount: maskCurrencyInput(e.target.value)})} 
+                              />
+                              <input 
+                                type="date" 
+                                className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-sm" 
+                                value={expenseData.date} 
+                                onChange={e => setExpenseData({...expenseData, date: e.target.value})} 
                               />
                           </div>
                           

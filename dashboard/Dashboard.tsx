@@ -83,7 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
     const getChartDateRange = (period: typeof chartPeriod) => {
         const now = new Date();
         let start = new Date(now.getFullYear(), now.getMonth(), 1);
-        let end = new Date(now);
+        let end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Fim do mês atual
 
         if (period === 'custom') {
             if (customStartDate) {
@@ -97,14 +97,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         } else if (period === 'last_3' || period === 'last_6' || period === 'last_12') {
             const monthsBack = period === 'last_3' ? 2 : period === 'last_6' ? 5 : 11;
             start = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+            // Fim do mês atual para incluir vendas futuras do mês corrente
         } else if (period === 'last_month') {
             start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             end = new Date(now.getFullYear(), now.getMonth(), 0);
         } else if (period === 'this_quarter') {
             const quarterStart = Math.floor(now.getMonth() / 3) * 3;
             start = new Date(now.getFullYear(), quarterStart, 1);
+            // Fim do trimestre atual
+            end = new Date(now.getFullYear(), quarterStart + 3, 0);
         } else if (period === 'this_year') {
             start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31); // Fim do ano atual
         }
 
         return { start, end };
