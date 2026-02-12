@@ -200,7 +200,13 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
           .slice(0, 5); // Top 5
   }, [soldVehicles]);
 
-  const COLORS = ['#ff6035', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+    const COLORS = [
+        'rgb(var(--velo-orange))',
+        'rgb(var(--velo-platinum))',
+        'rgb(var(--velo-jet))',
+        'rgb(var(--velo-black))',
+        'rgb(var(--velo-orange))',
+    ];
 
   const yAxisTickFormatter = (value: number) => {
     if (value === 0) return '0';
@@ -318,24 +324,24 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                       <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <defs>
                               <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="rgb(var(--velo-jet))" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="rgb(var(--velo-jet))" stopOpacity={0}/>
                               </linearGradient>
                               <linearGradient id="colorProf" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#ff6035" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#ff6035" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="rgb(var(--velo-orange))" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="rgb(var(--velo-orange))" stopOpacity={0}/>
                               </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
-                          <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={yAxisTickFormatter} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--velo-jet))" vertical={false} opacity={0.3} />
+                          <XAxis dataKey="name" stroke="rgb(var(--velo-jet))" fontSize={12} tickLine={false} axisLine={false} />
+                          <YAxis stroke="rgb(var(--velo-jet))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={yAxisTickFormatter} />
                           <Tooltip 
-                              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', color: '#fff' }}
+                              contentStyle={{ backgroundColor: 'rgb(var(--velo-black))', borderColor: 'rgb(var(--velo-jet))', borderRadius: '12px', color: 'rgb(var(--velo-platinum))' }}
                               formatter={(value: number, name: string) => [formatCurrency(value), name === 'revenue' ? 'Faturamento' : 'Lucro']}
-                              labelStyle={{ color: '#94a3b8' }}
+                              labelStyle={{ color: 'rgb(var(--velo-platinum))' }}
                           />
-                          <Area type="monotone" dataKey="revenue" name="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} />
-                          <Area type="monotone" dataKey="profit" name="profit" stroke="#ff6035" fillOpacity={1} fill="url(#colorProf)" strokeWidth={3} />
+                          <Area type="monotone" dataKey="revenue" name="revenue" stroke="rgb(var(--velo-jet))" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} />
+                          <Area type="monotone" dataKey="profit" name="profit" stroke="rgb(var(--velo-orange))" fillOpacity={1} fill="url(#colorProf)" strokeWidth={3} />
                       </AreaChart>
                   </ResponsiveContainer>
               </div>
@@ -347,12 +353,12 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
               <div className={`h-64 md:h-80 w-full ${!canViewCharts ? 'opacity-20 pointer-events-none filter blur-sm' : ''}`}>
                   <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={brandData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" opacity={0.3} />
-                          <XAxis type="number" stroke="#64748b" hide />
-                          <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} width={80} />
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgb(var(--velo-jet))" opacity={0.3} />
+                          <XAxis type="number" stroke="rgb(var(--velo-jet))" hide />
+                          <YAxis dataKey="name" type="category" stroke="rgb(var(--velo-platinum))" fontSize={12} tickLine={false} axisLine={false} width={80} />
                           <Tooltip 
-                              cursor={{fill: '#334155', opacity: 0.2}}
-                              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                              cursor={{fill: 'rgb(var(--velo-jet))', opacity: 0.2}}
+                              contentStyle={{ backgroundColor: 'rgb(var(--velo-black))', borderColor: 'rgb(var(--velo-jet))', borderRadius: '8px', color: 'rgb(var(--velo-platinum))' }}
                           />
                           <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                               {brandData.map((entry, index) => (

@@ -37,28 +37,43 @@ serve(async (req) => {
       throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
     }
 
-    const linkResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({
-        type: "signup",
-        email,
-        redirect_to: redirectTo || "https://velohub-theta.vercel.app/?confirmed=1",
-      }),
-    });
+    const generateLink = async (type: "signup" | "magiclink") => {
+      const linkResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          type,
+          email,
+          redirect_to: redirectTo || "https://velohub-theta.vercel.app/?confirmed=1",
+        }),
+      });
 
-    const linkData = await linkResponse.json();
+      const linkData = await linkResponse.json();
 
-    if (!linkResponse.ok) {
-      console.error("Supabase Error:", linkData);
-      throw new Error(linkData?.msg || "Failed to generate confirmation link");
+      if (!linkResponse.ok) {
+        console.error("Supabase Error:", linkData);
+        throw new Error(linkData?.msg || "Failed to generate confirmation link");
+      }
+
+      return linkData.action_link as string;
+    };
+
+    let confirmLink = "";
+
+    try {
+      confirmLink = await generateLink("signup");
+    } catch (err: any) {
+      const message = String(err?.message || "").toLowerCase();
+      if (message.includes("already been registered")) {
+        confirmLink = await generateLink("magiclink");
+      } else {
+        throw err;
+      }
     }
-
-    const confirmLink = linkData.action_link;
 
     const emailTemplate = `
       <!DOCTYPE html>

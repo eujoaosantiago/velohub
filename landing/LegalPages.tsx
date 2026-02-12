@@ -20,10 +20,10 @@ const LegalLayout: React.FC<{ title: string; subtitle: string; children: React.R
     }, []);
 
     return (
-        <div className="min-h-screen bg-[#020617] text-slate-100 font-sans selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
             {/* Background Ambience */}
-            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-[#020617] via-transparent to-[#020617]"></div>
+            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 bg-[linear-gradient(to_right,rgba(117,116,116,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(117,116,116,0.12)_1px,transparent_1px)] bg-[size:24px_24px]">
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-[#2b2a2a] via-transparent to-[#2b2a2a]"></div>
             </div>
 
             {/* --- MINIMALIST FLOATING HEADER --- */}
@@ -84,7 +84,7 @@ const LegalLayout: React.FC<{ title: string; subtitle: string; children: React.R
                 </div>
             </div>
 
-            <footer className="relative z-10 py-12 text-center text-slate-600 text-sm border-t border-slate-800 bg-[#02040a]">
+            <footer className="relative z-10 py-12 text-center text-slate-600 text-sm border-t border-slate-800 bg-slate-950">
                 <p>© 2026 Velohub Tecnologia.</p>
             </footer>
         </div>

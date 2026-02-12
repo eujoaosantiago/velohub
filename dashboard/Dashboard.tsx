@@ -233,24 +233,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   const handleSendSupport = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!supportMessage.trim()) return;
+      if (!user?.email) {
+          alert("Seu email nao esta cadastrado. Atualize seu perfil para enviar suporte.");
+          return;
+      }
 
       setIsSendingSupport(true);
       
       try {
           if (supabase) {
-              const { error } = await supabase.functions.invoke('send-support', {
+              const { data, error } = await supabase.functions.invoke('send-support', {
                   body: {
-                      name: user?.name || 'Usuário',
-                      email: user?.email || '',
+                      name: user?.name || user?.email || 'Usuario',
+                      email: user.email,
                       subject: supportSubject,
                       message: supportMessage,
                       isClient: true
                   }
               });
-              if (error) {
-                  console.error("Function Error:", error);
-                  throw new Error("Falha ao contactar servidor.");
-              }
+              if (error) throw error;
+              if (data?.error) throw new Error(data.error);
           } else {
               // Local mode fallback simulation
               await new Promise(resolve => setTimeout(resolve, 1500));
