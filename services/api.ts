@@ -25,13 +25,18 @@ export const ApiService = {
             updated_at: now
         };
 
+        console.log('📝 Upserting customer:', { storeId, cpf: buyer.cpf, name: buyer.name });
         const { data, error } = await supabase
             .from('customers')
             .upsert(payload, { onConflict: 'store_id,cpf' })
             .select('*')
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error('❌ Erro ao upsert customer:', error);
+            throw new Error(error.message);
+        }
+        console.log('✅ Customer uperted:', { id: data.id, cpf: data.cpf });
 
         return {
             id: data.id,
@@ -53,13 +58,18 @@ export const ApiService = {
     getCustomers: async (storeId: string): Promise<Customer[]> => {
         if (!supabase) return [];
 
+        console.log('🔍 Fetching customers for store:', storeId);
         const { data, error } = await supabase
             .from('customers')
             .select('*')
             .eq('store_id', storeId)
             .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error('❌ Erro ao buscar clientes:', error);
+            throw new Error(error.message);
+        }
+        console.log('✅ Fetched customers count:', data?.length || 0);
 
         return (data || []).map((c: any) => ({
             id: c.id,

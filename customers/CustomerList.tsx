@@ -185,10 +185,12 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
           if (!user?.storeId) return;
           setIsLoadingCustomers(true);
           try {
+              console.log('🔄 Carregando clientes para store:', user.storeId);
               const data = await ApiService.getCustomers(user.storeId);
+              console.log('✅ Clientes carregados:', data.length);
               setCustomers(data);
           } catch (error) {
-              console.error('Erro ao buscar clientes:', error);
+              console.error('❌ Erro ao buscar clientes:', error);
           } finally {
               setIsLoadingCustomers(false);
           }
