@@ -1814,11 +1814,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                       </Card>
                   )}
 
-                  <Card title={isSold ? "Detalhes da Venda" : "Concluir Venda"} className="max-w-4xl mx-auto bg-slate-950 border-slate-800">
+                  <Card title={isSold ? "Detalhes da Venda" : "Concluir Venda"} className="max-w-6xl mx-auto bg-slate-950 border-slate-800">
                       {/* ... (Keep form inputs as is) ... */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
                           <div className="space-y-6">
-                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 lg:p-6 space-y-5">
                                   <h4 className="text-sm font-semibold text-white">Pagamento</h4>
                                   <label className="block text-sm text-slate-300">
                                       {saleData.method === 'Troca + Volta' && !isSold ? 'Valor em Dinheiro (Volta)' : 'Valor Final da Venda'}
@@ -1831,7 +1831,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})}
                                     onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
                                     disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-lg font-bold text-right" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 lg:p-5 text-white text-lg lg:text-xl font-bold text-right" 
                                   />
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1884,7 +1884,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   </div>
                               </div>
 
-                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 lg:p-6 space-y-5">
                                   <h4 className="text-sm font-semibold text-white">Garantia e Comissão</h4>
                                   <div className="grid grid-cols-2 gap-4">
                                       <div>
@@ -1980,10 +1980,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               )}
                           </div>
 
-                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 lg:p-6 space-y-4">
                               <h4 className="text-sm font-semibold text-white">Cliente</h4>
-                              <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" />
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base" />
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   <div className="relative">
                                     <input 
                                         placeholder="CPF" 
@@ -1992,7 +1992,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                         onChange={e => handleCpfChange(e.target.value)} 
                                         disabled={isSold} 
                                         maxLength={14}
-                                        className={`w-full bg-slate-950 border rounded-lg p-3 text-white text-base outline-none transition-colors ${
+                                        className={`w-full bg-slate-950 border rounded-lg p-3 lg:p-4 text-white text-base outline-none transition-colors ${
                                             !isSold && saleData.buyerCpf.length > 0 ? (isCpfValid ? 'border-emerald-500' : 'border-rose-500') : 'border-slate-700'
                                         }`}
                                     />
@@ -2005,7 +2005,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
                                     onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
                                     disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base" 
                                   />
                                   <input 
                                     placeholder="E-mail" 
@@ -2013,10 +2013,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     value={isSold ? vehicle.buyer?.email : saleData.buyerEmail} 
                                     onChange={e => setSaleData({...saleData, buyerEmail: e.target.value})} 
                                     disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base" 
                                   />
                               </div>
-                              <div className="grid grid-cols-12 gap-3">
+                              <div className="grid grid-cols-12 gap-4">
                                   <input
                                       placeholder="CEP"
                                       inputMode="numeric"
@@ -2024,44 +2024,44 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       onChange={e => setSaleData({...saleData, buyerCep: e.target.value})}
                                       onBlur={handleBuyerCepBlur}
                                       disabled={isSold}
-                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
                                   />
                                   <input
                                       placeholder="Logradouro"
                                       value={isSold ? vehicle.buyer?.street : saleData.buyerStreet}
                                       onChange={e => setSaleData({...saleData, buyerStreet: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-6 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-6 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
                                   />
                                   <input
                                       placeholder="Número"
                                       value={isSold ? vehicle.buyer?.number : saleData.buyerNumber}
                                       onChange={e => setSaleData({...saleData, buyerNumber: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
                                   />
                               </div>
-                              <div className="grid grid-cols-12 gap-3">
+                              <div className="grid grid-cols-12 gap-4">
                                   <input
                                       placeholder="Bairro"
                                       value={isSold ? vehicle.buyer?.neighborhood : saleData.buyerNeighborhood}
                                       onChange={e => setSaleData({...saleData, buyerNeighborhood: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
                                   />
                                   <input
                                       placeholder="Cidade"
                                       value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
                                       onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
                                   />
                                   <input
                                       placeholder="UF"
                                       value={isSold ? vehicle.buyer?.state : saleData.buyerState}
                                       onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
                                       disabled={isSold}
-                                      className="col-span-12 md:col-span-2 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base text-center font-semibold uppercase"
+                                      className="col-span-12 md:col-span-2 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base text-center font-semibold uppercase"
                                   />
                               </div>
                           </div>
