@@ -119,6 +119,17 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const handleOpenAddOpex = () => {
+    setEditingOpex(null);
+    setNewOpex({
+      desc: "",
+      amount: "",
+      category: "utilities",
+      date: getBrazilDateISO(),
+    });
+    setIsAddingOpex(true);
+  };
+
   // Load OPEX on mount
   useEffect(() => {
     if (user) {
@@ -150,6 +161,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           category: newOpex.category,
           updatedAt: new Date().toISOString(),
         };
+        console.log('Atualizando despesa:', expense);
         await ApiService.updateStoreExpense(expense);
         showToast("Despesa atualizada com sucesso!", "success");
       } else {
@@ -165,6 +177,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+        console.log('Criando despesa:', expense);
         await ApiService.createStoreExpense(expense);
         showToast("Despesa adicionada com sucesso!", "success");
       }
@@ -178,7 +191,9 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       });
       loadOpex();
     } catch (error) {
-      showToast("Erro ao salvar despesa", "error");
+      console.error('Erro ao salvar despesa:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      showToast(`Erro ao salvar despesa: ${errorMessage}`, "error");
     }
   };
 
@@ -634,7 +649,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               Despesas Operacionais
             </h2>
             <Button
-              onClick={() => setIsAddingOpex(true)}
+              onClick={handleOpenAddOpex}
               icon={<Plus size={18} />}
             >
               Lançar Despesa

@@ -391,6 +391,10 @@ export const ApiService = {
 
   updateStoreExpense: async (expense: StoreExpense): Promise<StoreExpense> => {
       if (!supabase) throw new Error("Conexão segura necessária.");
+      
+      if (!expense.id) {
+          throw new Error("ID da despesa é obrigatório para atualização");
+      }
 
       const dbExpense = {
           description: expense.description,
@@ -400,13 +404,22 @@ export const ApiService = {
           paid: expense.paid,
           updated_at: new Date().toISOString()
       };
+      
+      console.log('API: Atualizando despesa ID:', expense.id, 'com dados:', dbExpense);
+      
       const { data, error } = await supabase
         .from('store_expenses')
         .update(dbExpense)
         .eq('id', expense.id)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+        
+      if (error) {
+          console.error('API: Erro ao atualizar despesa:', error);
+          throw new Error(error.message);
+      }
+      
+      console.log('API: Despesa atualizada com sucesso:', data);
       return { ...expense, updatedAt: data.updated_at };
   },
 
