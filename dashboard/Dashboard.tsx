@@ -229,6 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   const [supportMessage, setSupportMessage] = useState('');
   const [isSendingSupport, setIsSendingSupport] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
+    const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
 
   const handleSendSupport = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -249,7 +250,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                       subject: supportSubject,
                       message: supportMessage,
                       isClient: true
-                  }
+                  },
+                  headers: supabaseAnonKey
+                      ? { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` }
+                      : undefined,
               });
               if (error) throw error;
               if (data?.error) throw new Error(data.error);

@@ -186,6 +186,7 @@ export const SupportPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -202,7 +203,10 @@ export const SupportPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         subject: topic,
                         message,
                         isClient: false // Visitante
-                    }
+                    },
+                    headers: supabaseAnonKey
+                        ? { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` }
+                        : undefined,
                 });
                 if (error) throw error;
             } else {
