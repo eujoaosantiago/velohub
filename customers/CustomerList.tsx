@@ -178,6 +178,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
 
+  const soldVehiclesCount = useMemo(() => vehicles.filter(v => v.status === 'sold').length, [vehicles]);
+
   useEffect(() => {
       const loadCustomers = async () => {
           if (!user?.storeId) return;
@@ -193,7 +195,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ vehicles, onSelectVe
       };
 
       loadCustomers();
-  }, [user?.storeId]);
+  }, [user?.storeId, soldVehiclesCount]);
 
   const vehiclesByCustomerId = useMemo(() => {
       const map = new Map<string, Vehicle[]>();
