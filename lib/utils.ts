@@ -29,6 +29,13 @@ export const parseISODate = (value?: string): Date | null => {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 };
 
+// Normaliza data do Supabase para formato YYYY-MM-DD (sem timezone)
+export const normalizeDate = (value?: string): string => {
+  if (!value) return getBrazilDateISO();
+  // Remove timezone e hora: "2026-02-12T03:00:00.000Z" -> "2026-02-12"
+  return value.split('T')[0]?.split(' ')[0] || value;
+};
+
 /* =======================
    FORMATAÇÃO DE MOEDA
 ======================= */
