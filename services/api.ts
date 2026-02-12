@@ -367,7 +367,7 @@ export const ApiService = {
       
       return data.map((e: any) => ({
           ...e,
-          date: e.date.split('T')[0], // Normaliza data removendo timezone
+          date: typeof e.date === 'string' ? e.date.split('T')[0] : e.date,
           storeId: e.store_id,
           createdAt: e.created_at,
           updatedAt: e.created_at
