@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Vehicle, Buyer } from '../types';
 import { Button } from './ui/Button';
 import { X, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle } from 'lucide-react';
-import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo, formatDateBR } from '../lib/utils';
+import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo, formatDateBR, normalizeDate } from '../lib/utils';
 import { sanitizeInput } from '../lib/security';
 import { ContractModal } from './ContractModal';
 import { AuthService } from '../services/auth';
@@ -35,7 +35,8 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
 
   // Inicializa com o preço esperado ou vazio
   const [price, setPrice] = useState(vehicle.expectedSalePrice ? maskCurrencyInput((vehicle.expectedSalePrice * 100).toString()) : '');
-  const [date, setDate] = useState(getBrazilDateISO()); // Corrigido para data local BR
+    const [date, setDate] = useState(getBrazilDateISO()); // Corrigido para data local BR
+    const [isDateTouched, setIsDateTouched] = useState(false);
   const [buyerName, setBuyerName] = useState('');
   const [buyerCpf, setBuyerCpf] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
@@ -90,29 +91,17 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
         }
     };
 
-  // Atualiza data para HOJE sempre que o modal abrir, ganhar foco ou periodicamente
-  useEffect(() => {
-    const updateDate = () => {
-      const newDate = getBrazilDateISO();
-      console.log('📅 QuickSaleModal - Atualizando data:', newDate, new Date().toISOString());
-      setDate(newDate);
-    };
-    
-    // Atualiza quando monta ou vehicle.id muda
-    updateDate();
-    
-    // Atualiza quando a aba ganha foco (usuário volta para o navegador)
-    const handleFocus = () => updateDate();
-    window.addEventListener('focus', handleFocus);
+        useEffect(() => {
+                // Só atualiza a data automaticamente se o usuário não tocou nela
+                if (!isDateTouched) {
+                        setDate(getBrazilDateISO());
+                }
+        }, [vehicle.id, isDateTouched]);
 
-    // Atualiza a cada 5 minutos (garante data correta mesmo se ficar aberto por horas)
-    const interval = setInterval(updateDate, 5 * 60 * 1000);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
-    };
-  }, [vehicle.id]);
+        // Reseta a flag apenas quando o veículo muda
+        useEffect(() => {
+                setIsDateTouched(false);
+        }, [vehicle.id]);
 
   const handlePriceChange = (val: string) => {
       setPrice(maskCurrencyInput(val));
@@ -221,7 +210,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                     color: sanitizeInput(tradeInColor),
                     status: 'available',
                     purchasePrice: tradeInVal,
-                    purchaseDate: date,
+                    purchaseDate: normalizeDate(date),
                     expectedSalePrice: tradeInVal * 1.2, 
                     fipePrice: 0,
                     photos: [],
@@ -259,7 +248,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                   vehicleId: vehicle.id,
                   description: 'Comissão de Venda',
                   amount: commissionDifference,
-                  date,
+                  date: normalizeDate(date),
                   category: 'salary',
                   employeeName: commissionTo || undefined
               });
@@ -268,7 +257,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
           const saleData: Partial<Vehicle> = {
               status: 'sold',
               soldPrice: finalSalePrice, // Save total price
-              soldDate: date,
+              soldDate: normalizeDate(date),
               paymentMethod,
               paymentDetails: {
                   amountText: sanitizeInput(paymentAmountText),
@@ -515,8 +504,11 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                             <label className="block text-xs font-medium text-indigo-300 mb-2 uppercase tracking-wider">Data da Venda</label>
                             <input 
                                 type="date"
-                                value={date}
-                                onChange={e => setDate(e.target.value)}
+                                                                value={date}
+                                                                onChange={e => {
+                                                                    setDate(e.target.value);
+                                                                    setIsDateTouched(true);
+                                                                }}
                                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
                             />
                         </div>

@@ -205,6 +205,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           value: ''
       }
   });
+    const [isSaleDateTouched, setIsSaleDateTouched] = useState(false);
 
     const handleBuyerCepBlur = async () => {
         if (isSold) return;
@@ -223,31 +224,23 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
         }
     };
 
-  // Atualiza a data quando o veículo muda, quando ganha foco ou periodicamente
-  useEffect(() => {
-    const updateDate = () => {
-      if (!vehicle.soldDate) {
-        const newDate = getBrazilDateISO();
-        console.log('📅 VehicleDetail - Atualizando data:', newDate, new Date().toISOString());
-        setSaleData(prev => ({ ...prev, date: newDate }));
-      }
-    };
+        useEffect(() => {
+                // Só atualiza a data automaticamente se o usuário não tocou nela
+                if (!isSaleDateTouched) {
+                        if (vehicle.soldDate) {
+                                setSaleData(prev => ({ ...prev, date: normalizeDate(vehicle.soldDate) }));
+                        } else {
+                                const newDate = getBrazilDateISO();
+                                console.log('📅 VehicleDetail - Inicializando data:', newDate);
+                                setSaleData(prev => ({ ...prev, date: newDate }));
+                        }
+                }
+        }, [vehicle.id, vehicle.soldDate, isSaleDateTouched]);
 
-    // Atualiza quando monta ou vehicle.id muda
-    updateDate();
-
-    // Atualiza quando a aba ganha foco (usuário volta para o navegador)
-    const handleFocus = () => updateDate();
-    window.addEventListener('focus', handleFocus);
-
-    // Atualiza a cada 5 minutos (garante data correta mesmo se ficar aberto por horas)
-    const interval = setInterval(updateDate, 5 * 60 * 1000);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
-    };
-  }, [vehicle.id, vehicle.soldDate]);
+        // Reseta a flag apenas quando o veículo muda
+        useEffect(() => {
+                setIsSaleDateTouched(false);
+        }, [vehicle.id]);
 
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
   const canManageSales = checkPermission(currentUser || null, 'manage_sales');
@@ -837,7 +830,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               vehicleId: vehicle.id,
               description: 'Comissão de Venda',
               amount: commissionDifference,
-              date: saleData.date,
+              date: normalizeDate(saleData.date),
               category: 'salary',
               employeeName: saleData.commissionTo || undefined
           };
@@ -1921,13 +1914,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                       <div>
                                           <label className="block text-sm text-slate-300 mb-2">Data</label>
-                                          <input 
-                                            type="date" 
-                                            value={saleData.date} 
-                                            onChange={e => setSaleData({...saleData, date: e.target.value})} 
-                                            disabled={isSold} 
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" 
-                                          />
+                                                                                    <input 
+                                                                                        type="date" 
+                                                                                        value={saleData.date} 
+                                                                                        onChange={e => {
+                                                                                            setSaleData({ ...saleData, date: e.target.value });
+                                                                                            setIsSaleDateTouched(true);
+                                                                                        }} 
+                                                                                        disabled={isSold} 
+                                                                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" 
+                                                                                    />
                                       </div>
                                       <div>
                                           <label className="block text-sm text-slate-300 mb-2">Pagamento</label>
