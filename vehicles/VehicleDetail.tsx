@@ -1978,10 +1978,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               )}
                           </div>
 
-                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
+                              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
                               <h4 className="text-sm font-semibold text-white">Cliente</h4>
-                              <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
-                              <div className="grid grid-cols-2 gap-4">
+                              <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" />
+                              <div className="grid grid-cols-2 gap-3">
                                   <div className="relative">
                                     <input 
                                         placeholder="CPF" 
@@ -1990,12 +1990,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                         onChange={e => handleCpfChange(e.target.value)} 
                                         disabled={isSold} 
                                         maxLength={14}
-                                        className={`w-full bg-slate-950 border rounded p-2 text-white outline-none transition-colors ${
+                                        className={`w-full bg-slate-950 border rounded-lg p-3 text-white text-base outline-none transition-colors ${
                                             !isSold && saleData.buyerCpf.length > 0 ? (isCpfValid ? 'border-emerald-500' : 'border-rose-500') : 'border-slate-700'
                                         }`}
                                     />
-                                    {!isSold && isCpfValid && <CheckCircle className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-500" size={16} />}
-                                    {!isSold && isCpfInvalid && saleData.buyerCpf.length > 0 && <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 text-rose-500" size={16} />}
+                                    {!isSold && isCpfValid && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" size={16} />}
+                                    {!isSold && isCpfInvalid && saleData.buyerCpf.length > 0 && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500" size={16} />}
                                   </div>
                                   <input 
                                     placeholder="Telefone" 
@@ -2003,57 +2003,57 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
                                     onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
                                     disabled={isSold} 
-                                    className="bg-slate-900 border border-slate-700 rounded p-2 text-white" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
                                   />
                               </div>
-                                                            <div className="grid grid-cols-3 gap-4">
-                                                                    <input
-                                                                        placeholder="CEP"
-                                                                        inputMode="numeric"
-                                                                        value={isSold ? vehicle.buyer?.cep : saleData.buyerCep}
-                                                                        onChange={e => setSaleData({...saleData, buyerCep: e.target.value})}
-                                                                        onBlur={handleBuyerCepBlur}
-                                                                        disabled={isSold}
-                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white"
-                                                                    />
-                                                                    <input
-                                                                        placeholder="Logradouro"
-                                                                        value={isSold ? vehicle.buyer?.street : saleData.buyerStreet}
-                                                                        onChange={e => setSaleData({...saleData, buyerStreet: e.target.value})}
-                                                                        disabled={isSold}
-                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white col-span-2"
-                                                                    />
-                                                                    <input
-                                                                        placeholder="Número"
-                                                                        value={isSold ? vehicle.buyer?.number : saleData.buyerNumber}
-                                                                        onChange={e => setSaleData({...saleData, buyerNumber: e.target.value})}
-                                                                        disabled={isSold}
-                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white"
-                                                                    />
-                                                            </div>
-                                                            <div className="grid grid-cols-3 gap-4">
-                                                                    <input
-                                                                        placeholder="Bairro"
-                                                                        value={isSold ? vehicle.buyer?.neighborhood : saleData.buyerNeighborhood}
-                                                                        onChange={e => setSaleData({...saleData, buyerNeighborhood: e.target.value})}
-                                                                        disabled={isSold}
-                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white"
-                                                                    />
-                                                                    <input
-                                                                        placeholder="Cidade"
-                                                                        value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
-                                                                        onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
-                                                                        disabled={isSold}
-                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white col-span-1"
-                                                                    />
-                                                                    <input
-                                                                        placeholder="UF"
-                                                                        value={isSold ? vehicle.buyer?.state : saleData.buyerState}
-                                                                        onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
-                                                                        disabled={isSold}
-                                                                        className="bg-slate-900 border border-slate-700 rounded p-2 text-white uppercase"
-                                                                    />
-                                                            </div>
+                              <div className="grid grid-cols-12 gap-3">
+                                  <input
+                                      placeholder="CEP"
+                                      inputMode="numeric"
+                                      value={isSold ? vehicle.buyer?.cep : saleData.buyerCep}
+                                      onChange={e => setSaleData({...saleData, buyerCep: e.target.value})}
+                                      onBlur={handleBuyerCepBlur}
+                                      disabled={isSold}
+                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                  />
+                                  <input
+                                      placeholder="Logradouro"
+                                      value={isSold ? vehicle.buyer?.street : saleData.buyerStreet}
+                                      onChange={e => setSaleData({...saleData, buyerStreet: e.target.value})}
+                                      disabled={isSold}
+                                      className="col-span-6 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                  />
+                                  <input
+                                      placeholder="Número"
+                                      value={isSold ? vehicle.buyer?.number : saleData.buyerNumber}
+                                      onChange={e => setSaleData({...saleData, buyerNumber: e.target.value})}
+                                      disabled={isSold}
+                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                  />
+                              </div>
+                              <div className="grid grid-cols-12 gap-3">
+                                  <input
+                                      placeholder="Bairro"
+                                      value={isSold ? vehicle.buyer?.neighborhood : saleData.buyerNeighborhood}
+                                      onChange={e => setSaleData({...saleData, buyerNeighborhood: e.target.value})}
+                                      disabled={isSold}
+                                      className="col-span-4 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                  />
+                                  <input
+                                      placeholder="Cidade"
+                                      value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
+                                      onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
+                                      disabled={isSold}
+                                      className="col-span-7 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                  />
+                                  <input
+                                      placeholder="UF"
+                                      value={isSold ? vehicle.buyer?.state : saleData.buyerState}
+                                      onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
+                                      disabled={isSold}
+                                      className="col-span-1 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base text-center font-semibold uppercase"
+                                  />
+                              </div>
                           </div>
                       </div>
 

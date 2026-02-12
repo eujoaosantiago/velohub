@@ -372,7 +372,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
         {saleComplete && <Confetti />}
         
-        <div className={`bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl relative my-8 transition-all max-h-[90vh] flex flex-col overflow-hidden ${saleComplete ? 'animate-pop-in border-emerald-500/50 shadow-emerald-500/10' : ''}`}>
+        <div className={`bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg md:max-w-2xl shadow-2xl relative my-8 transition-all max-h-[90vh] flex flex-col overflow-hidden ${saleComplete ? 'animate-pop-in border-emerald-500/50 shadow-emerald-500/10' : ''}`}>
             {!saleComplete && (
             <div className="bg-slate-800/50 p-4 border-b border-slate-700 flex justify-between items-center rounded-t-2xl shrink-0">
                     <div>
@@ -477,7 +477,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 autoFocus
                                 value={price}
                                 onChange={(e) => handlePriceChange(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-white text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 md:px-4 py-3 md:py-4 text-lg font-bold text-white text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
                                 placeholder="R$ 0,00"
                             />
                         </div>
@@ -488,7 +488,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                 inputMode="decimal"
                                 value={commission}
                                 onChange={(e) => handleCommissionChange(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-white text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 md:px-4 py-3 md:py-4 text-lg font-bold text-white text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
                                 placeholder="R$ 0,00"
                             />
                         </div>
@@ -650,7 +650,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
 
                     <div className="pt-4 border-t border-slate-800">
                         <h4 className="text-sm font-semibold text-white mb-3">Dados do Comprador</h4>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                                 <input 
@@ -658,7 +658,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                     value={buyerName}
                                     onChange={e => setBuyerName(e.target.value)}
                                     placeholder="Nome Completo"
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-3 md:py-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -671,7 +671,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         onChange={e => handleCpfChange(e.target.value)}
                                         placeholder="CPF"
                                         maxLength={14}
-                                        className={`w-full bg-slate-950 border rounded-lg pl-10 pr-8 py-2.5 text-white text-sm focus:ring-2 outline-none transition-colors ${
+                                        className={`w-full bg-slate-950 border rounded-lg pl-10 pr-8 py-3 md:py-4 text-white text-sm focus:ring-2 outline-none transition-colors ${
                                             isCpfInvalid ? 'border-rose-500 focus:ring-rose-500' : 
                                             isCpfValid ? 'border-emerald-500 focus:ring-emerald-500' : 'border-slate-700 focus:ring-indigo-500'
                                         }`}
@@ -687,7 +687,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         value={buyerPhone}
                                         onChange={e => setBuyerPhone(maskPhone(e.target.value))}
                                         placeholder="(DDD) Telefone"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-3 md:py-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                     />
                                 </div>
                             </div>
@@ -701,7 +701,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         onChange={e => setBuyerCep(e.target.value)}
                                         onBlur={handleBuyerCepBlur}
                                         placeholder="00000-000"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                     />
                                 </div>
                                 <div>
@@ -711,7 +711,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         value={buyerStreet}
                                         onChange={e => setBuyerStreet(e.target.value)}
                                         placeholder="Rua, Avenida..."
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
@@ -722,7 +722,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                             value={buyerNumber}
                                             onChange={e => setBuyerNumber(e.target.value)}
                                             placeholder="Nº"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                         />
                                     </div>
                                     <div>
@@ -732,7 +732,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                             value={buyerNeighborhood}
                                             onChange={e => setBuyerNeighborhood(e.target.value)}
                                             placeholder="Bairro"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                         />
                                     </div>
                                 </div>
@@ -744,7 +744,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                             value={buyerCity}
                                             onChange={e => setBuyerCity(e.target.value)}
                                             placeholder="Cidade"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                         />
                                     </div>
                                     <div>
@@ -754,7 +754,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                             value={buyerState}
                                             onChange={e => setBuyerState(e.target.value.toUpperCase().slice(0, 2))}
                                             placeholder="SP"
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-sm focus:ring-indigo-500 outline-none uppercase text-center"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none uppercase text-center"
                                         />
                                     </div>
                                 </div>
