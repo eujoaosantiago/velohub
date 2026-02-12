@@ -400,6 +400,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           if (!blob) throw new Error('Falha ao capturar imagem');
 
           await handlePhotoUpload(blob);
+          setPhotoIndex(0); // Reseta para primeira foto ao adicionar novas
+          
+          // Fecha a câmera após upload bem-sucedido
+          setCameraState(prev => ({ ...prev, isOpen: false }));
       } catch (err) {
           showToast("Erro ao capturar foto.", "error");
       } finally {
@@ -1388,11 +1392,18 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               </div>
                           )}
                           {isPhotoUploading && (
-                              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
-                                  <RefreshCw className="text-white animate-spin" size={28} />
-                                  {uploadProgress.total > 1 && (
-                                      <span className="text-xs text-slate-200">Enviando {uploadProgress.done}/{uploadProgress.total}</span>
-                                  )}
+                              <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 rounded-lg">
+                                  <RefreshCw className="text-indigo-400 animate-spin" size={32} />
+                                  <div className="text-center">
+                                      <span className="text-white font-semibold block mb-1 text-sm">Enviando imagens</span>
+                                      <span className="text-xs text-slate-300">{uploadProgress.done}/{uploadProgress.total}</span>
+                                  </div>
+                                  <div className="w-24 bg-slate-700/50 rounded-full h-1 overflow-hidden">
+                                      <div 
+                                          className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-full transition-all duration-300"
+                                          style={{width: `${uploadProgress.total > 0 ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`}}
+                                      />
+                                  </div>
                               </div>
                           )}
                           <button onClick={() => setActiveTab('photos')} className="absolute bottom-4 right-4 bg-slate-900/80 p-2 rounded-full text-white hover:bg-indigo-600 transition-colors"><Camera size={20}/></button>
@@ -1429,16 +1440,31 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               <div className="space-y-6">
                   <div className="flex flex-col md:flex-row gap-4 mb-8">
                       <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} className="hidden" multiple accept="image/*" />
-                      <button onClick={() => fileInputRef.current?.click()} className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors">
-                          <Upload size={24} className="mb-2"/> <span className="font-medium">Carregar da Galeria</span>
+                      <button onClick={() => fileInputRef.current?.click()} disabled={isPhotoUploading} className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                          <Upload size={24} className="mb-2"/> <span className="font-medium">{isPhotoUploading ? 'Enviando...' : 'Carregar da Galeria'}</span>
                       </button>
                       <button 
                         onClick={() => setCameraState(prev => ({...prev, isOpen: true}))}
-                        className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors"
+                        disabled={isPhotoUploading}
+                        className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                          <Camera size={24} className="mb-2"/> <span className="font-medium">Tirar Foto Agora</span>
+                          <Camera size={24} className="mb-2"/> <span className="font-medium">{isPhotoUploading ? 'Aguard...' : 'Tirar Foto Agora'}</span>
                       </button>
                   </div>
+                  {isPhotoUploading && (
+                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-slate-200">Enviando imagens...</span>
+                              <span className="text-xs text-slate-400">{uploadProgress.done}/{uploadProgress.total}</span>
+                          </div>
+                          <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+                              <div 
+                                  className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-full transition-all duration-300"
+                                  style={{width: `${uploadProgress.total > 0 ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`}}
+                              />
+                          </div>
+                      </div>
+                  )}
 
                   {/* Carrossel de Fotos com Swipe */}
                   {formData.photos.length > 0 && (
@@ -1470,11 +1496,18 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               }}
                           >
                               {isPhotoUploading && (
-                                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 gap-2">
-                                      <RefreshCw className="text-white animate-spin" size={32} />
-                                      {uploadProgress.total > 1 && (
-                                          <span className="text-xs text-slate-200">Enviando {uploadProgress.done}/{uploadProgress.total}</span>
-                                      )}
+                                  <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10 gap-3 rounded-lg">
+                                      <RefreshCw className="text-indigo-400 animate-spin" size={36} />
+                                      <div className="text-center">
+                                          <span className="text-white font-semibold block mb-1">Enviando imagens</span>
+                                          <span className="text-xs text-slate-300">{uploadProgress.done}/{uploadProgress.total}</span>
+                                      </div>
+                                      <div className="w-32 bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+                                          <div 
+                                              className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-full transition-all duration-300"
+                                              style={{width: `${uploadProgress.total > 0 ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`}}
+                                          />
+                                      </div>
                                   </div>
                               )}
                               <img 
