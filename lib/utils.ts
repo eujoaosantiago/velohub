@@ -54,6 +54,15 @@ export const maskCurrencyInput = (value: string): string => {
   }).format(numberValue);
 };
 
+// Converte número (em reais) para formato masked para edição
+// Ex: 1500 → "R$ 1.500,00"
+export const numberToMaskedCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
 // Converte "R$ 1.500,00" → 1500
 export const parseCurrencyInput = (value: string): number => {
   const digits = value.replace(/\D/g, '');

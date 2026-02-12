@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermission, ExpenseCategory } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, maskCEP, getBrazilDateISO, parseISODate, fetchCepInfo, maskRenavam, maskChassis } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, maskCEP, getBrazilDateISO, parseISODate, fetchCepInfo, maskRenavam, maskChassis, numberToMaskedCurrency } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
@@ -993,7 +993,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       setEditingExpenseId(expense.id);
       setExpenseData({
           desc: expense.description,
-          amount: maskCurrencyInput(expense.amount.toString()),
+          amount: numberToMaskedCurrency(expense.amount),
           category: expense.category,
           employeeName: expense.employeeName || ''
       });
@@ -1464,7 +1464,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               <div className="space-y-2 text-sm">
                                   <div className="flex justify-between text-slate-400">
                                       <span>Compra</span>
-                                      <span>{formatCurrency(vehicle.purchasePrice)}</span>
+                                      <span>{formatCurrency(formData.purchasePrice)}</span>
                                   </div>
                                   <div className="flex justify-between text-slate-400">
                                       <span>Gastos + Comissões</span>
@@ -1857,10 +1857,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                   <p className="text-slate-400 text-xs uppercase font-bold mb-1">Custo Total</p>
                                   <p className="text-rose-400 font-bold text-lg">- {formatCurrency(totalCost)}</p>
                                   <div className="text-[10px] text-slate-500 mt-1 flex flex-col">
-                                      <span>Compra: {formatCurrency(vehicle.purchasePrice)}</span>
+                                      <span>Compra: {formatCurrency(formData.purchasePrice)}</span>
                                       <span>Gastos Op. + Comissão: {formatCurrency(operatingExpensesValue + effectiveCommissionCost)}</span>
                                   </div>
-                                  {vehicle.purchasePrice === 0 && (
+                                  {formData.purchasePrice === 0 && (
                                       <div className="absolute -top-2 -right-2 text-amber-500 bg-slate-900 rounded-full border border-amber-500/50 p-1" title="Custo de compra zerado">
                                           <AlertTriangle size={12} />
                                       </div>

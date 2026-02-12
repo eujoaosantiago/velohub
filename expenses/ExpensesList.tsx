@@ -13,6 +13,7 @@ import {
   parseCurrencyInput,
   calculateRealProfit,
   getBrazilDateISO,
+  numberToMaskedCurrency,
 } from "../lib/utils";
 import {
   Search,
@@ -195,7 +196,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     setEditingOpex(expense);
     setNewOpex({
       desc: expense.description,
-      amount: maskCurrencyInput(expense.amount.toString()),
+      amount: numberToMaskedCurrency(expense.amount),
       category: expense.category,
       date: expense.date,
     });
