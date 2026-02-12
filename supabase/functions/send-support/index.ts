@@ -1,6 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+export const config = {
+  verify_jwt: false,
+};
+
 // Declare Deno to suppress TS errors
 declare const Deno: {
   env: {
