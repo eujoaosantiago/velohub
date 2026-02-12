@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Vehicle, Buyer } from '../types';
 import { Button } from './ui/Button';
 import { X, User, FileText, Phone, Calendar, ArrowRightLeft, ShieldCheck, Printer, CheckCircle, AlertCircle } from 'lucide-react';
-import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo } from '../lib/utils';
+import { isValidCPF, formatCurrency, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo, formatDateBR } from '../lib/utils';
 import { sanitizeInput } from '../lib/security';
 import { ContractModal } from './ContractModal';
 import { AuthService } from '../services/auth';
@@ -441,7 +441,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                         )}
                         <div className="flex justify-between items-center text-sm border-t border-slate-700/30 pt-2">
                             <span className="text-slate-400">Data:</span>
-                            <span className="text-white">{new Date(date).toLocaleDateString('pt-BR')}</span>
+                            <span className="text-white">{formatDateBR(date)}</span>
                         </div>
                     </div>
 

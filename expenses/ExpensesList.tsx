@@ -13,6 +13,9 @@ import {
   parseCurrencyInput,
   calculateRealProfit,
   getBrazilDateISO,
+  formatDateBR,
+  parseISODate,
+  toLocalDateTimestamp,
   numberToMaskedCurrency,
 } from "../lib/utils";
 import {
@@ -271,7 +274,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       });
     });
     return flat.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      (a, b) => toLocalDateTimestamp(b.date) - toLocalDateTimestamp(a.date),
     );
   }, [vehicles]);
 
@@ -289,7 +292,10 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     let matchesDate = true;
     if (vehicleDateStart || vehicleDateEnd) {
       try {
-        const expenseDate = new Date(e.date);
+        const expenseDate = parseISODate(e.date);
+        if (!expenseDate) {
+          matchesDate = false;
+        } else {
         if (vehicleDateStart) {
           const [y, m, d] = vehicleDateStart.split('-').map(Number);
           const startDate = new Date(y, m - 1, d);
@@ -300,6 +306,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           const endDate = new Date(y, m - 1, d);
           endDate.setHours(23, 59, 59);
           if (expenseDate > endDate) matchesDate = false;
+        }
         }
       } catch {
         matchesDate = false;
@@ -324,6 +331,58 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
 
     return matchesSearch && matchesCategory && matchesDate && matchesAmount && matchesStatus;
   });
+
+  const filteredOpexForChart = useMemo(() => {
+    return storeExpenses.filter((item) => {
+      const term = opexSearch.toLowerCase();
+      const matchesSearch =
+        item.description.toLowerCase().includes(term) ||
+        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ??
+          false);
+      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+      const matchesPaid =
+        opexPaidFilter === "all" || (opexPaidFilter === "paid" ? item.paid : !item.paid);
+
+      let matchesDate = true;
+      if (opexDateStart || opexDateEnd) {
+        try {
+          const expenseDate = parseISODate(item.date);
+          if (!expenseDate) {
+            matchesDate = false;
+          } else {
+            if (opexDateStart) {
+              const [y, m, d] = opexDateStart.split("-").map(Number);
+              const startDate = new Date(y, m - 1, d);
+              if (expenseDate < startDate) matchesDate = false;
+            }
+            if (opexDateEnd) {
+              const [y, m, d] = opexDateEnd.split("-").map(Number);
+              const endDate = new Date(y, m - 1, d);
+              endDate.setHours(23, 59, 59);
+              if (expenseDate > endDate) matchesDate = false;
+            }
+          }
+        } catch {
+          matchesDate = false;
+        }
+      }
+
+      const matchesAmount =
+        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+
+      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+    });
+  }, [
+    storeExpenses,
+    opexSearch,
+    opexCategoryFilter,
+    opexPaidFilter,
+    opexDateStart,
+    opexDateEnd,
+    opexMinAmount,
+    opexMaxAmount,
+  ]);
 
   const COLORS = [
     "#10b981",
@@ -602,7 +661,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                   {filteredVehicleExpenses.map((e, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/50">
                       <td className="p-3 text-slate-400">
-                        {new Date(e.date).toLocaleDateString()}
+                        {formatDateBR(e.date)}
                       </td>
                       <td className="p-3 text-white font-medium">
                         <button
@@ -769,17 +828,21 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
-                          const expenseDate = new Date(item.date);
-                          if (opexDateStart) {
-                            const [y, m, d] = opexDateStart.split('-').map(Number);
-                            const startDate = new Date(y, m - 1, d);
-                            if (expenseDate < startDate) matchesDate = false;
-                          }
-                          if (opexDateEnd) {
-                            const [y, m, d] = opexDateEnd.split('-').map(Number);
-                            const endDate = new Date(y, m - 1, d);
-                            endDate.setHours(23, 59, 59);
-                            if (expenseDate > endDate) matchesDate = false;
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
                           }
                         } catch { matchesDate = false; }
                       }
@@ -815,17 +878,21 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
-                          const expenseDate = new Date(item.date);
-                          if (opexDateStart) {
-                            const [y, m, d] = opexDateStart.split('-').map(Number);
-                            const startDate = new Date(y, m - 1, d);
-                            if (expenseDate < startDate) matchesDate = false;
-                          }
-                          if (opexDateEnd) {
-                            const [y, m, d] = opexDateEnd.split('-').map(Number);
-                            const endDate = new Date(y, m - 1, d);
-                            endDate.setHours(23, 59, 59);
-                            if (expenseDate > endDate) matchesDate = false;
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
                           }
                         } catch { matchesDate = false; }
                       }
@@ -861,17 +928,21 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
-                          const expenseDate = new Date(item.date);
-                          if (opexDateStart) {
-                            const [y, m, d] = opexDateStart.split('-').map(Number);
-                            const startDate = new Date(y, m - 1, d);
-                            if (expenseDate < startDate) matchesDate = false;
-                          }
-                          if (opexDateEnd) {
-                            const [y, m, d] = opexDateEnd.split('-').map(Number);
-                            const endDate = new Date(y, m - 1, d);
-                            endDate.setHours(23, 59, 59);
-                            if (expenseDate > endDate) matchesDate = false;
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
                           }
                         } catch { matchesDate = false; }
                       }
@@ -1004,17 +1075,21 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                             let matchesDate = true;
                             if (opexDateStart || opexDateEnd) {
                               try {
-                                const expenseDate = new Date(item.date);
-                                if (opexDateStart) {
-                                  const [y, m, d] = opexDateStart.split('-').map(Number);
-                                  const startDate = new Date(y, m - 1, d);
-                                  if (expenseDate < startDate) matchesDate = false;
-                                }
-                                if (opexDateEnd) {
-                                  const [y, m, d] = opexDateEnd.split('-').map(Number);
-                                  const endDate = new Date(y, m - 1, d);
-                                  endDate.setHours(23, 59, 59);
-                                  if (expenseDate > endDate) matchesDate = false;
+                                const expenseDate = parseISODate(item.date);
+                                if (!expenseDate) {
+                                  matchesDate = false;
+                                } else {
+                                  if (opexDateStart) {
+                                    const [y, m, d] = opexDateStart.split('-').map(Number);
+                                    const startDate = new Date(y, m - 1, d);
+                                    if (expenseDate < startDate) matchesDate = false;
+                                  }
+                                  if (opexDateEnd) {
+                                    const [y, m, d] = opexDateEnd.split('-').map(Number);
+                                    const endDate = new Date(y, m - 1, d);
+                                    endDate.setHours(23, 59, 59);
+                                    if (expenseDate > endDate) matchesDate = false;
+                                  }
                                 }
                               } catch { matchesDate = false; }
                             }
@@ -1075,17 +1150,21 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
-                          const expenseDate = new Date(item.date);
-                          if (opexDateStart) {
-                            const [y, m, d] = opexDateStart.split('-').map(Number);
-                            const startDate = new Date(y, m - 1, d);
-                            if (expenseDate < startDate) matchesDate = false;
-                          }
-                          if (opexDateEnd) {
-                            const [y, m, d] = opexDateEnd.split('-').map(Number);
-                            const endDate = new Date(y, m - 1, d);
-                            endDate.setHours(23, 59, 59);
-                            if (expenseDate > endDate) matchesDate = false;
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
                           }
                         } catch { matchesDate = false; }
                       }
@@ -1099,7 +1178,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       .map((item) => (
                         <tr key={item.id} className="hover:bg-slate-800/30 group">
                           <td className="p-3 text-slate-400 whitespace-nowrap">
-                            {new Date(item.date).toLocaleDateString()}
+                            {formatDateBR(item.date)}
                           </td>
                           <td className="p-3 text-white max-w-[280px] break-words">
                             {item.description}
@@ -1151,7 +1230,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                   <PieChart>
                     <Pie
                       data={Object.entries(
-                        storeExpenses.reduce((acc: any, curr) => {
+                        filteredOpexForChart.reduce((acc: any, curr) => {
                           acc[curr.category] =
                             (acc[curr.category] || 0) + curr.amount;
                           return acc;
@@ -1185,7 +1264,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 <p className="text-slate-400 text-xs uppercase">Total OPEX</p>
                 <p className="text-2xl font-bold text-white">
                   {formatCurrency(
-                    storeExpenses.reduce((acc, e) => acc + e.amount, 0),
+                    filteredOpexForChart.reduce((acc, e) => acc + e.amount, 0),
                   )}
                 </p>
               </div>

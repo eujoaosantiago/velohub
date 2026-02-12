@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Vehicle, UserRole, VehicleStatus, checkPermission } from '../types';
 import { Button } from '../components/ui/Button';
-import { formatCurrency, getStatusLabel, getStatusBorderColor, getStatusColor } from '../lib/utils';
+import { formatCurrency, getStatusLabel, getStatusBorderColor, getStatusColor, formatDateBR, parseISODate } from '../lib/utils';
 import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check, Trash2 } from 'lucide-react';
 import { QuickSaleModal } from '../components/QuickSaleModal';
 import { ReservationModal } from '../components/ReservationModal';
@@ -257,26 +257,15 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
 
       <div className="grid grid-cols-1 gap-4">
         {filteredVehicles.length > 0 ? filteredVehicles.map(vehicle => {
-            const daysInStock = Math.floor((new Date().getTime() - new Date(vehicle.purchaseDate).getTime()) / (1000 * 3600 * 24));
+                        const purchaseDate = parseISODate(vehicle.purchaseDate || vehicle.createdAt);
+                        const daysInStock = purchaseDate
+                            ? Math.floor((new Date().getTime() - purchaseDate.getTime()) / (1000 * 3600 * 24))
+                            : 0;
             const isStale = vehicle.status === 'available' && daysInStock > 60;
             const borderColorClass = getStatusBorderColor(vehicle.status);
             // Parse correto da data para evitar problemas de timezone
-            const dateStr = vehicle.purchaseDate || vehicle.createdAt;
-            const addedDate = (() => {
-              if (!dateStr) return 'Data não informada';
-              try {
-                if (dateStr.includes('-')) {
-                  const [year, month, day] = dateStr.split(/[-T]/).slice(0, 3).map(Number);
-                  if (year && month && day) {
-                    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
-                  }
-                }
-                // Fallback para ISO string completo
-                return new Date(dateStr).toLocaleDateString('pt-BR');
-              } catch {
-                return 'Data inválida';
-              }
-            })();
+                        const dateStr = vehicle.purchaseDate || vehicle.createdAt;
+                        const addedDate = dateStr ? formatDateBR(dateStr, 'Data invalida') : 'Data nao informada';
             const isDropdownOpen = openStatusId === vehicle.id;
 
             return (

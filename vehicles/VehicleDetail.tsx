@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermission, ExpenseCategory } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, maskCEP, getBrazilDateISO, parseISODate, fetchCepInfo, maskRenavam, maskChassis, numberToMaskedCurrency } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, maskCEP, getBrazilDateISO, parseISODate, normalizeDate, formatDateBR, fetchCepInfo, maskRenavam, maskChassis, numberToMaskedCurrency } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
@@ -174,7 +174,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       ),
       commission: maskCurrencyInput((calculateDefaultCommission() * 100).toString()), 
       commissionTo: getDefaultCommissionTo(),
-      date: vehicle.soldDate || getBrazilDateISO(), // Usa data da venda se já vendido, senão data atual
+    date: normalizeDate(vehicle.soldDate), // Usa data da venda se já vendido, senão data atual
       method: vehicle.paymentMethod || 'Pix / Transferência',
       buyerName: vehicle.buyer?.name || '',
       buyerCpf: vehicle.buyer?.cpf || '',
@@ -847,7 +847,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       const saleUpdate: Partial<Vehicle> = {
           status: 'sold',
           soldPrice: finalSoldPrice,
-          soldDate: saleData.date,
+          soldDate: normalizeDate(saleData.date),
           paymentMethod: saleData.method,
           paymentDetails: {
               amountText: sanitizeInput(saleData.paymentAmountText),
@@ -909,7 +909,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                   color: sanitizeInput(saleData.tradeIn.color),
                   status: 'available',
                   purchasePrice: tradeInVal,
-                  purchaseDate: saleData.date,
+                  purchaseDate: normalizeDate(saleData.date),
                   expectedSalePrice: tradeInVal * 1.2,
                   fipePrice: 0,
                   photos: [],
@@ -964,7 +964,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
               vehicleId: vehicle.id, 
               description: expenseData.desc, 
               amount: amountVal, 
-              date: new Date().toISOString(), 
+              date: getBrazilDateISO(), 
               category: expenseData.category,
               employeeName: expenseData.category === 'salary' ? expenseData.employeeName : undefined
           };
@@ -1784,7 +1784,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             {isNewExpense && <span className="text-[10px] bg-emerald-500 text-white px-1 rounded">Novo</span>}
                                         </div>
                                         <div className="flex gap-2">
-                                            <span className="text-slate-500 text-xs">{categoryLabel} • {new Date(exp.date).toLocaleDateString()}</span>
+                                            <span className="text-slate-500 text-xs">{categoryLabel} • {formatDateBR(exp.date)}</span>
                                             {exp.employeeName && <span className="text-indigo-400 text-xs font-bold">• {exp.employeeName}</span>}
                                         </div>
                                     </div>

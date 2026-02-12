@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Vehicle } from '../types';
 import { Card, StatCard } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateRealProfit, calculateROI } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateRealProfit, calculateROI, formatDateBR, toLocalDateTimestamp, parseISODate } from '../lib/utils';
 import { Search, Calendar, User, DollarSign, TrendingUp, Filter, BarChart3, PieChart as PieIcon, Award, Eye, Lock, Crown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell } from 'recharts';
 import { AuthService } from '../services/auth';
@@ -33,26 +33,13 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
   const canViewCharts = planLimits?.showAdvancedReports ?? false;
   
   // Filter only sold vehicles
-  const soldVehicles = useMemo(() => vehicles.filter(v => v.status === 'sold').sort((a, b) => {
-    return new Date(b.soldDate || '').getTime() - new Date(a.soldDate || '').getTime();
-  }), [vehicles]);
-
-    const parseSoldDate = (value?: string) => {
-        if (!value) return null;
-        const cleaned = value.split('T')[0]?.split(' ')[0] || value;
-        if (cleaned.includes('-')) {
-            const [year, month, day] = cleaned.split('-').map(Number);
-            if (year && month && day) {
-                return new Date(year, month - 1, day);
-            }
-        }
-        const fallback = new Date(value);
-        return Number.isNaN(fallback.getTime()) ? null : fallback;
-    };
+    const soldVehicles = useMemo(() => vehicles.filter(v => v.status === 'sold').sort((a, b) => {
+        return toLocalDateTimestamp(b.soldDate) - toLocalDateTimestamp(a.soldDate);
+    }), [vehicles]);
 
   const filteredSales = soldVehicles.filter(v => {
     const term = searchTerm.toLowerCase();
-        const saleDate = parseSoldDate(v.soldDate)?.toLocaleDateString('pt-BR') || '';
+        const saleDate = formatDateBR(v.soldDate, '');
     const priceStr = v.soldPrice ? v.soldPrice.toString() : '';
     
     return (
@@ -121,7 +108,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
 
     const filteredChartVehicles = useMemo(() => {
         return soldVehicles.filter((v) => {
-            const soldAt = parseSoldDate(v.soldDate);
+            const soldAt = parseISODate(v.soldDate);
             if (!soldAt) return false;
             if (soldAt < chartStart || soldAt > chartEnd) return false;
             if (chartBrand !== 'all' && v.make !== chartBrand) return false;
@@ -154,7 +141,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
         });
 
         filteredChartVehicles.forEach((v) => {
-            const soldAt = parseSoldDate(v.soldDate);
+            const soldAt = parseISODate(v.soldDate);
             if (!soldAt) return;
             const key = `${months[soldAt.getMonth()]}/${soldAt.getFullYear().toString().slice(2)}`;
             if (data[key]) {
@@ -398,7 +385,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                                         <div className="flex items-center gap-2">
                                             <Calendar size={14} className="text-slate-500" />
                                             {sale.soldDate
-                                                ? (parseSoldDate(sale.soldDate)?.toLocaleDateString('pt-BR') || 'Data inválida')
+                                                ? (formatDateBR(sale.soldDate, 'Data invalida') || 'Data invalida')
                                                 : 'Data não informada'}
                                         </div>
                                     </td>

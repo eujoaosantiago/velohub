@@ -29,6 +29,16 @@ export const parseISODate = (value?: string): Date | null => {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 };
 
+export const toLocalDateTimestamp = (value?: string): number => {
+  const date = parseISODate(value);
+  return date ? date.getTime() : 0;
+};
+
+export const formatDateBR = (value?: string, fallback = ''): string => {
+  const date = parseISODate(value);
+  return date ? date.toLocaleDateString('pt-BR') : fallback;
+};
+
 // Normaliza data do Supabase para formato YYYY-MM-DD (sem timezone)
 export const normalizeDate = (value?: string): string => {
   if (!value) return getBrazilDateISO();

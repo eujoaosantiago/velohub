@@ -2,6 +2,7 @@
 import { Vehicle, User, StoreExpense, Customer, Buyer } from '../types';
 import { PLAN_CONFIG } from '../lib/plans';
 import { supabase } from '../lib/supabaseClient';
+import { normalizeDate } from '../lib/utils';
 
 export const ApiService = {
     // --- CLIENTES ---
@@ -153,7 +154,7 @@ export const ApiService = {
         expectedSalePrice: v.expected_sale_price,
         fipePrice: v.fipe_price,
         soldPrice: v.sold_price,
-        soldDate: v.sold_date,
+        soldDate: v.sold_date ? normalizeDate(v.sold_date) : undefined,
         purchaseDate: v.created_at, 
         renavam: v.renavam || '',
         chassis: v.chassis || '',
@@ -232,7 +233,7 @@ export const ApiService = {
         expectedSalePrice: vehicleData.expected_sale_price,
         fipePrice: vehicleData.fipe_price,
         soldPrice: vehicleData.sold_price,
-        soldDate: vehicleData.sold_date,
+        soldDate: vehicleData.sold_date ? normalizeDate(vehicleData.sold_date) : undefined,
         purchaseDate: vehicleData.created_at, 
         renavam: vehicleData.renavam || '',
         chassis: vehicleData.chassis || '',
@@ -321,7 +322,7 @@ export const ApiService = {
         purchase_price: vehicle.purchasePrice,
         expected_sale_price: vehicle.expectedSalePrice,
         sold_price: vehicle.soldPrice,
-        sold_date: vehicle.soldDate,
+        sold_date: vehicle.soldDate ? normalizeDate(vehicle.soldDate) : null,
         payment_method: vehicle.paymentMethod,
         customer_id: customerId || null,
         buyer_snapshot: buyerSnapshot || null,
@@ -367,7 +368,7 @@ export const ApiService = {
       
       return data.map((e: any) => ({
           ...e,
-          date: typeof e.date === 'string' ? e.date.split('T')[0] : e.date,
+          date: normalizeDate(e.date),
           storeId: e.store_id,
           createdAt: e.created_at,
           updatedAt: e.created_at
@@ -381,7 +382,7 @@ export const ApiService = {
           store_id: expense.storeId,
           description: expense.description,
           amount: expense.amount,
-          date: expense.date,
+          date: normalizeDate(expense.date),
           category: expense.category,
           paid: expense.paid
       };
@@ -400,7 +401,7 @@ export const ApiService = {
       const dbExpense = {
           description: expense.description,
           amount: expense.amount,
-          date: expense.date,
+          date: normalizeDate(expense.date),
           category: expense.category,
           paid: expense.paid
       };

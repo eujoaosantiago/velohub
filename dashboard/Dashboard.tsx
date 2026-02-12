@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { StatCard, Card } from '../components/ui/Card';
 import { DollarSign, TrendingUp, AlertCircle, Clock, PieChart as PieChartIcon, Lock, Crown, MessageSquare, Send, CheckCircle2, Building2, Car, ShoppingBag, Plus, BadgeCheck, Filter } from 'lucide-react';
 import { Vehicle, User, checkPermission, Page } from '../types';
-import { formatCurrency, calculateRealProfit, maskCurrencyInput, parseCurrencyInput } from '../lib/utils';
+import { formatCurrency, calculateRealProfit, maskCurrencyInput, parseCurrencyInput, parseISODate } from '../lib/utils';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { getPlanLimits } from '../lib/plans';
 import { Button } from '../components/ui/Button';
@@ -62,10 +62,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   const totalRealProfit = soldVehicles.reduce((acc, v) => acc + calculateRealProfit(v), 0);
 
   // Attention Logic: Cars in stock > 60 days
-  const attentionVehicles = availableVehicles.filter(v => {
-    const daysInStock = Math.floor((new Date().getTime() - new Date(v.purchaseDate).getTime()) / (1000 * 3600 * 24));
-    return daysInStock > 60;
-  });
+    const attentionVehicles = availableVehicles.filter(v => {
+        const purchaseDate = parseISODate(v.purchaseDate || v.createdAt);
+        if (!purchaseDate) return false;
+        const daysInStock = Math.floor((new Date().getTime() - purchaseDate.getTime()) / (1000 * 3600 * 24));
+        return daysInStock > 60;
+    });
 
     const periodLabelMap: Record<string, string> = {
         last_3: 'Últimos 3 meses',
@@ -129,18 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
         [chartPeriod, customStartDate, customEndDate],
     );
 
-    const parseSoldDate = (value?: string) => {
-        if (!value) return null;
-        const cleaned = value.split('T')[0]?.split(' ')[0] || value;
-        if (cleaned.includes('-')) {
-            const [year, month, day] = cleaned.split('-').map(Number);
-            if (year && month && day) {
-                return new Date(year, month - 1, day);
-            }
-        }
-        const fallback = new Date(value);
-        return Number.isNaN(fallback.getTime()) ? null : fallback;
-    };
+    const parseSoldDate = (value?: string) => parseISODate(value);
 
     const filteredChartVehicles = useMemo(() => {
         return soldVehicles.filter((v) => {
@@ -727,8 +718,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                    {attentionVehicles.length > 0 ? attentionVehicles.map(vehicle => {
-                        const daysInStock = Math.floor((new Date().getTime() - new Date(vehicle.purchaseDate).getTime()) / (1000 * 3600 * 24));
+                                        {attentionVehicles.length > 0 ? attentionVehicles.map(vehicle => {
+                                                const purchaseDate = parseISODate(vehicle.purchaseDate || vehicle.createdAt);
+                                                const daysInStock = purchaseDate
+                                                    ? Math.floor((new Date().getTime() - purchaseDate.getTime()) / (1000 * 3600 * 24))
+                                                    : 0;
                         return (
                         <tr key={vehicle.id} className="text-sm">
                             <td className="py-4 font-medium text-white pl-2">
