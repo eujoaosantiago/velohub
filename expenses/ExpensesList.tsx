@@ -356,13 +356,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
         "Todas";
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <>
       {notification && (
-        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top pointer-events-none ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
           {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
           <span className="font-medium text-sm">{notification.message}</span>
         </div>
       )}
+      <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Central Financeira</h1>
@@ -1252,6 +1253,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
