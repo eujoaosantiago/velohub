@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vehicle, Expense, Buyer, VehicleStatus, UserRole, PlanType, checkPermission, ExpenseCategory } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, getBrazilDateISO, parseISODate, fetchCepInfo, maskRenavam, maskChassis } from '../lib/utils';
+import { formatCurrency, calculateTotalExpenses, calculateROI, isValidCPF, isValidPlate, maskCurrencyInput, parseCurrencyInput, maskCPF, maskPhone, maskCEP, getBrazilDateISO, parseISODate, fetchCepInfo, maskRenavam, maskChassis } from '../lib/utils';
 import { ArrowLeft, Camera, DollarSign, Share2, Save, Trash2, Tag, AlertTriangle, User, FileText, Phone, Edit2, X, Search, Lock, Upload, ArrowRightLeft, Printer, ChevronDown, Check, Wrench, Circle, AlertCircle, CheckCircle, RotateCcw, TrendingUp, TrendingDown, Minus, Briefcase, Plus, Wallet, RefreshCw, FileCheck, CheckCircle2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { FipeApi, FipeBrand, FipeModel, FipeYear } from '../services/fipeApi';
 import { PLAN_CONFIG, getPlanLimits } from '../lib/plans';
@@ -1820,28 +1820,54 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                           <div className="space-y-6">
                               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 lg:p-6 space-y-5">
                                   <h4 className="text-sm font-semibold text-white">Pagamento</h4>
-                                  <label className="block text-sm text-slate-300">
-                                      {saleData.method === 'Troca + Volta' && !isSold ? 'Valor em Dinheiro (Volta)' : 'Valor Final da Venda'}
-                                  </label>
-                                  <input 
-                                    type="text" 
-                                    ref={priceInputRef}
-                                    inputMode="decimal"
-                                    value={saleData.price} 
-                                    onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})}
-                                    onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
-                                    disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 lg:p-5 text-white text-lg lg:text-xl font-bold text-right" 
-                                  />
                                   
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* Desktop: Valor Final e Valor Anunciado lado a lado | Mobile: Valor Final apenas */}
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                      <div>
+                                          <label className="block text-sm text-slate-300 mb-2">
+                                              {saleData.method === 'Troca + Volta' && !isSold ? 'Valor em Dinheiro (Volta)' : 'Valor Final da Venda'}
+                                          </label>
+                                          <input 
+                                            type="text" 
+                                            ref={priceInputRef}
+                                            inputMode="decimal"
+                                            value={saleData.price} 
+                                            onChange={e => setSaleData({...saleData, price: maskCurrencyInput(e.target.value)})}
+                                            onFocus={e => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
+                                            disabled={isSold} 
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 lg:p-4 text-white text-base lg:text-lg font-bold text-right" 
+                                          />
+                                      </div>
+                                      <div className="hidden lg:block">
+                                          <label className="block text-sm text-slate-300 mb-2">Valor Anunciado (Ref.)</label>
+                                          <input 
+                                            type="text" 
+                                            value={formatCurrency(formData.expectedSalePrice || 0)}
+                                            disabled
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 lg:p-4 text-slate-400 text-base lg:text-lg font-bold text-right" 
+                                          />
+                                      </div>
+                                  </div>
+                                  
+                                  {/* Desktop: Data e Pagamento lado a lado | Mobile: empilhados */}
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                       <div>
                                           <label className="block text-sm text-slate-300 mb-2">Data</label>
-                                          <input type="date" value={saleData.date} onChange={e => setSaleData({...saleData, date: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white" />
+                                          <input 
+                                            type="date" 
+                                            value={saleData.date} 
+                                            onChange={e => setSaleData({...saleData, date: e.target.value})} 
+                                            disabled={isSold} 
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" 
+                                          />
                                       </div>
                                       <div>
                                           <label className="block text-sm text-slate-300 mb-2">Pagamento</label>
-                                          <select value={saleData.method} onChange={e => setSaleData({...saleData, method: e.target.value})} disabled={isSold} className="w-full select-premium p-3 md:p-4">
+                                          <select 
+                                            value={saleData.method} 
+                                            onChange={e => setSaleData({...saleData, method: e.target.value})} 
+                                            disabled={isSold} 
+                                            className="w-full select-premium p-3">
                                               <option>Pix / Transferência</option>
                                               <option>Financiamento</option>
                                               <option>Dinheiro</option>
@@ -1850,14 +1876,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       </div>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* Desktop: Valor por extenso e Forma de pagamento lado a lado | Mobile: empilhados */}
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                       <div>
                                           <label className="block text-sm text-slate-300 mb-2">Valor por extenso</label>
                                           <input
                                             value={saleData.paymentAmountText}
                                             onChange={e => setSaleData({...saleData, paymentAmountText: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm focus:ring-indigo-500 outline-none"
                                             placeholder="Ex: dez mil reais"
                                           />
                                       </div>
@@ -1867,20 +1894,22 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             value={saleData.paymentMethodDetail}
                                             onChange={e => setSaleData({...saleData, paymentMethodDetail: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
-                                            placeholder="Pix, transferencia, especie"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm focus:ring-indigo-500 outline-none"
+                                            placeholder="Pix, transferência, espécie"
                                           />
                                       </div>
-                                      <div>
-                                          <label className="block text-sm text-slate-300 mb-2">Data do pagamento</label>
-                                          <input
-                                            value={saleData.paymentDateDetail}
-                                            onChange={e => setSaleData({...saleData, paymentDateDetail: e.target.value})}
-                                            disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
-                                            placeholder="Ex: no ato da assinatura"
-                                          />
-                                      </div>
+                                  </div>
+                                  
+                                  {/* Data do pagamento - sempre largura total */}
+                                  <div>
+                                      <label className="block text-sm text-slate-300 mb-2">Data do pagamento</label>
+                                      <input
+                                        value={saleData.paymentDateDetail}
+                                        onChange={e => setSaleData({...saleData, paymentDateDetail: e.target.value})}
+                                        disabled={isSold}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm focus:ring-indigo-500 outline-none"
+                                        placeholder="Ex: no ato da assinatura"
+                                      />
                                   </div>
                               </div>
 
@@ -1910,46 +1939,41 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                       </div>
                                   </div>
 
-                                  <div>
-                                      <div className="flex gap-4">
-                                          <div className="flex-1">
-                                              <label className="block text-sm text-slate-300 mb-2">Comissão de Venda (R$)</label>
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                      <div>
+                                          <label className="block text-sm text-slate-300 mb-2">Comissão de Venda (R$)</label>
+                                          <input 
+                                            type="text" 
+                                            inputMode="decimal"
+                                            value={isSold ? maskCurrencyInput((calculateDefaultCommission() * 100).toFixed(0)) : saleData.commission} 
+                                            onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
+                                            disabled={isSold} 
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm font-bold" 
+                                            placeholder="R$ 0,00"
+                                          />
+                                      </div>
+                                      {hasCommissionInput && !isSold && (
+                                          <div className="animate-fade-in">
+                                              <label className="block text-sm text-slate-300 mb-2">Vendedor</label>
                                               <input 
                                                 type="text" 
-                                                inputMode="decimal"
-                                                value={isSold ? maskCurrencyInput((calculateDefaultCommission() * 100).toFixed(0)) : saleData.commission} 
-                                                onChange={e => setSaleData({...saleData, commission: maskCurrencyInput(e.target.value)})} 
-                                                disabled={isSold} 
-                                                className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm font-bold" 
-                                                placeholder="R$ 0,00"
+                                                value={saleData.commissionTo} 
+                                                onChange={e => setSaleData({...saleData, commissionTo: e.target.value})} 
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm" 
+                                                placeholder="Nome do funcionário"
                                               />
                                           </div>
-                                          {hasCommissionInput && !isSold && (
-                                              <div className="flex-1 animate-fade-in">
-                                                  <label className="block text-sm text-slate-300 mb-2">Para Quem? (Vendedor)</label>
-                                                  <div className="relative">
-                                                      <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                      <input 
-                                                        type="text" 
-                                                        value={saleData.commissionTo} 
-                                                        onChange={e => setSaleData({...saleData, commissionTo: e.target.value})} 
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 pl-9 text-white text-sm" 
-                                                        placeholder="Nome do funcionário"
-                                                      />
-                                                  </div>
-                                              </div>
-                                          )}
-                                          {isSold && calculateDefaultCommission() > 0 && (
-                                              <div className="flex-1">
-                                                  <label className="block text-sm text-slate-300 mb-2">Vendedor (Comissão)</label>
-                                                  <input 
-                                                    disabled
-                                                    value={vehicle.saleCommissionTo || 'Não informado'} 
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-slate-400 text-sm" 
-                                                  />
-                                              </div>
-                                          )}
-                                      </div>
+                                      )}
+                                      {isSold && calculateDefaultCommission() > 0 && (
+                                          <div>
+                                              <label className="block text-sm text-slate-300 mb-2">Vendedor (Comissão)</label>
+                                              <input 
+                                                disabled
+                                                value={vehicle.saleCommissionTo || 'Não informado'} 
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-400 text-sm" 
+                                              />
+                                          </div>
+                                      )}
                                   </div>
                               </div>
 
@@ -1982,86 +2006,135 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
 
                               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 lg:p-6 space-y-4">
                               <h4 className="text-sm font-semibold text-white">Cliente</h4>
-                              <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base" />
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              
+                              {/* Nome Completo - sempre largura total */}
+                              <div>
+                                  <label className="block text-sm text-slate-300 mb-2">Nome Completo</label>
+                                  <input 
+                                    placeholder="Nome completo do cliente" 
+                                    value={isSold ? vehicle.buyer?.name : saleData.buyerName} 
+                                    onChange={e => setSaleData({...saleData, buyerName: e.target.value})} 
+                                    disabled={isSold} 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
+                                  />
+                              </div>
+                              
+                              {/* Desktop: CPF e Telefone lado a lado | Mobile: empilhados */}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                   <div className="relative">
+                                    <label className="block text-sm text-slate-300 mb-2">CPF</label>
                                     <input 
-                                        placeholder="CPF" 
+                                        placeholder="000.000.000-00" 
                                         inputMode="numeric"
                                         value={isSold ? vehicle.buyer?.cpf : saleData.buyerCpf} 
                                         onChange={e => handleCpfChange(e.target.value)} 
                                         disabled={isSold} 
                                         maxLength={14}
-                                        className={`w-full bg-slate-950 border rounded-lg p-3 lg:p-4 text-white text-base outline-none transition-colors ${
+                                        className={`w-full bg-slate-950 border rounded-lg p-3 text-white text-base outline-none transition-colors ${
                                             !isSold && saleData.buyerCpf.length > 0 ? (isCpfValid ? 'border-emerald-500' : 'border-rose-500') : 'border-slate-700'
                                         }`}
                                     />
-                                    {!isSold && isCpfValid && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" size={16} />}
-                                    {!isSold && isCpfInvalid && saleData.buyerCpf.length > 0 && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500" size={16} />}
+                                    {!isSold && isCpfValid && <CheckCircle className="absolute right-3 top-[38px] text-emerald-500" size={16} />}
+                                    {!isSold && isCpfInvalid && saleData.buyerCpf.length > 0 && <AlertCircle className="absolute right-3 top-[38px] text-rose-500" size={16} />}
                                   </div>
+                                  <div>
+                                    <label className="block text-sm text-slate-300 mb-2">Telefone</label>
+                                    <input 
+                                      placeholder="(00) 00000-0000" 
+                                      inputMode="tel"
+                                      value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
+                                      onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
+                                      disabled={isSold} 
+                                      maxLength={15}
+                                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
+                                    />
+                                  </div>
+                              </div>
+                              
+                              {/* E-mail - sempre largura total */}
+                              <div>
+                                  <label className="block text-sm text-slate-300 mb-2">E-mail</label>
                                   <input 
-                                    placeholder="Telefone" 
-                                    inputMode="tel"
-                                    value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
-                                    onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
-                                    disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base" 
-                                  />
-                                  <input 
-                                    placeholder="E-mail" 
+                                    placeholder="email@exemplo.com" 
                                     type="email"
                                     value={isSold ? vehicle.buyer?.email : saleData.buyerEmail} 
                                     onChange={e => setSaleData({...saleData, buyerEmail: e.target.value})} 
                                     disabled={isSold} 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
                                   />
                               </div>
-                              <div className="grid grid-cols-12 gap-4">
-                                  <input
-                                      placeholder="CEP"
-                                      inputMode="numeric"
-                                      value={isSold ? vehicle.buyer?.cep : saleData.buyerCep}
-                                      onChange={e => setSaleData({...saleData, buyerCep: e.target.value})}
-                                      onBlur={handleBuyerCepBlur}
-                                      disabled={isSold}
-                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
-                                  />
-                                  <input
-                                      placeholder="Logradouro"
-                                      value={isSold ? vehicle.buyer?.street : saleData.buyerStreet}
-                                      onChange={e => setSaleData({...saleData, buyerStreet: e.target.value})}
-                                      disabled={isSold}
-                                      className="col-span-6 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
-                                  />
-                                  <input
-                                      placeholder="Número"
-                                      value={isSold ? vehicle.buyer?.number : saleData.buyerNumber}
-                                      onChange={e => setSaleData({...saleData, buyerNumber: e.target.value})}
-                                      disabled={isSold}
-                                      className="col-span-3 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
-                                  />
+                              
+                              {/* Desktop: CEP, Cidade e UF lado a lado | Mobile: empilhados */}
+                              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                                  <div className="lg:col-span-3">
+                                      <label className="block text-sm text-slate-300 mb-2">CEP</label>
+                                      <input
+                                          placeholder="00000-000"
+                                          inputMode="numeric"
+                                          value={isSold ? vehicle.buyer?.cep : saleData.buyerCep}
+                                          onChange={e => setSaleData({...saleData, buyerCep: maskCEP(e.target.value)})}
+                                          onBlur={handleBuyerCepBlur}
+                                          disabled={isSold}
+                                          maxLength={9}
+                                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      />
+                                  </div>
+                                  <div className="lg:col-span-7">
+                                      <label className="block text-sm text-slate-300 mb-2">Cidade</label>
+                                      <input
+                                          placeholder="Nome da cidade"
+                                          value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
+                                          onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
+                                          disabled={isSold}
+                                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      />
+                                  </div>
+                                  <div className="lg:col-span-2">
+                                      <label className="block text-sm text-slate-300 mb-2">UF</label>
+                                      <input
+                                          placeholder="UF"
+                                          value={isSold ? vehicle.buyer?.state : saleData.buyerState}
+                                          onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
+                                          disabled={isSold}
+                                          maxLength={2}
+                                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base text-center font-semibold uppercase"
+                                      />
+                                  </div>
                               </div>
-                              <div className="grid grid-cols-12 gap-4">
+                              
+                              {/* Desktop: Logradouro e Número lado a lado | Mobile: empilhados */}
+                              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                                  <div className="lg:col-span-9">
+                                      <label className="block text-sm text-slate-300 mb-2">Logradouro</label>
+                                      <input
+                                          placeholder="Rua, Avenida, etc."
+                                          value={isSold ? vehicle.buyer?.street : saleData.buyerStreet}
+                                          onChange={e => setSaleData({...saleData, buyerStreet: e.target.value})}
+                                          disabled={isSold}
+                                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      />
+                                  </div>
+                                  <div className="lg:col-span-3">
+                                      <label className="block text-sm text-slate-300 mb-2">Número</label>
+                                      <input
+                                          placeholder="Nº"
+                                          value={isSold ? vehicle.buyer?.number : saleData.buyerNumber}
+                                          onChange={e => setSaleData({...saleData, buyerNumber: e.target.value})}
+                                          disabled={isSold}
+                                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
+                                      />
+                                  </div>
+                              </div>
+                              
+                              {/* Bairro - sempre largura total */}
+                              <div>
+                                  <label className="block text-sm text-slate-300 mb-2">Bairro</label>
                                   <input
-                                      placeholder="Bairro"
+                                      placeholder="Nome do bairro"
                                       value={isSold ? vehicle.buyer?.neighborhood : saleData.buyerNeighborhood}
                                       onChange={e => setSaleData({...saleData, buyerNeighborhood: e.target.value})}
                                       disabled={isSold}
-                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
-                                  />
-                                  <input
-                                      placeholder="Cidade"
-                                      value={isSold ? vehicle.buyer?.city : saleData.buyerCity}
-                                      onChange={e => setSaleData({...saleData, buyerCity: e.target.value})}
-                                      disabled={isSold}
-                                      className="col-span-12 md:col-span-5 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base"
-                                  />
-                                  <input
-                                      placeholder="UF"
-                                      value={isSold ? vehicle.buyer?.state : saleData.buyerState}
-                                      onChange={e => setSaleData({...saleData, buyerState: e.target.value.toUpperCase().slice(0, 2)})}
-                                      disabled={isSold}
-                                      className="col-span-12 md:col-span-2 bg-slate-950 border border-slate-700 rounded-lg p-3 lg:p-4 text-white text-base text-center font-semibold uppercase"
+                                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base"
                                   />
                               </div>
                           </div>
