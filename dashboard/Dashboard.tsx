@@ -230,12 +230,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
   const [isSendingSupport, setIsSendingSupport] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
     const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+    const supportSecret = (import.meta as any).env?.VITE_SUPPORT_SECRET;
 
   const handleSendSupport = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!supportMessage.trim()) return;
       if (!user?.email) {
           alert("Seu email nao esta cadastrado. Atualize seu perfil para enviar suporte.");
+          return;
+      }
+      if (!supportSecret) {
+          alert("Chave de suporte nao configurada. Fale com o admin.");
           return;
       }
 
@@ -251,9 +256,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ vehicles, user }) => {
                       message: supportMessage,
                       isClient: true
                   },
-                  headers: supabaseAnonKey
-                      ? { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` }
-                      : undefined,
+                  headers: {
+                      ...(supabaseAnonKey ? { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` } : {}),
+                      "x-velohub-secret": supportSecret,
+                  },
               });
               if (error) throw error;
               if (data?.error) throw new Error(data.error);

@@ -187,10 +187,15 @@ export const SupportPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+    const supportSecret = (import.meta as any).env?.VITE_SUPPORT_SECRET;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !email || !topic || !message) return;
+        if (!supportSecret) {
+            alert("Chave de suporte nao configurada. Tente novamente mais tarde.");
+            return;
+        }
         
         setIsSubmitting(true);
         
@@ -204,9 +209,10 @@ export const SupportPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         message,
                         isClient: false // Visitante
                     },
-                    headers: supabaseAnonKey
-                        ? { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` }
-                        : undefined,
+                    headers: {
+                        ...(supabaseAnonKey ? { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` } : {}),
+                        "x-velohub-secret": supportSecret,
+                    },
                 });
                 if (error) throw error;
             } else {

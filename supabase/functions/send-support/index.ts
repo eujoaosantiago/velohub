@@ -13,12 +13,13 @@ declare const Deno: {
 };
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPPORT_SECRET = Deno.env.get("SUPPORT_SECRET");
 // Email da equipe de suporte (para onde as dúvidas vão)
 const SUPPORT_EMAIL = "eujoaopedrosantiago@gmail.com"; 
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-velohub-secret",
 };
 
 interface SupportRequest {
@@ -35,6 +36,18 @@ serve(async (req) => {
   }
 
   try {
+    if (!SUPPORT_SECRET) {
+      throw new Error("SUPPORT_SECRET not configured");
+    }
+
+    const providedSecret = req.headers.get("x-velohub-secret");
+    if (providedSecret !== SUPPORT_SECRET) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
     const { name, email, subject, message, isClient } = await req.json() as SupportRequest;
 
     if (!RESEND_API_KEY) {
