@@ -39,6 +39,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
   const [buyerName, setBuyerName] = useState('');
   const [buyerCpf, setBuyerCpf] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
     const [buyerCep, setBuyerCep] = useState('');
     const [buyerStreet, setBuyerStreet] = useState('');
     const [buyerNumber, setBuyerNumber] = useState('');
@@ -232,6 +233,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
               name: sanitizeInput(buyerName),
               cpf: sanitizeInput(buyerCpf),
               phone: sanitizeInput(buyerPhone),
+              email: sanitizeInput(buyerEmail),
               cep: sanitizeInput(buyerCep),
               street: sanitizeInput(buyerStreet),
               number: sanitizeInput(buyerNumber),
@@ -661,7 +663,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                     className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-3 md:py-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="relative">
                                     <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                                     <input 
@@ -690,6 +692,13 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ vehicle, allVehi
                                         className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-3 md:py-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                     />
                                 </div>
+                                <input 
+                                    type="email"
+                                    value={buyerEmail}
+                                    onChange={e => setBuyerEmail(e.target.value)}
+                                    placeholder="E-mail"
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 md:px-4 py-3 md:py-4 text-white text-sm focus:ring-indigo-500 outline-none"
+                                />
                             </div>
                             <div className="space-y-3">
                                 <div>

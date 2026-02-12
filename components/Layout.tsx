@@ -78,7 +78,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
 
       {/* Sidebar Navigation */}
       <aside className={`
-        fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-xl transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:w-64 md:border-r md:border-slate-800 md:bg-slate-900
+        fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-xl transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:w-64 md:border-r md:border-slate-800 md:bg-slate-900 md:h-screen md:sticky md:top-0
         ${isMobileMenuOpen ? 'translate-x-0 pt-20' : '-translate-x-full md:pt-0'}
       `}>
         <div className="hidden md:flex h-20 items-center px-6 border-b border-slate-800">
@@ -88,7 +88,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
           <span className="font-bold text-xl tracking-wide text-white">VELO<span className="text-indigo-500">HUB</span></span>
         </div>
 
-        <div className="p-4 space-y-2 mt-4 md:mt-0 flex flex-col h-[calc(100%-80px)]">
+        <div className="p-4 space-y-2 mt-4 md:mt-0 flex flex-col h-[calc(100vh-80px)] md:h-[calc(100%-80px)]">
           
           <button 
             onClick={() => {

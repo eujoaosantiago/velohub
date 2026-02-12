@@ -178,6 +178,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
       buyerName: vehicle.buyer?.name || '',
       buyerCpf: vehicle.buyer?.cpf || '',
       buyerPhone: vehicle.buyer?.phone || '',
+      buyerEmail: vehicle.buyer?.email || '',
       buyerCep: vehicle.buyer?.cep || '',
       buyerStreet: vehicle.buyer?.street || '',
       buyerNumber: vehicle.buyer?.number || '',
@@ -810,6 +811,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
           name: sanitizeInput(saleData.buyerName),
           cpf: sanitizeInput(saleData.buyerCpf),
           phone: sanitizeInput(saleData.buyerPhone),
+          email: sanitizeInput(saleData.buyerEmail),
           cep: sanitizeInput(saleData.buyerCep),
           street: sanitizeInput(saleData.buyerStreet),
           number: sanitizeInput(saleData.buyerNumber),
@@ -1855,7 +1857,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             value={saleData.paymentAmountText}
                                             onChange={e => setSaleData({...saleData, paymentAmountText: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                             placeholder="Ex: dez mil reais"
                                           />
                                       </div>
@@ -1865,7 +1867,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             value={saleData.paymentMethodDetail}
                                             onChange={e => setSaleData({...saleData, paymentMethodDetail: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                             placeholder="Pix, transferencia, especie"
                                           />
                                       </div>
@@ -1875,7 +1877,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                             value={saleData.paymentDateDetail}
                                             onChange={e => setSaleData({...saleData, paymentDateDetail: e.target.value})}
                                             disabled={isSold}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm"
+                                            className="w-full bg-slate-950 border border-slate-700 rounded p-3 md:p-4 text-white text-sm focus:ring-indigo-500 outline-none"
                                             placeholder="Ex: no ato da assinatura"
                                           />
                                       </div>
@@ -1981,7 +1983,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
                               <h4 className="text-sm font-semibold text-white">Cliente</h4>
                               <input placeholder="Nome Completo" value={isSold ? vehicle.buyer?.name : saleData.buyerName} onChange={e => setSaleData({...saleData, buyerName: e.target.value})} disabled={isSold} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" />
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                   <div className="relative">
                                     <input 
                                         placeholder="CPF" 
@@ -2002,6 +2004,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, allVehicl
                                     inputMode="tel"
                                     value={isSold ? vehicle.buyer?.phone : saleData.buyerPhone} 
                                     onChange={e => setSaleData({...saleData, buyerPhone: maskPhone(e.target.value)})} 
+                                    disabled={isSold} 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
+                                  />
+                                  <input 
+                                    placeholder="E-mail" 
+                                    type="email"
+                                    value={isSold ? vehicle.buyer?.email : saleData.buyerEmail} 
+                                    onChange={e => setSaleData({...saleData, buyerEmail: e.target.value})} 
                                     disabled={isSold} 
                                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-base" 
                                   />
