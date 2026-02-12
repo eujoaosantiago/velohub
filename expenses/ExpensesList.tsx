@@ -101,6 +101,13 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
     date: getBrazilDateISO(),
   });
 
+  // Atualiza a data quando abre o modal de adicionar despesa
+  useEffect(() => {
+    if (isAddingOpex) {
+      setNewOpex(prev => ({ ...prev, date: getBrazilDateISO() }));
+    }
+  }, [isAddingOpex]);
+
   // Load OPEX on mount
   useEffect(() => {
     if (user) {
@@ -124,7 +131,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       storeId: user.storeId,
       description: newOpex.desc,
       amount: parseCurrencyInput(newOpex.amount),
-      date: getBrazilDateISO(), // Sempre usa a data atual no momento da criação
+      date: newOpex.date, // Usa a data selecionada pelo usuário
       category: newOpex.category,
       paid: true,
       createdAt: new Date().toISOString(),
@@ -575,7 +582,18 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               <h3 className="text-white font-bold mb-4 text-sm">
                 Nova Despesa da Loja
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                <div className="md:col-span-1">
+                  <label className="text-xs text-slate-400 block mb-1">
+                    Data
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm"
+                    value={newOpex.date}
+                    onChange={(e) => setNewOpex({ ...newOpex, date: e.target.value })}
+                  />
+                </div>
                 <div className="md:col-span-1">
                   <label className="text-xs text-slate-400 block mb-1">
                     Categoria
