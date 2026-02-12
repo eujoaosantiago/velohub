@@ -124,7 +124,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       storeId: user.storeId,
       description: newOpex.desc,
       amount: parseCurrencyInput(newOpex.amount),
-      date: newOpex.date,
+      date: getBrazilDateISO(), // Sempre usa a data atual no momento da criação
       category: newOpex.category,
       paid: true,
       createdAt: new Date().toISOString(),
