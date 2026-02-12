@@ -401,8 +401,7 @@ export const ApiService = {
           amount: expense.amount,
           date: expense.date,
           category: expense.category,
-          paid: expense.paid,
-          updated_at: new Date().toISOString()
+          paid: expense.paid
       };
       
       console.log('API: Atualizando despesa ID:', expense.id, 'com dados:', dbExpense);
@@ -420,7 +419,7 @@ export const ApiService = {
       }
       
       console.log('API: Despesa atualizada com sucesso:', data);
-      return { ...expense, updatedAt: data.updated_at };
+      return expense;
   },
 
   deleteStoreExpense: async (id: string): Promise<void> => {
