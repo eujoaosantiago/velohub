@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Camera, Zap, ZoomIn, Loader } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Camera, Zap, ZoomIn, Loader, RotateCcw } from 'lucide-react';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -32,6 +32,50 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   toggleTorch,
   applyCameraZoom,
 }) => {
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [frozenImageDataUrl, setFrozenImageDataUrl] = useState<string | null>(null);
+  const capturePhotoRef = React.useRef<HTMLCanvasElement>(null);
+
+  // Auto-close camera after upload completes
+  useEffect(() => {
+    if (isFrozen && !isUploading) {
+      const timer = setTimeout(() => {
+        onClose();
+        setIsFrozen(false);
+        setFrozenImageDataUrl(null);
+      }, 800); // Wait 800ms to show the freeze preview before closing
+
+      return () => clearTimeout(timer);
+    }
+  }, [isFrozen, isUploading, onClose]);
+
+  const handleCapture = async () => {
+    // Capture current frame to frozen image
+    if (canvasRef.current && videoRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        canvasRef.current.width = videoRef.current.videoWidth || 1280;
+        canvasRef.current.height = videoRef.current.videoHeight || 720;
+        ctx.drawImage(videoRef.current, 0, 0);
+        
+        // Get data URL for frozen preview
+        const dataUrl = canvasRef.current.toDataURL('image/jpeg');
+        setFrozenImageDataUrl(dataUrl);
+      }
+    }
+
+    // Freeze the camera
+    setIsFrozen(true);
+
+    // Trigger the actual photo capture/upload
+    onCapture();
+  };
+
+  const handleRetake = () => {
+    setIsFrozen(false);
+    setFrozenImageDataUrl(null);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -40,12 +84,24 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       <div className="md:relative md:max-w-2xl md:rounded-3xl md:overflow-hidden md:shadow-2xl w-full h-full flex flex-col">
         {/* Video Stream Container - Full screen on mobile, contained on desktop */}
         <div className="relative flex-1 md:flex-none md:aspect-[9/16] md:max-h-[90vh] w-full bg-black overflow-hidden">
+          {/* Video Stream - Hidden when frozen */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover transition-opacity duration-200 ${
+              isFrozen ? 'opacity-0' : 'opacity-100'
+            }`}
           />
+
+          {/* Frozen Preview - Shows when photo is taken */}
+          {isFrozen && frozenImageDataUrl && (
+            <img
+              src={frozenImageDataUrl}
+              alt="Captured"
+              className="w-full h-full object-cover"
+            />
+          )}
 
           {/* Canvas for Capture (Hidden) */}
           <canvas ref={canvasRef} className="hidden" />
@@ -70,7 +126,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
           {/* Side Controls - Torch/Zoom (Right side for easy thumb access) */}
           <div className="absolute top-1/2 right-4 -translate-y-1/2 flex flex-col gap-3 z-10">
             {/* Torch Control - Vertical Button */}
-            {cameraHasTorch && (
+            {cameraHasTorch && !isFrozen && (
               <button
                 onClick={toggleTorch}
                 className={`p-3 rounded-full backdrop-blur-md transition-colors active:scale-95 ${
@@ -89,7 +145,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
         {/* Bottom Controls Bar - Always visible, slides up on mobile */}
         <div className="absolute bottom-0 left-0 right-0 md:static bg-black/40 md:bg-slate-900/80 backdrop-blur-md md:backdrop-blur-sm border-t border-slate-700/20 md:border-t-0 p-4 md:p-6 space-y-3">
           {/* Zoom Control - Horizontal slider */}
-          {cameraHasZoom && (
+          {cameraHasZoom && !isFrozen && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-300 text-sm">
@@ -110,31 +166,69 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             </div>
           )}
 
-          {/* Capture Button - Large & Primary */}
-          <button
-            onClick={onCapture}
-            disabled={isUploading}
-            className="w-full p-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl md:rounded-xl flex items-center justify-center gap-2 font-bold hover:from-indigo-700 hover:to-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg"
-          >
-            {isUploading ? (
-              <>
-                <Loader size={20} className="animate-spin" />
-                <span>Enviando...</span>
-              </>
-            ) : (
-              <>
-                <Camera size={20} />
-                <span className="md:hidden">Tirar Foto</span>
-                <span className="hidden md:inline">Capturar</span>
-              </>
+          {/* Button Container - Flex layout for centering */}
+          <div className="flex items-center justify-center gap-4">
+            {/* Retake Button (shows when frozen) */}
+            {isFrozen && (
+              <button
+                onClick={handleRetake}
+                disabled={isUploading}
+                className="p-4 rounded-full bg-slate-600 hover:bg-slate-700 text-white transition-all disabled:opacity-50 active:scale-95 md:rounded-lg md:px-6"
+                title="Refazer foto"
+              >
+                <RotateCcw size={20} />
+              </button>
             )}
-          </button>
+
+            {/* Capture Button - Circular Apple-style */}
+            <button
+              onClick={handleCapture}
+              disabled={isUploading || isFrozen}
+              className={`relative transition-all active:scale-95 disabled:opacity-50 ${
+                isFrozen ? 'disabled:cursor-not-allowed' : ''
+              }`}
+              title={isFrozen ? 'Enviando...' : 'Tirar foto'}
+            >
+              {/* Outer circle with glow */}
+              <div className="w-16 h-16 rounded-full border-4 border-white/20 hover:border-white/40 transition-colors relative">
+                {/* Inner capture circle */}
+                <div className={`absolute inset-1 rounded-full transition-colors ${
+                  isUploading
+                    ? 'bg-gradient-to-r from-indigo-600 to-indigo-500'
+                    : 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600'
+                }`}>
+                  {/* Loading spinner or camera icon */}
+                  <div className="w-full h-full flex items-center justify-center">
+                    {isUploading ? (
+                      <Loader size={24} className="text-white animate-spin" />
+                    ) : (
+                      <Camera size={24} className="text-white" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Placeholder for balance */}
+            {isFrozen && <div className="w-16" />}
+          </div>
 
           {/* Info Text */}
-          <p className="text-center text-xs text-slate-400">
-            {cameraTorchOn ? '💡 Flash ligado' : ''}
-            {cameraZoom > 1 ? ` • Zoom ${cameraZoom.toFixed(1)}x` : ''}
-            {!cameraTorchOn && cameraZoom <= 1 ? 'Pronto para fotografar' : ''}
+          <p className="text-center text-xs text-slate-400 min-h-[16px]">
+            {isFrozen && isUploading ? (
+              <span className="flex items-center justify-center gap-1">
+                <Loader size={12} className="animate-spin" />
+                Enviando foto...
+              </span>
+            ) : isFrozen ? (
+              <span>✓ Foto capturada</span>
+            ) : cameraTorchOn ? (
+              '💡 Flash ligado'
+            ) : cameraZoom > 1 ? (
+              ` • Zoom ${cameraZoom.toFixed(1)}x`
+            ) : (
+              'Pronto para fotografar'
+            )}
           </p>
         </div>
       </div>
