@@ -323,6 +323,7 @@ export const usePhotoManager = ({
     capturePhoto,
     videoRef,
     canvasRef,
+    videoTrackRef,
     photoIndex,
     setPhotoIndex,
     handlePhotoUpload,

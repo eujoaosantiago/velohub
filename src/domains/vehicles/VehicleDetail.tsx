@@ -161,6 +161,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     capturePhoto,
     videoRef,
     canvasRef,
+    videoTrackRef,
   } = usePhotoManager({
     vehicle,
     formData,
@@ -567,6 +568,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         cameraHasTorch={cameraHasTorch}
         toggleTorch={toggleCameraTorch}
         applyCameraZoom={applyCameraZoom}
+        videoTrackRef={videoTrackRef}
       />
 
       {showUpgradeShareModal && (
