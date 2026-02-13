@@ -54,6 +54,7 @@ body {
   background-color: rgb(var(--color-slate-950));
   color: rgb(var(--color-slate-100));
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
 }
 
 /* Custom Scrollbar */
@@ -71,6 +72,21 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--color-slate-600));
+}
+
+/* Mobile optimized scrollbar for sidebars */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-slate-700));
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-slate-600));
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Utilities */

@@ -15,7 +15,7 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   ...props 
 }) => {
-  const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed rounded-full";
+  const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed rounded-full active:scale-95 whitespace-nowrap overflow-hidden text-ellipsis";
   
   // Note: indigo-xxx classes are now mapped to Velo Orange in index.html
   const variants = {
@@ -38,8 +38,8 @@ export const Button: React.FC<ButtonProps> = ({
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`} 
       {...props}
     >
-      {icon && <span className="w-4 h-4">{icon}</span>}
-      {children}
+      {icon && <span className="flex-shrink-0 inline-flex">{icon}</span>}
+      <span className="min-w-0 truncate">{children}</span>
     </button>
   );
 };
