@@ -1,0 +1,1374 @@
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Vehicle,
+  Expense,
+  ExpenseCategory,
+  StoreExpense,
+  OpexCategory,
+} from "@/shared/types";
+import { Card } from "@/components/ui/Card";
+import {
+  formatCurrency,
+  maskCurrencyInput,
+  parseCurrencyInput,
+  calculateRealProfit,
+  getBrazilDateISO,
+  formatDateBR,
+  parseISODate,
+  toLocalDateTimestamp,
+  numberToMaskedCurrency,
+} from "@/shared/lib/utils";
+import {
+  Search,
+  Filter,
+  Wrench,
+  FileText,
+  Megaphone,
+  Gauge,
+  AlertCircle,
+  Calendar,
+  Tag,
+  Car,
+  User,
+  Building2,
+  Plus,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Wallet,
+  CheckCircle,
+  Edit2,
+  X,
+} from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { useVelohub } from "@/shared/contexts/VelohubContext";
+import { storeExpenseService } from "@/domains/expenses/services/storeExpenseService";
+
+interface ExpensesListProps {
+  vehicles: Vehicle[];
+  onSelectVehicle: (id: string) => void;
+}
+
+const OPEX_CATEGORIES: { id: OpexCategory; label: string }[] = [
+  { id: "rent", label: "Aluguel" },
+  { id: "utilities", label: "Energia/Água/Net" },
+  { id: "payroll", label: "Folha Pagamento (Fixo)" },
+  { id: "marketing_store", label: "Marketing da Loja" },
+  { id: "software", label: "Sistemas/Software" },
+  { id: "taxes", label: "Impostos" },
+  { id: "office", label: "Escritório/Limpeza" },
+  { id: "other", label: "Outros" },
+];
+
+export const ExpensesList: React.FC<ExpensesListProps> = ({
+  vehicles,
+  onSelectVehicle,
+}) => {
+  const { user } = useVelohub();
+  const [activeTab, setActiveTab] = useState<"vehicles" | "opex" | "result">(
+    "vehicles",
+  );
+
+  // States for Vehicles Tab (CMV)
+  const [vehicleSearch, setVehicleSearch] = useState("");
+  const [vehicleCategoryFilter, setVehicleCategoryFilter] = useState<
+    ExpenseCategory | "all"
+  >("all");
+  const [showVehicleFilters, setShowVehicleFilters] = useState(false);
+  const [vehicleDateStart, setVehicleDateStart] = useState("");
+  const [vehicleDateEnd, setVehicleDateEnd] = useState("");
+  const [vehicleMinAmount, setVehicleMinAmount] = useState("");
+  const [vehicleMaxAmount, setVehicleMaxAmount] = useState("");
+  const [vehicleStatusFilter, setVehicleStatusFilter] = useState<'all' | 'available' | 'sold'>('all');
+
+  // States for OPEX Tab
+  const [storeExpenses, setStoreExpenses] = useState<StoreExpense[]>([]);
+  const [opexSearch, setOpexSearch] = useState("");
+  const [opexCategoryFilter, setOpexCategoryFilter] = useState<
+    OpexCategory | "all"
+  >("all");
+  const [showOpexFilters, setShowOpexFilters] = useState(false);
+  const [opexDateStart, setOpexDateStart] = useState("");
+  const [opexDateEnd, setOpexDateEnd] = useState("");
+  const [opexMinAmount, setOpexMinAmount] = useState("");
+  const [opexMaxAmount, setOpexMaxAmount] = useState("");
+  const [opexPaidFilter, setOpexPaidFilter] = useState<'all' | 'paid' | 'pending'>('all');
+  const [isAddingOpex, setIsAddingOpex] = useState(false);
+  const [editingOpex, setEditingOpex] = useState<StoreExpense | null>(null);
+  const [newOpex, setNewOpex] = useState<{
+    desc: string;
+    amount: string;
+    category: OpexCategory;
+    date: string;
+  }>({
+    desc: "",
+    amount: "",
+    category: "utilities",
+    date: getBrazilDateISO(),
+  });
+  
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant?: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  // Atualiza a data quando abre o modal de adicionar despesa
+  useEffect(() => {
+    if (isAddingOpex && !editingOpex) {
+      setNewOpex(prev => ({ ...prev, date: getBrazilDateISO() }));
+    }
+  }, [isAddingOpex, editingOpex]);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleOpenAddOpex = () => {
+    setEditingOpex(null);
+    setNewOpex({
+      desc: "",
+      amount: "",
+      category: "utilities",
+      date: getBrazilDateISO(),
+    });
+    setIsAddingOpex(true);
+  };
+
+  // Load OPEX on mount
+  useEffect(() => {
+    if (user) {
+      loadOpex();
+    }
+  }, [user]);
+
+  const loadOpex = async () => {
+    if (!user) return;
+    const data = await storeExpenseService.getStoreExpenses(user.storeId);
+    setStoreExpenses(data);
+  };
+
+  const handleAddOpex = async () => {
+    if (!user) return;
+    if (!newOpex.desc || !newOpex.amount) {
+      showToast("Preencha descrição e valor", "error");
+      return;
+    }
+
+    try {
+      if (editingOpex) {
+        // Editando
+        const expense: StoreExpense = {
+          ...editingOpex,
+          description: newOpex.desc,
+          amount: parseCurrencyInput(newOpex.amount),
+          date: newOpex.date,
+          category: newOpex.category,
+          updatedAt: new Date().toISOString(),
+        };
+        console.log('Atualizando despesa:', expense);
+        await storeExpenseService.updateStoreExpense(expense);
+        showToast("Despesa atualizada com sucesso!", "success");
+      } else {
+        // Adicionando
+        const expense: StoreExpense = {
+          id: "", // Generated by API
+          storeId: user.storeId,
+          description: newOpex.desc,
+          amount: parseCurrencyInput(newOpex.amount),
+          date: newOpex.date,
+          category: newOpex.category,
+          paid: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        console.log('Criando despesa:', expense);
+        await storeExpenseService.createStoreExpense(expense);
+        showToast("Despesa adicionada com sucesso!", "success");
+      }
+      setIsAddingOpex(false);
+      setEditingOpex(null);
+      setNewOpex({
+        desc: "",
+        amount: "",
+        category: "utilities",
+        date: getBrazilDateISO(),
+      });
+      loadOpex();
+    } catch (error) {
+      console.error('Erro ao salvar despesa:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      showToast(`Erro ao salvar despesa: ${errorMessage}`, "error");
+    }
+  };
+
+  const handleDeleteOpex = async (id: string) => {
+    const expense = storeExpenses.find(e => e.id === id);
+    if (!expense) return;
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir despesa operacional?',
+      message: `Tem certeza que deseja excluir a despesa "${expense.description}" no valor de ${formatCurrency(expense.amount)}? Esta ação não pode ser desfeita.`,
+      variant: 'danger',
+      confirmText: 'Excluir Despesa',
+      onConfirm: async () => {
+        try {
+          await storeExpenseService.deleteStoreExpense(id);
+          showToast("Despesa excluída com sucesso!", "success");
+          loadOpex();
+        } catch (error) {
+          showToast("Erro ao excluir despesa", "error");
+        }
+      }
+    });
+  };
+
+  const handleEditOpex = (expense: StoreExpense) => {
+    setEditingOpex(expense);
+    setNewOpex({
+      desc: expense.description,
+      amount: numberToMaskedCurrency(expense.amount),
+      category: expense.category,
+      date: expense.date,
+    });
+    setIsAddingOpex(true);
+  };
+
+  const handleCancelEditOpex = () => {
+    setIsAddingOpex(false);
+    setEditingOpex(null);
+    setNewOpex({
+      desc: "",
+      amount: "",
+      category: "utilities",
+      date: getBrazilDateISO(),
+    });
+  };
+
+  // --- CALCULATIONS FOR RESULT TAB ---
+  const financialResult = useMemo(() => {
+    // 1. Gross Profit from Sold Vehicles (Receita - (Compra + Gastos Veículo))
+    const soldVehicles = vehicles.filter((v) => v.status === "sold");
+    const grossProfit = soldVehicles.reduce(
+      (acc, v) => acc + calculateRealProfit(v),
+      0,
+    );
+    const totalRevenue = soldVehicles.reduce(
+      (acc, v) => acc + (v.soldPrice || 0),
+      0,
+    );
+
+    // 2. Total OPEX (Paid)
+    const totalOpex = storeExpenses.reduce((acc, e) => acc + e.amount, 0);
+
+    // 3. Net Result
+    const netResult = grossProfit - totalOpex;
+
+    return {
+      grossProfit,
+      totalOpex,
+      netResult,
+      totalRevenue,
+      salesCount: soldVehicles.length,
+    };
+  }, [vehicles, storeExpenses]);
+
+  // --- VEHICLE EXPENSES LOGIC ---
+  const allVehicleExpenses = useMemo(() => {
+    const flat: Array<Expense & { vehicleName: string; vehiclePlate: string }> = [];
+    vehicles.forEach((v) => {
+      v.expenses.forEach((e) => {
+        flat.push({
+          ...e,
+          vehicleId: v.id,
+          vehicleName: `${v.make} ${v.model}`,
+          vehiclePlate: v.plate || "S/ Placa",
+        });
+      });
+    });
+    return flat.sort(
+      (a, b) => toLocalDateTimestamp(b.date) - toLocalDateTimestamp(a.date),
+    );
+  }, [vehicles]);
+
+  const filteredVehicleExpenses = allVehicleExpenses.filter((e) => {
+    const term = vehicleSearch.toLowerCase();
+    const matchesSearch =
+      e.vehicleName.toLowerCase().includes(term) ||
+      e.vehiclePlate.toLowerCase().includes(term) ||
+      e.description.toLowerCase().includes(term);
+
+    const matchesCategory =
+      vehicleCategoryFilter === "all" || e.category === vehicleCategoryFilter;
+
+    // Filtro de data
+    let matchesDate = true;
+    if (vehicleDateStart || vehicleDateEnd) {
+      try {
+        const expenseDate = parseISODate(e.date);
+        if (!expenseDate) {
+          matchesDate = false;
+        } else {
+        if (vehicleDateStart) {
+          const [y, m, d] = vehicleDateStart.split('-').map(Number);
+          const startDate = new Date(y, m - 1, d);
+          if (expenseDate < startDate) matchesDate = false;
+        }
+        if (vehicleDateEnd) {
+          const [y, m, d] = vehicleDateEnd.split('-').map(Number);
+          const endDate = new Date(y, m - 1, d);
+          endDate.setHours(23, 59, 59);
+          if (expenseDate > endDate) matchesDate = false;
+        }
+        }
+      } catch {
+        matchesDate = false;
+      }
+    }
+
+    // Filtro de valor
+    const matchesAmount = 
+      (!vehicleMinAmount || e.amount >= parseCurrencyInput(vehicleMinAmount)) &&
+      (!vehicleMaxAmount || e.amount <= parseCurrencyInput(vehicleMaxAmount));
+
+    // Filtro de status do veículo
+    let matchesStatus = true;
+    if (vehicleStatusFilter !== 'all') {
+      const vehicle = vehicles.find(v => v.id === e.vehicleId);
+      if (vehicle) {
+        matchesStatus = vehicleStatusFilter === 'sold' 
+          ? vehicle.status === 'sold' 
+          : vehicle.status !== 'sold';
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesDate && matchesAmount && matchesStatus;
+  });
+
+  const filteredOpexForChart = useMemo(() => {
+    return storeExpenses.filter((item) => {
+      const term = opexSearch.toLowerCase();
+      const matchesSearch =
+        item.description.toLowerCase().includes(term) ||
+        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ??
+          false);
+      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+      const matchesPaid =
+        opexPaidFilter === "all" || (opexPaidFilter === "paid" ? item.paid : !item.paid);
+
+      let matchesDate = true;
+      if (opexDateStart || opexDateEnd) {
+        try {
+          const expenseDate = parseISODate(item.date);
+          if (!expenseDate) {
+            matchesDate = false;
+          } else {
+            if (opexDateStart) {
+              const [y, m, d] = opexDateStart.split("-").map(Number);
+              const startDate = new Date(y, m - 1, d);
+              if (expenseDate < startDate) matchesDate = false;
+            }
+            if (opexDateEnd) {
+              const [y, m, d] = opexDateEnd.split("-").map(Number);
+              const endDate = new Date(y, m - 1, d);
+              endDate.setHours(23, 59, 59);
+              if (expenseDate > endDate) matchesDate = false;
+            }
+          }
+        } catch {
+          matchesDate = false;
+        }
+      }
+
+      const matchesAmount =
+        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+
+      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+    });
+  }, [
+    storeExpenses,
+    opexSearch,
+    opexCategoryFilter,
+    opexPaidFilter,
+    opexDateStart,
+    opexDateEnd,
+    opexMinAmount,
+    opexMaxAmount,
+  ]);
+
+  const COLORS = [
+    "#10b981",
+    "#3b82f6",
+    "#f59e0b",
+    "#ec4899",
+    "#8b5cf6",
+    "#64748b",
+    "#06b6d4",
+  ];
+
+  const vehicleCategoryLabels: Record<ExpenseCategory | "all", string> = {
+    all: "Todas",
+    maintenance: "Manutenção",
+    bodywork: "Funilaria",
+    tires: "Pneus",
+    document: "Documentos",
+    marketing: "Marketing",
+    salary: "Comissão",
+    other: "Outros",
+  };
+
+  const activeVehicleCategoryLabel =
+    vehicleCategoryLabels[vehicleCategoryFilter];
+
+  const activeOpexCategoryLabel =
+    opexCategoryFilter === "all"
+      ? "Todas"
+      : OPEX_CATEGORIES.find((c) => c.id === opexCategoryFilter)?.label ||
+        "Todas";
+
+  return (
+    <>
+      {notification && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top pointer-events-none ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+          {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span className="font-medium text-sm">{notification.message}</span>
+        </div>
+      )}
+      
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        variant={confirmModal.variant}
+        confirmText={confirmModal.confirmText}
+      />
+      
+      <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Central Financeira</h1>
+          <p className="text-slate-400">
+            Separação clara entre custos de estoque (CMV) e despesas da loja
+            (OPEX).
+          </p>
+        </div>
+        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button
+            onClick={() => setActiveTab("vehicles")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "vehicles" ? "bg-slate-800 text-white shadow" : "text-slate-400 hover:text-white"}`}
+          >
+            Custos Veículos (CMV)
+          </button>
+          <button
+            onClick={() => setActiveTab("opex")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "opex" ? "bg-slate-800 text-white shadow" : "text-slate-400 hover:text-white"}`}
+          >
+            Despesas Loja (OPEX)
+          </button>
+          <button
+            onClick={() => setActiveTab("result")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "result" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+          >
+            Resultado Líquido
+          </button>
+        </div>
+      </div>
+
+      {/* --- ABA 1: CUSTOS DE VEÍCULOS (CMV) --- */}
+      {activeTab === "vehicles" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <Wrench className="text-amber-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Total Gasto em Reformas
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(
+                  filteredVehicleExpenses.reduce(
+                    (acc, e) => acc + (e.category !== "salary" ? e.amount : 0),
+                    0,
+                  ),
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {filteredVehicleExpenses.filter(e => e.category !== "salary").length} lançamento(s)
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <User className="text-indigo-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Total em Comissões
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(
+                  filteredVehicleExpenses.reduce(
+                    (acc, e) => acc + (e.category === "salary" ? e.amount : 0),
+                    0,
+                  ),
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {filteredVehicleExpenses.filter(e => e.category === "salary").length} comissão(ões)
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <DollarSign className="text-emerald-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Total Filtrado
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-emerald-400">
+                {formatCurrency(
+                  filteredVehicleExpenses.reduce((acc, e) => acc + e.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {filteredVehicleExpenses.length} despesa(s)
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <Car className="text-blue-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Veículos Únicos
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {new Set(filteredVehicleExpenses.map(e => e.vehicleId)).size}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Com despesas
+              </p>
+            </Card>
+          </div>
+
+          <Card title="Detalhamento por Carro" className="overflow-visible">
+            <div className="mb-4 space-y-3">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar por veículo, placa ou descrição..."
+                    value={vehicleSearch}
+                    onChange={(e) => setVehicleSearch(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg pl-10 p-2.5 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowVehicleFilters((prev) => !prev)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white whitespace-nowrap"
+                >
+                  <Filter size={16} />
+                  {showVehicleFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+                </button>
+              </div>
+
+              {showVehicleFilters && (
+                <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Categoria</span>
+                      <select
+                        value={vehicleCategoryFilter}
+                        onChange={(e) => setVehicleCategoryFilter(e.target.value as ExpenseCategory | "all")}
+                        className="w-full select-premium text-sm"
+                      >
+                        {(["all", "maintenance", "bodywork", "tires", "document", "marketing", "salary", "other"] as (ExpenseCategory | "all")[]).map((cat) => (
+                          <option key={cat} value={cat}>
+                            {vehicleCategoryLabels[cat]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Status do Veículo</span>
+                      <select
+                        value={vehicleStatusFilter}
+                        onChange={(e) => setVehicleStatusFilter(e.target.value as 'all' | 'available' | 'sold')}
+                        className="w-full select-premium text-sm"
+                      >
+                        <option value="all">Todos</option>
+                        <option value="available">Em Estoque</option>
+                        <option value="sold">Vendidos</option>
+                      </select>
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Data Inicial</span>
+                      <input
+                        type="date"
+                        value={vehicleDateStart}
+                        onChange={(e) => setVehicleDateStart(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Data Final</span>
+                      <input
+                        type="date"
+                        value={vehicleDateEnd}
+                        onChange={(e) => setVehicleDateEnd(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Valor Mínimo</span>
+                      <input
+                        type="text"
+                        value={vehicleMinAmount}
+                        onChange={(e) => setVehicleMinAmount(maskCurrencyInput(e.target.value))}
+                        placeholder="R$ 0,00"
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <span className="font-medium">Valor Máximo</span>
+                      <input
+                        type="text"
+                        value={vehicleMaxAmount}
+                        onChange={(e) => setVehicleMaxAmount(maskCurrencyInput(e.target.value))}
+                        placeholder="R$ 0,00"
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+                    <span className="text-sm text-slate-400">
+                      <span className="font-medium text-white">{filteredVehicleExpenses.length}</span> despesa(s) encontrada(s)
+                    </span>
+                    <Button
+                      onClick={() => {
+                        setVehicleCategoryFilter('all');
+                        setVehicleStatusFilter('all');
+                        setVehicleDateStart('');
+                        setVehicleDateEnd('');
+                        setVehicleMinAmount('');
+                        setVehicleMaxAmount('');
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs py-1.5 px-3"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="max-h-[500px] overflow-y-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-950 text-slate-400 text-sm sticky top-0">
+                  <tr>
+                    <th className="p-3">Data</th>
+                    <th className="p-3">Veículo</th>
+                    <th className="p-3">Descrição</th>
+                    <th className="p-3 text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 text-sm">
+                  {filteredVehicleExpenses.map((e, idx) => (
+                    <tr key={idx} className="hover:bg-slate-800/50">
+                      <td className="p-3 text-slate-400">
+                        {formatDateBR(e.date)}
+                      </td>
+                      <td className="p-3 text-white font-medium">
+                        <button
+                          type="button"
+                          onClick={() => onSelectVehicle(e.vehicleId)}
+                          className="text-white hover:text-indigo-300 transition-colors underline-offset-4 hover:underline"
+                        >
+                          {e.vehicleName}
+                        </button>{" "}
+                        <span className="text-xs text-slate-500 block">
+                          {e.vehiclePlate}
+                        </span>
+                      </td>
+                      <td className="p-3 text-slate-300">
+                        {e.description}
+                        {e.category === "salary" && (
+                          <span className="ml-2 text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">
+                            Comissão
+                          </span>
+                        )}
+                        {e.category === "salary" && e.employeeName && (
+                          <span className="block text-xs text-slate-500 mt-1">
+                            Para: {e.employeeName}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 text-right font-bold text-white">
+                        {formatCurrency(e.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* --- ABA 2: OPEX (DESPESAS DA LOJA) --- */}
+      {activeTab === "opex" && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Building2 className="text-indigo-500" />
+              Despesas Operacionais
+            </h2>
+            <Button
+              onClick={handleOpenAddOpex}
+              icon={<Plus size={18} />}
+            >
+              Lançar Despesa
+            </Button>
+          </div>
+
+          {isAddingOpex && (
+            <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl animate-fade-in">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-white font-bold text-sm">
+                  {editingOpex ? 'Editar Despesa da Loja' : 'Nova Despesa da Loja'}
+                </h3>
+                <button
+                  onClick={handleCancelEditOpex}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                <div className="md:col-span-1">
+                  <label className="text-xs text-slate-400 block mb-1">
+                    Data
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm"
+                    value={newOpex.date}
+                    onChange={(e) => setNewOpex({ ...newOpex, date: e.target.value })}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="text-xs text-slate-400 block mb-1">
+                    Categoria
+                  </label>
+                  <select
+                    className="w-full select-premium text-sm"
+                    value={newOpex.category}
+                    onChange={(e) =>
+                      setNewOpex({
+                        ...newOpex,
+                        category: e.target.value as OpexCategory,
+                      })
+                    }
+                  >
+                    {OPEX_CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-400 block mb-1">
+                    Descrição
+                  </label>
+                  <input
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm"
+                    placeholder="Ex: Aluguel Fevereiro"
+                    value={newOpex.desc}
+                    onChange={(e) =>
+                      setNewOpex({ ...newOpex, desc: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="text-xs text-slate-400 block mb-1">
+                    Valor
+                  </label>
+                  <input
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm font-bold"
+                    placeholder="R$ 0,00"
+                    value={newOpex.amount}
+                    onChange={(e) =>
+                      setNewOpex({
+                        ...newOpex,
+                        amount: maskCurrencyInput(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleAddOpex} className="flex-1">
+                    {editingOpex ? 'Atualizar' : 'Salvar'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleCancelEditOpex}
+                    className="px-3"
+                  >
+                    <X size={18} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <DollarSign className="text-rose-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Total OPEX Filtrado
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrency(
+                  storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
+                          }
+                        } catch { matchesDate = false; }
+                      }
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+                    })
+                    .reduce((acc, item) => acc + item.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Despesas operacionais
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <Wallet className="text-green-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Despesas Pagas
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-green-400">
+                {formatCurrency(
+                  storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
+                          }
+                        } catch { matchesDate = false; }
+                      }
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount && item.paid;
+                    })
+                    .reduce((acc, item) => acc + item.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Status: Pago
+              </p>
+            </Card>
+            <Card>
+              <div className="flex items-center gap-3 mb-2">
+                <AlertCircle className="text-amber-400" />
+                <h3 className="text-sm font-medium text-slate-400">
+                  Despesas Pendentes
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-amber-400">
+                {formatCurrency(
+                  storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
+                          }
+                        } catch { matchesDate = false; }
+                      }
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount && !item.paid;
+                    })
+                    .reduce((acc, item) => acc + item.amount, 0)
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Status: Pendente
+              </p>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 overflow-hidden">
+              <div className="mb-3 space-y-3">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                      size={18}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Buscar por descrição ou categoria..."
+                      value={opexSearch}
+                      onChange={(e) => setOpexSearch(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowOpexFilters((prev) => !prev)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white whitespace-nowrap"
+                  >
+                    <Filter size={16} />
+                    {showOpexFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+                  </button>
+                </div>
+
+                {showOpexFilters && (
+                  <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Categoria</span>
+                        <select
+                          value={opexCategoryFilter}
+                          onChange={(e) => setOpexCategoryFilter(e.target.value as OpexCategory | "all")}
+                          className="w-full select-premium text-sm"
+                        >
+                          <option value="all">Todas</option>
+                          {OPEX_CATEGORIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Status</span>
+                        <select
+                          value={opexPaidFilter}
+                          onChange={(e) => setOpexPaidFilter(e.target.value as 'all' | 'paid' | 'pending')}
+                          className="w-full select-premium text-sm"
+                        >
+                          <option value="all">Todos</option>
+                          <option value="paid">Pagos</option>
+                          <option value="pending">Pendentes</option>
+                        </select>
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Data Inicial</span>
+                        <input
+                          type="date"
+                          value={opexDateStart}
+                          onChange={(e) => setOpexDateStart(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Data Final</span>
+                        <input
+                          type="date"
+                          value={opexDateEnd}
+                          onChange={(e) => setOpexDateEnd(e.target.value)}
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Valor Mínimo</span>
+                        <input
+                          type="text"
+                          value={opexMinAmount}
+                          onChange={(e) => setOpexMinAmount(maskCurrencyInput(e.target.value))}
+                          placeholder="R$ 0,00"
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+
+                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                        <span className="font-medium">Valor Máximo</span>
+                        <input
+                          type="text"
+                          value={opexMaxAmount}
+                          onChange={(e) => setOpexMaxAmount(maskCurrencyInput(e.target.value))}
+                          placeholder="R$ 0,00"
+                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+                      <span className="text-sm text-slate-400">
+                        <span className="font-medium text-white">{
+                          storeExpenses.filter((item) => {
+                            const term = opexSearch.toLowerCase();
+                            const matchesSearch =
+                              item.description.toLowerCase().includes(term) ||
+                              (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
+                            const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
+                            const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
+                            let matchesDate = true;
+                            if (opexDateStart || opexDateEnd) {
+                              try {
+                                const expenseDate = parseISODate(item.date);
+                                if (!expenseDate) {
+                                  matchesDate = false;
+                                } else {
+                                  if (opexDateStart) {
+                                    const [y, m, d] = opexDateStart.split('-').map(Number);
+                                    const startDate = new Date(y, m - 1, d);
+                                    if (expenseDate < startDate) matchesDate = false;
+                                  }
+                                  if (opexDateEnd) {
+                                    const [y, m, d] = opexDateEnd.split('-').map(Number);
+                                    const endDate = new Date(y, m - 1, d);
+                                    endDate.setHours(23, 59, 59);
+                                    if (expenseDate > endDate) matchesDate = false;
+                                  }
+                                }
+                              } catch { matchesDate = false; }
+                            }
+
+                            const matchesAmount = 
+                              (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                              (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+
+                            return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+                          }).length
+                        }</span> despesa(s) encontrada(s)
+                      </span>
+                      <Button
+                        onClick={() => {
+                          setOpexCategoryFilter('all');
+                          setOpexPaidFilter('all');
+                          setOpexDateStart('');
+                          setOpexDateEnd('');
+                          setOpexMinAmount('');
+                          setOpexMaxAmount('');
+                        }}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs py-1.5 px-3"
+                      >
+                        Limpar Filtros
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                <table className="w-full min-w-[640px] text-left border-collapse">
+                  <thead className="text-slate-400 text-sm border-b border-slate-800">
+                    <tr>
+                      <th className="p-3 whitespace-nowrap">Data</th>
+                      <th className="p-3">Descrição</th>
+                      <th className="p-3 whitespace-nowrap">Categoria</th>
+                      <th className="p-3 text-right whitespace-nowrap">Valor</th>
+                      <th className="p-3 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-sm">
+                    {storeExpenses
+                    .filter((item) => {
+                      const term = opexSearch.toLowerCase();
+                      const matchesSearch =
+                        item.description.toLowerCase().includes(term) ||
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)
+                          ?.label.toLowerCase()
+                          .includes(term) ??
+                          false);
+                      const matchesCategory =
+                        opexCategoryFilter === "all" ||
+                        item.category === opexCategoryFilter;
+                      
+                      const matchesPaid = opexPaidFilter === 'all' || 
+                        (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
+                      let matchesDate = true;
+                      if (opexDateStart || opexDateEnd) {
+                        try {
+                          const expenseDate = parseISODate(item.date);
+                          if (!expenseDate) {
+                            matchesDate = false;
+                          } else {
+                            if (opexDateStart) {
+                              const [y, m, d] = opexDateStart.split('-').map(Number);
+                              const startDate = new Date(y, m - 1, d);
+                              if (expenseDate < startDate) matchesDate = false;
+                            }
+                            if (opexDateEnd) {
+                              const [y, m, d] = opexDateEnd.split('-').map(Number);
+                              const endDate = new Date(y, m - 1, d);
+                              endDate.setHours(23, 59, 59);
+                              if (expenseDate > endDate) matchesDate = false;
+                            }
+                          }
+                        } catch { matchesDate = false; }
+                      }
+
+                      const matchesAmount = 
+                        (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
+                        (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
+
+                      return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
+                    })
+                      .map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-800/30 group">
+                          <td className="p-3 text-slate-400 whitespace-nowrap">
+                            {formatDateBR(item.date)}
+                          </td>
+                          <td className="p-3 text-white max-w-[280px] break-words">
+                            {item.description}
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className="px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap border transition-colors bg-slate-900/50 text-slate-300 border-slate-800">
+                              {OPEX_CATEGORIES.find((c) => c.id === item.category)?.label}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right text-white font-bold whitespace-nowrap">
+                            {formatCurrency(item.amount)}
+                          </td>
+                          <td className="p-3 text-right whitespace-nowrap">
+                            <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => handleEditOpex(item)}
+                                className="text-slate-600 hover:text-indigo-400 transition-colors"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOpex(item.id)}
+                                className="text-slate-600 hover:text-rose-500 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    {storeExpenses.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="p-8 text-center text-slate-500"
+                        >
+                          Nenhuma despesa operacional lançada.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+            <Card>
+              <h3 className="text-sm font-bold text-white mb-4">Resumo OPEX</h3>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(
+                        filteredOpexForChart.reduce((acc: any, curr) => {
+                          acc[curr.category] =
+                            (acc[curr.category] || 0) + curr.amount;
+                          return acc;
+                        }, {}),
+                      ).map(([name, value]) => ({ name, value }))}
+                      dataKey="value"
+                      innerRadius={40}
+                      outerRadius={60}
+                      paddingAngle={2}
+                    >
+                      {OPEX_CATEGORIES.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1e293b",
+                        borderColor: "#334155",
+                        borderRadius: "8px",
+                        color: "#fff",
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="text-center mt-2">
+                <p className="text-slate-400 text-xs uppercase">Total OPEX</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(
+                    filteredOpexForChart.reduce((acc, e) => acc + e.amount, 0),
+                  )}
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* --- ABA 3: RESULTADO LÍQUIDO --- */}
+      {activeTab === "result" && (
+        <div className="space-y-8 animate-slide-in-right">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+              <p className="text-slate-400 text-sm uppercase font-bold mb-2">
+                Lucro Bruto (Veículos)
+              </p>
+              <p className="text-3xl font-bold text-emerald-400">
+                {formatCurrency(financialResult.grossProfit)}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">
+                Após descontar compra e gastos dos carros
+              </p>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="bg-slate-800 p-3 rounded-full">
+                <TrendingDown size={24} className="text-rose-400" />
+              </div>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+              <p className="text-slate-400 text-sm uppercase font-bold mb-2">
+                Despesas Loja (OPEX)
+              </p>
+              <p className="text-3xl font-bold text-rose-400">
+                {formatCurrency(financialResult.totalOpex)}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">
+                Aluguel, Luz, Salários Fixos, etc.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className={`p-8 rounded-3xl border-2 text-center transform hover:scale-[1.01] transition-transform ${financialResult.netResult >= 0 ? "bg-emerald-900/20 border-emerald-500/50" : "bg-rose-900/20 border-rose-500/50"}`}
+          >
+            <h3 className="text-xl font-bold text-white uppercase tracking-widest mb-2">
+              Resultado Operacional Líquido
+            </h3>
+            <div className="text-5xl md:text-7xl font-black text-white tracking-tighter my-4">
+              {formatCurrency(financialResult.netResult)}
+            </div>
+            <p
+              className={`text-sm font-medium ${financialResult.netResult >= 0 ? "text-emerald-400" : "text-rose-400"}`}
+            >
+              {financialResult.netResult >= 0
+                ? "Lucro Real no Bolso"
+                : "Prejuízo Operacional"}
+            </p>
+          </div>
+
+          <div className="text-center text-slate-500 text-sm">
+            <p>
+              Baseado em {financialResult.salesCount} vendas realizadas e{" "}
+              {storeExpenses.length} despesas operacionais lançadas.
+            </p>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
+  );
+};
+
+
+

@@ -3,18 +3,7 @@
 export default {
   content: [
     "./index.html",
-    "./auth/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-    "./contexts/**/*.{js,ts,jsx,tsx}",
-    "./customers/**/*.{js,ts,jsx,tsx}",
-    "./dashboard/**/*.{js,ts,jsx,tsx}",
-    "./expenses/**/*.{js,ts,jsx,tsx}",
-    "./landing/**/*.{js,ts,jsx,tsx}",
-    "./lib/**/*.{js,ts,jsx,tsx}",
-    "./sales/**/*.{js,ts,jsx,tsx}",
-    "./services/**/*.{js,ts,jsx,tsx}",
-    "./vehicles/**/*.{js,ts,jsx,tsx}",
-    "./*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: 'class',
   theme: {

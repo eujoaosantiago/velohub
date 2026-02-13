@@ -109,9 +109,14 @@ create table public.vehicles (
   licensing_paid boolean default false,
   photos text[],
   expenses jsonb default '[]'::jsonb,
+  optionals text[] default '{}'::text[],
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
+
+-- MIGRACAO (caso a coluna ainda nao exista)
+alter table public.vehicles
+add column optionals text[] default '{}'::text[];
 
 create table public.store_expenses (
   id uuid default gen_random_uuid() primary key,
