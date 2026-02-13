@@ -65,12 +65,10 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     };
   }, [cameraTorchOn, videoTrackRef]);
 
-  // Close modal when upload completes (only if upload was actually started)
+  // Close modal when upload completes
   useEffect(() => {
     if (uploadStarted && isUploading === false) {
-      // Upload just completed
       const timer = setTimeout(() => {
-        // Resume video before closing
         if (videoRef.current) {
           try {
             videoRef.current.play();
@@ -78,7 +76,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             console.error("Error resuming video on close:", err);
           }
         }
-
         onClose();
         setIsPreview(false);
         setUploadStarted(false);
@@ -92,35 +89,27 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    // 1. Primeiro capturamos a imagem (enquanto o vídeo roda e o flash está ligado)
+    // 1. Capturar imagem para o Canvas
     if (canvas && video && video.readyState >= 2) {
       const ctx = canvas.getContext("2d");
 
       if (ctx) {
         try {
+          // Garante que o canvas tenha o tamanho exato do vídeo
           canvas.width = video.videoWidth || 1280;
           canvas.height = video.videoHeight || 720;
 
-          // Desenha o frame atual no canvas (o "clique" da foto)
+          // Desenha o frame atual
           ctx.drawImage(video, 0, 0);
-          console.log("Image captured for upload:", {
-            width: canvas.width,
-            height: canvas.height,
-          });
         } catch (err) {
           console.error("Error capturing image to canvas:", err);
         }
       }
     }
 
-    // 2. CORREÇÃO: Desligar o flash IMEDIATAMENTE após a captura
-    // Fazemos isso antes de pausar o vídeo ou mudar o estado para preview
+    // 2. Desligar o flash IMEDIATAMENTE
     if (cameraTorchOn) {
-      // 2a. Atualiza o estado visual do botão chamando a função do pai
-      toggleTorch();
-
-      // 2b. Força o hardware a desligar via trackRef para garantir
-      // Isso resolve o problema do flash continuar aceso no preview
+      toggleTorch(); // Atualiza UI
       if (videoTrackRef?.current) {
         try {
           const constraints = {
@@ -133,17 +122,16 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       }
     }
 
-    // 3. Agora sim pausamos o vídeo para mostrar o preview estático
+    // 3. Pausa o vídeo (opcional, já que vamos escondê-lo)
     if (video) {
       video.pause();
     }
 
-    // 4. Muda o estado da UI
+    // 4. Ativa o modo Preview (que vai trocar o Vídeo pelo Canvas no HTML abaixo)
     setIsPreview(true);
   };
 
   const handleRetake = () => {
-    // Resume the video
     if (videoRef.current) {
       videoRef.current.play();
     }
@@ -152,13 +140,11 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   };
 
   const handleConfirmCapture = () => {
-    // Mark upload as started then trigger the actual upload
     setUploadStarted(true);
     onCapture();
   };
 
   const handleClose = () => {
-    // Resume video if paused
     if (videoRef.current && videoRef.current.paused) {
       try {
         videoRef.current.play();
@@ -167,7 +153,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       }
     }
 
-    // Turn off torch if active
     if (cameraTorchOn && videoTrackRef?.current) {
       try {
         const constraints = {
@@ -187,24 +172,26 @@ export const CameraModal: React.FC<CameraModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[70] bg-black animate-fade-in md:flex md:items-center md:justify-center md:p-4 md:bg-black/95 md:backdrop-blur-sm">
-      {/* iPhone-style Camera Layout */}
       <div className="md:relative md:max-w-2xl md:rounded-3xl md:overflow-hidden md:shadow-2xl w-full h-full flex flex-col">
-        {/* Video Stream Container - Full screen on mobile, contained on desktop */}
         <div className="relative flex-1 md:flex-none md:aspect-[9/16] md:max-h-[90vh] w-full bg-black overflow-hidden">
-          {/* Video Stream - Shows camera live or paused preview */}
+          
+          {/* --- MUDANÇA AQUI --- */}
+          {/* Se NÃO for preview, mostra o vídeo ao vivo */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${isPreview ? 'hidden' : 'block'}`}
           />
 
-          {/* Canvas for Capture (Hidden) */}
-          <canvas ref={canvasRef} className="hidden" />
+          {/* Se FOR preview, mostra o canvas (foto estática) */}
+          <canvas 
+            ref={canvasRef} 
+            className={`w-full h-full object-cover ${isPreview ? 'block' : 'hidden'}`} 
+          />
+          {/* -------------------- */}
 
-          {/* Top Controls */}
           <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4 z-10">
-            {/* Close Button */}
             <button
               onClick={handleClose}
               className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors active:scale-95 md:bg-slate-900/60 md:hover:bg-slate-900/80"
@@ -212,18 +199,13 @@ export const CameraModal: React.FC<CameraModalProps> = ({
               <X size={24} />
             </button>
 
-            {/* Title (Desktop only) */}
             <h3 className="hidden md:block text-white font-bold text-lg">
               Câmera
             </h3>
-
-            {/* Placeholder for alignment */}
             <div className="w-12" />
           </div>
 
-          {/* Side Controls - Torch/Zoom (Right side for easy thumb access) */}
           <div className="absolute top-1/2 right-4 -translate-y-1/2 flex flex-col gap-3 z-10">
-            {/* Torch Control - Vertical Button */}
             {cameraHasTorch && !isPreview && !isUploading && (
               <button
                 onClick={toggleTorch}
@@ -240,9 +222,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
           </div>
         </div>
 
-        {/* Bottom Controls Bar - Always visible, slides up on mobile */}
         <div className="absolute bottom-0 left-0 right-0 md:static bg-black/40 md:bg-slate-900/80 backdrop-blur-md md:backdrop-blur-sm border-t border-slate-700/20 md:border-t-0 p-4 md:p-6 space-y-3">
-          {/* Zoom Control - Horizontal slider (only when not in preview) */}
           {cameraHasZoom && !isPreview && !isUploading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -266,12 +246,9 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             </div>
           )}
 
-          {/* ===== PREVIEW STATE CONTROLS ===== */}
           {isPreview && !isUploading && (
             <>
-              {/* Preview Action Buttons */}
               <div className="flex items-center justify-center gap-4">
-                {/* Retake Button */}
                 <button
                   onClick={handleRetake}
                   className="flex-1 p-3 rounded-xl bg-slate-600 hover:bg-slate-700 text-white font-medium transition-all active:scale-95 md:flex-none md:px-6"
@@ -284,7 +261,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   </span>
                 </button>
 
-                {/* Confirm Button */}
                 <button
                   onClick={handleConfirmCapture}
                   className="flex-1 p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-medium transition-all active:scale-95 md:flex-none md:px-6"
@@ -298,14 +274,12 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 </button>
               </div>
 
-              {/* Preview Info */}
               <p className="text-center text-sm text-slate-300 font-medium">
                 Aprove a foto ou tire outra
               </p>
             </>
           )}
 
-          {/* ===== UPLOADING STATE CONTROLS ===== */}
           {isUploading && (
             <>
               <div className="flex items-center justify-center">
@@ -313,11 +287,8 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   disabled
                   className="relative transition-all opacity-50 cursor-not-allowed"
                 >
-                  {/* Outer circle with glow */}
                   <div className="w-16 h-16 rounded-full border-4 border-white/20">
-                    {/* Inner capture circle */}
                     <div className="absolute inset-1 rounded-full bg-gradient-to-r from-indigo-600 to-indigo-500">
-                      {/* Loading spinner */}
                       <div className="w-full h-full flex items-center justify-center">
                         <Loader size={24} className="text-white animate-spin" />
                       </div>
@@ -326,7 +297,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 </button>
               </div>
 
-              {/* Uploading Info */}
               <p className="text-center text-sm text-slate-300 font-medium flex items-center justify-center gap-1">
                 <Loader size={14} className="animate-spin" />
                 Enviando foto...
@@ -334,21 +304,16 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             </>
           )}
 
-          {/* ===== CAMERA READY STATE CONTROLS ===== */}
           {!isPreview && !isUploading && (
             <>
-              {/* Capture Button - Circular Apple-style */}
               <div className="flex items-center justify-center">
                 <button
                   onClick={handleCapture}
                   className="relative transition-all active:scale-95"
                   title="Tirar foto"
                 >
-                  {/* Outer circle with glow */}
                   <div className="w-16 h-16 rounded-full border-4 border-white/20 hover:border-white/40 transition-colors relative">
-                    {/* Inner capture circle */}
                     <div className="absolute inset-1 rounded-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 transition-colors">
-                      {/* Camera icon */}
                       <div className="w-full h-full flex items-center justify-center">
                         <Camera size={24} className="text-white" />
                       </div>
@@ -357,7 +322,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 </button>
               </div>
 
-              {/* Status Text */}
               <p className="text-center text-xs text-slate-400">
                 {cameraTorchOn ? "💡 Flash ligado" : ""}
                 {cameraZoom > 1
