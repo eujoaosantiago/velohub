@@ -476,61 +476,100 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   // ===== RENDER =====
   return (
     <div className="bg-slate-950 min-h-screen">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-white font-bold text-xl">
-              {formData.make} {formData.model}
-            </h1>
-            <p className="text-slate-400 text-sm">{formData.plate}</p>
+      {/* Header - Back Button, Tabs & Actions */}
+      <div className="px-4 md:px-6 py-3 flex flex-col gap-3 border-b border-slate-800">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
+            <Button
+              onClick={onBack}
+              variant="ghost"
+              size="sm"
+              icon={<ArrowLeft size={18} />}
+              className="rounded-full w-10 h-10 p-0 flex items-center justify-center flex-shrink-0"
+              title="Voltar para Estoque"
+            />
+            
+            {/* Tabs Navigation */}
+            <div className="flex gap-4 md:gap-6 overflow-x-auto flex-shrink-0">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`whitespace-nowrap py-3 px-1 border-b-2 transition-colors text-xs sm:text-sm ${
+                  activeTab === 'overview'
+                    ? 'border-indigo-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  Visão Geral
+                  {tabDirty.overview && <span className="h-2 w-2 rounded-full bg-amber-500" />}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('photos')}
+                className={`whitespace-nowrap py-3 px-1 border-b-2 transition-colors text-xs sm:text-sm ${
+                  activeTab === 'photos'
+                    ? 'border-indigo-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  Fotos
+                  {tabDirty.photos && <span className="h-2 w-2 rounded-full bg-amber-500" />}
+                </span>
+              </button>
+              {canViewCosts && (
+                <button
+                  onClick={() => setActiveTab('expenses')}
+                  className={`whitespace-nowrap py-3 px-1 border-b-2 transition-colors text-xs sm:text-sm ${
+                    activeTab === 'expenses'
+                      ? 'border-indigo-500 text-white'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    Gastos
+                    {tabDirty.expenses && <span className="h-2 w-2 rounded-full bg-amber-500" />}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {dirtyState.isDirty && (
-            <span className="text-amber-500 text-xs flex items-center gap-1">
-              <AlertTriangle size={14} />
-              Alterações não salvas
-            </span>
-          )}
-          {dirtyState.isDirty && (
-            <Button variant="ghost" onClick={handleResetChanges} disabled={isSaving}>
-              Desfazer
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 justify-end flex-wrap">
+          {!isNew && (
+            <Button
+              onClick={() => {
+                if (canShare) {
+                  setShareModalOpen(true);
+                } else {
+                  setShowUpgradeShareModal(true);
+                }
+              }}
+              disabled={!canShare}
+              variant={canShare ? 'secondary' : 'ghost'}
+              size="md"
+              icon={canShare ? <Share2 size={16} /> : <Lock size={16} />}
+              title={canShare ? 'Compartilhar' : 'Funcionalidade Premium'}
+            >
+              <span className="hidden sm:inline">Compartilhar</span>
             </Button>
           )}
-          <button
-            onClick={() => {
-              if (canShare) {
-                setShareModalOpen(true);
-              } else {
-                setShowUpgradeShareModal(true);
-              }
-            }}
-            className={`px-4 py-2 border rounded-xl transition-colors flex items-center gap-2 text-sm font-medium ${
-              canShare
-                ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700'
-                : 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed'
-            }`}
-            title={canShare ? 'Compartilhar' : 'Funcionalidade Premium'}
-          >
-            {canShare ? <Share2 size={16} /> : <Lock size={16} />}
-            <span className="hidden sm:inline">Compartilhar</span>
-          </button>
-          <button
+          <Button
             onClick={() => setConfirmDeleteOpen(true)}
-            className="px-4 py-2 border border-slate-800 bg-slate-900 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-colors flex items-center gap-2 text-sm font-medium"
+            variant="danger"
+            size="md"
+            icon={<Trash2 size={16} />}
             title="Excluir Veículo"
           >
-            <Trash2 size={16} />
             <span className="hidden sm:inline">Excluir</span>
-          </button>
-          <Button onClick={handleSave} disabled={isSaving || !dirtyState.isDirty}>
-            <Save size={16} className="mr-2" />
-            {isSaving ? 'Salvando...' : 'Salvar'}
           </Button>
+          {dirtyState.isDirty && (
+            <Button onClick={handleSave} disabled={isSaving} size="md" icon={<Save size={18} />}>
+              {isSaving ? 'Salvando...' : 'Salvar alterações'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -609,6 +648,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           </div>
       )}
 
+      {dirtyState.isDirty && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 backdrop-blur-sm">
+          <AlertTriangle size={18} className="text-amber-500 flex-shrink-0" />
+          <span className="font-medium text-sm text-amber-400">Alterações não salvas</span>
+        </div>
+      )}
+
       {notification && (
         <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top pointer-events-none ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
           {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
@@ -616,65 +662,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         </div>
       )}
 
-      {/* Tabs Navigation */}
-      <div className="border-b border-slate-800 px-4 py-4 flex gap-8 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`whitespace-nowrap py-2 px-1 border-b-2 transition-colors ${
-            activeTab === 'overview'
-              ? 'border-indigo-500 text-white'
-              : 'border-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          <span className="inline-flex items-center gap-2">
-            Visão Geral
-            {tabDirty.overview && <span className="h-2 w-2 rounded-full bg-amber-500" />}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab('photos')}
-          className={`whitespace-nowrap py-2 px-1 border-b-2 transition-colors ${
-            activeTab === 'photos'
-              ? 'border-indigo-500 text-white'
-              : 'border-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          <span className="inline-flex items-center gap-2">
-            Fotos
-            {tabDirty.photos && <span className="h-2 w-2 rounded-full bg-amber-500" />}
-          </span>
-        </button>
-        {canViewCosts && (
-          <button
-            onClick={() => setActiveTab('expenses')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 transition-colors ${
-              activeTab === 'expenses'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            <span className="inline-flex items-center gap-2">
-              Gastos
-              {tabDirty.expenses && <span className="h-2 w-2 rounded-full bg-amber-500" />}
-            </span>
-          </button>
-        )}
-        {canManageSales && !isNew && (
-          <button
-            onClick={() => setActiveTab('sell')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 transition-colors ${
-              activeTab === 'sell'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            Venda
-          </button>
-        )}
-      </div>
-
       {/* Tab Content */}
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <div className="min-h-[400px]">
             {activeTab === 'overview' && (
             <VehicleOverviewTab
