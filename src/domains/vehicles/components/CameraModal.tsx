@@ -35,21 +35,26 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   videoTrackRef,
 }) => {
   const [isPreview, setIsPreview] = useState(false);
-  const [frozenImageDataUrl, setFrozenImageDataUrl] = useState<string | null>(null);
   const [uploadStarted, setUploadStarted] = useState(false);
 
   // Turn off torch and cleanup when modal closes
   useEffect(() => {
     return () => {
+      // Resume video if paused on unmount
+      if (videoRef.current && videoRef.current.paused) {
+        try {
+          videoRef.current.play();
+        } catch (err) {
+          console.error('Error resuming video on unmount:', err);
+        }
+      }
+
       // Turn off torch if it's on when component unmounts
-      if (cameraTorchOn) {
-        // Call toggleTorch to turn it off
+      if (cameraTorchOn && videoTrackRef?.current) {
         setTimeout(() => {
           try {
-            if (videoTrackRef?.current) {
-              const constraints = { advanced: [{ torch: false } as any] } as MediaTrackConstraints;
-              videoTrackRef.current.applyConstraints(constraints);
-            }
+            const constraints = { advanced: [{ torch: false } as any] } as MediaTrackConstraints;
+            videoTrackRef.current?.applyConstraints(constraints);
           } catch (err) {
             console.error('Error turning off torch:', err);
           }
@@ -63,9 +68,17 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     if (uploadStarted && isUploading === false) {
       // Upload just completed
       const timer = setTimeout(() => {
+        // Resume video before closing
+        if (videoRef.current) {
+          try {
+            videoRef.current.play();
+          } catch (err) {
+            console.error('Error resuming video on close:', err);
+          }
+        }
+
         onClose();
         setIsPreview(false);
-        setFrozenImageDataUrl(null);
         setUploadStarted(false);
       }, 500);
 
@@ -74,27 +87,39 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   }, [uploadStarted, isUploading, onClose]);
 
   const handleCapture = async () => {
-    // Capture current frame to frozen image
-    if (canvasRef.current && videoRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        canvasRef.current.width = videoRef.current.videoWidth || 1280;
-        canvasRef.current.height = videoRef.current.videoHeight || 720;
-        ctx.drawImage(videoRef.current, 0, 0);
-        
-        // Get data URL for preview
-        const dataUrl = canvasRef.current.toDataURL('image/jpeg');
-        setFrozenImageDataUrl(dataUrl);
-      }
+    // Pause the video to freeze it
+    if (videoRef.current) {
+      videoRef.current.pause();
     }
 
-    // Go to preview state (not uploading yet)
+    // Go to preview state (show paused video as preview)
     setIsPreview(true);
+    
+    // Capture to canvas for upload (in background)
+    if (canvasRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        try {
+          canvas.width = video.videoWidth || 1280;
+          canvas.height = video.videoHeight || 720;
+          ctx.drawImage(video, 0, 0);
+          console.log('Image captured for upload:', { width: canvas.width, height: canvas.height });
+        } catch (err) {
+          console.error('Error capturing image to canvas:', err);
+        }
+      }
+    }
   };
 
   const handleRetake = () => {
+    // Resume the video
+    if (videoRef.current) {
+      videoRef.current.play();
+    }
     setIsPreview(false);
-    setFrozenImageDataUrl(null);
     setUploadStarted(false);
   };
 
@@ -105,6 +130,15 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   };
 
   const handleClose = () => {
+    // Resume video if paused
+    if (videoRef.current && videoRef.current.paused) {
+      try {
+        videoRef.current.play();
+      } catch (err) {
+        console.error('Error resuming video:', err);
+      }
+    }
+
     // Turn off torch if active
     if (cameraTorchOn && videoTrackRef?.current) {
       try {
@@ -115,7 +149,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       }
     }
     setIsPreview(false);
-    setFrozenImageDataUrl(null);
     setUploadStarted(false);
     onClose();
   };
@@ -128,36 +161,13 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       <div className="md:relative md:max-w-2xl md:rounded-3xl md:overflow-hidden md:shadow-2xl w-full h-full flex flex-col">
         {/* Video Stream Container - Full screen on mobile, contained on desktop */}
         <div className="relative flex-1 md:flex-none md:aspect-[9/16] md:max-h-[90vh] w-full bg-black overflow-hidden">
-          {/* Video Stream - Hidden when in preview */}
+          {/* Video Stream - Shows camera live or paused preview */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className={`w-full h-full object-cover transition-opacity duration-300 ${
-              isPreview ? 'opacity-0' : 'opacity-100'
-            }`}
+            className="w-full h-full object-cover"
           />
-
-          {/* Preview Image - Shows when photo is ready for approval */}
-          {isPreview && frozenImageDataUrl && (
-            <img
-              src={frozenImageDataUrl}
-              alt="Preview"
-              className="w-full h-full object-cover animate-fade-in"
-              onError={(e) => {
-                console.error('Error loading preview image');
-                // Fallback: show a lighter indicator
-                (e.currentTarget as HTMLImageElement).style.backgroundColor = '#1e293b';
-              }}
-            />
-          )}
-
-          {/* Fallback loading state - shows while preview is being prepared */}
-          {isPreview && !frozenImageDataUrl && (
-            <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-900 flex items-center justify-center">
-              <Loader className="animate-spin text-indigo-400" size={32} />
-            </div>
-          )}
 
           {/* Canvas for Capture (Hidden) */}
           <canvas ref={canvasRef} className="hidden" />
