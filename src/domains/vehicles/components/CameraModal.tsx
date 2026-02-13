@@ -37,6 +37,21 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   const [isPreview, setIsPreview] = useState(false);
   const [uploadStarted, setUploadStarted] = useState(false);
 
+  // --- CORREÇÃO 1: FORÇAR ZOOM 1x AO ABRIR ---
+  useEffect(() => {
+    if (isOpen && cameraHasZoom) {
+      // Verifica se 1.0 está dentro do range permitido pela câmera
+      // Se a câmera for ultra-wide (0.5x - 5x), isso forçará começar em 1x
+      if (cameraZoomRange.min <= 1 && cameraZoomRange.max >= 1) {
+        // Pequeno delay para garantir que a câmera iniciou
+        const timer = setTimeout(() => {
+           applyCameraZoom(1);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isOpen, cameraHasZoom]); // Dependência apenas na abertura
+
   // Turn off torch and cleanup when modal closes
   useEffect(() => {
     return () => {
@@ -89,17 +104,12 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    // 1. Capturar imagem para o Canvas
     if (canvas && video && video.readyState >= 2) {
       const ctx = canvas.getContext("2d");
-
       if (ctx) {
         try {
-          // Garante que o canvas tenha o tamanho exato do vídeo
           canvas.width = video.videoWidth || 1280;
           canvas.height = video.videoHeight || 720;
-
-          // Desenha o frame atual
           ctx.drawImage(video, 0, 0);
         } catch (err) {
           console.error("Error capturing image to canvas:", err);
@@ -107,9 +117,8 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       }
     }
 
-    // 2. Desligar o flash IMEDIATAMENTE
     if (cameraTorchOn) {
-      toggleTorch(); // Atualiza UI
+      toggleTorch();
       if (videoTrackRef?.current) {
         try {
           const constraints = {
@@ -122,12 +131,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       }
     }
 
-    // 3. Pausa o vídeo (opcional, já que vamos escondê-lo)
-    if (video) {
-      video.pause();
-    }
-
-    // 4. Ativa o modo Preview (que vai trocar o Vídeo pelo Canvas no HTML abaixo)
+    // Não pausamos o vídeo aqui para evitar flicker, apenas escondemos via CSS
     setIsPreview(true);
   };
 
@@ -175,8 +179,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       <div className="md:relative md:max-w-2xl md:rounded-3xl md:overflow-hidden md:shadow-2xl w-full h-full flex flex-col">
         <div className="relative flex-1 md:flex-none md:aspect-[9/16] md:max-h-[90vh] w-full bg-black overflow-hidden">
           
-          {/* --- MUDANÇA AQUI --- */}
-          {/* Se NÃO for preview, mostra o vídeo ao vivo */}
           <video
             ref={videoRef}
             autoPlay
@@ -184,12 +186,10 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             className={`w-full h-full object-cover ${isPreview ? 'hidden' : 'block'}`}
           />
 
-          {/* Se FOR preview, mostra o canvas (foto estática) */}
           <canvas 
             ref={canvasRef} 
             className={`w-full h-full object-cover ${isPreview ? 'block' : 'hidden'}`} 
           />
-          {/* -------------------- */}
 
           <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4 z-10">
             <button
@@ -198,7 +198,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             >
               <X size={24} />
             </button>
-
             <h3 className="hidden md:block text-white font-bold text-lg">
               Câmera
             </h3>
@@ -234,14 +233,17 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   {cameraZoom.toFixed(1)}x
                 </span>
               </div>
+              
+              {/* --- CORREÇÃO 2: SLIDER COM touch-none --- */}
               <input
                 type="range"
                 min={cameraZoomRange.min}
                 max={cameraZoomRange.max}
                 step="0.1"
                 value={cameraZoom}
+                // Adicionado touch-none para evitar scroll da página ao arrastar
+                className="w-full h-2 bg-slate-600/40 hover:bg-slate-600/60 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-colors touch-none"
                 onChange={(e) => applyCameraZoom(parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-600/40 hover:bg-slate-600/60 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-colors"
               />
             </div>
           )}
@@ -252,7 +254,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 <button
                   onClick={handleRetake}
                   className="flex-1 p-3 rounded-xl bg-slate-600 hover:bg-slate-700 text-white font-medium transition-all active:scale-95 md:flex-none md:px-6"
-                  title="Tirar outra foto"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <RotateCcw size={18} />
@@ -264,7 +265,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 <button
                   onClick={handleConfirmCapture}
                   className="flex-1 p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-medium transition-all active:scale-95 md:flex-none md:px-6"
-                  title="Confirmar foto"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Camera size={18} />
@@ -273,7 +273,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   </span>
                 </button>
               </div>
-
               <p className="text-center text-sm text-slate-300 font-medium">
                 Aprove a foto ou tire outra
               </p>
@@ -283,10 +282,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
           {isUploading && (
             <>
               <div className="flex items-center justify-center">
-                <button
-                  disabled
-                  className="relative transition-all opacity-50 cursor-not-allowed"
-                >
+                <button disabled className="relative transition-all opacity-50 cursor-not-allowed">
                   <div className="w-16 h-16 rounded-full border-4 border-white/20">
                     <div className="absolute inset-1 rounded-full bg-gradient-to-r from-indigo-600 to-indigo-500">
                       <div className="w-full h-full flex items-center justify-center">
@@ -296,7 +292,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   </div>
                 </button>
               </div>
-
               <p className="text-center text-sm text-slate-300 font-medium flex items-center justify-center gap-1">
                 <Loader size={14} className="animate-spin" />
                 Enviando foto...
@@ -310,7 +305,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 <button
                   onClick={handleCapture}
                   className="relative transition-all active:scale-95"
-                  title="Tirar foto"
                 >
                   <div className="w-16 h-16 rounded-full border-4 border-white/20 hover:border-white/40 transition-colors relative">
                     <div className="absolute inset-1 rounded-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 transition-colors">
@@ -324,13 +318,8 @@ export const CameraModal: React.FC<CameraModalProps> = ({
 
               <p className="text-center text-xs text-slate-400">
                 {cameraTorchOn ? "💡 Flash ligado" : ""}
-                {cameraZoom > 1
-                  ? (cameraTorchOn ? ` • ` : "") +
-                    `Zoom ${cameraZoom.toFixed(1)}x`
-                  : ""}
-                {!cameraTorchOn && cameraZoom <= 1
-                  ? "Pronto para fotografar"
-                  : ""}
+                {cameraZoom > 1 ? (cameraTorchOn ? ` • ` : "") + `Zoom ${cameraZoom.toFixed(1)}x` : ""}
+                {!cameraTorchOn && cameraZoom <= 1 ? "Pronto para fotografar" : ""}
               </p>
             </>
           )}
