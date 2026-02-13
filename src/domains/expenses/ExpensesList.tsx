@@ -1225,18 +1225,20 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                             {formatCurrency(item.amount)}
                           </td>
                           <td className="p-3 text-right whitespace-nowrap">
-                            <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
+                            <div className="flex gap-2 justify-end md:opacity-0 md:group-hover:opacity-100 transition-all">
                               <button
                                 onClick={() => handleEditOpex(item)}
-                                className="text-slate-600 hover:text-indigo-400 transition-colors"
+                                className="text-slate-600 hover:text-indigo-400 transition-colors p-2 hover:bg-slate-800/50 rounded-lg flex-shrink-0"
+                                title="Editar despesa"
                               >
-                                <Edit2 size={16} />
+                                <Edit2 size={18} />
                               </button>
                               <button
                                 onClick={() => handleDeleteOpex(item.id)}
-                                className="text-slate-600 hover:text-rose-500 transition-colors"
+                                className="text-slate-600 hover:text-rose-500 transition-colors p-2 hover:bg-slate-800/50 rounded-lg flex-shrink-0"
+                                title="Deletar despesa"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={18} />
                               </button>
                             </div>
                           </td>

@@ -91,7 +91,7 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
 
           {useFipeSearch && fipeSearch}
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm">
             {[
               { label: 'Marca', field: 'make', type: 'text', disabled: useFipeSearch },
               { label: 'Modelo', field: 'model', type: 'text', disabled: useFipeSearch },

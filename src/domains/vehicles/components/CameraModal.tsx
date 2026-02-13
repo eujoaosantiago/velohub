@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Camera, Zap, ZoomIn, Loader, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { X, Camera, Zap, ZoomIn, Loader, RotateCcw } from "lucide-react";
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -45,7 +45,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
         try {
           videoRef.current.play();
         } catch (err) {
-          console.error('Error resuming video on unmount:', err);
+          console.error("Error resuming video on unmount:", err);
         }
       }
 
@@ -53,10 +53,12 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       if (cameraTorchOn && videoTrackRef?.current) {
         setTimeout(() => {
           try {
-            const constraints = { advanced: [{ torch: false } as any] } as MediaTrackConstraints;
+            const constraints = {
+              advanced: [{ torch: false } as any],
+            } as MediaTrackConstraints;
             videoTrackRef.current?.applyConstraints(constraints);
           } catch (err) {
-            console.error('Error turning off torch:', err);
+            console.error("Error turning off torch:", err);
           }
         }, 100);
       }
@@ -73,7 +75,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
           try {
             videoRef.current.play();
           } catch (err) {
-            console.error('Error resuming video on close:', err);
+            console.error("Error resuming video on close:", err);
           }
         }
 
@@ -87,31 +89,57 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   }, [uploadStarted, isUploading, onClose]);
 
   const handleCapture = async () => {
-    // Pause the video to freeze it
-    if (videoRef.current) {
-      videoRef.current.pause();
-    }
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
 
-    // Go to preview state (show paused video as preview)
-    setIsPreview(true);
-    
-    // Capture to canvas for upload (in background)
-    if (canvasRef.current && videoRef.current && videoRef.current.readyState >= 2) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      const ctx = canvas.getContext('2d');
-      
+    // 1. Primeiro capturamos a imagem (enquanto o vídeo roda e o flash está ligado)
+    if (canvas && video && video.readyState >= 2) {
+      const ctx = canvas.getContext("2d");
+
       if (ctx) {
         try {
           canvas.width = video.videoWidth || 1280;
           canvas.height = video.videoHeight || 720;
+
+          // Desenha o frame atual no canvas (o "clique" da foto)
           ctx.drawImage(video, 0, 0);
-          console.log('Image captured for upload:', { width: canvas.width, height: canvas.height });
+          console.log("Image captured for upload:", {
+            width: canvas.width,
+            height: canvas.height,
+          });
         } catch (err) {
-          console.error('Error capturing image to canvas:', err);
+          console.error("Error capturing image to canvas:", err);
         }
       }
     }
+
+    // 2. CORREÇÃO: Desligar o flash IMEDIATAMENTE após a captura
+    // Fazemos isso antes de pausar o vídeo ou mudar o estado para preview
+    if (cameraTorchOn) {
+      // 2a. Atualiza o estado visual do botão chamando a função do pai
+      toggleTorch();
+
+      // 2b. Força o hardware a desligar via trackRef para garantir
+      // Isso resolve o problema do flash continuar aceso no preview
+      if (videoTrackRef?.current) {
+        try {
+          const constraints = {
+            advanced: [{ torch: false } as any],
+          } as MediaTrackConstraints;
+          await videoTrackRef.current.applyConstraints(constraints);
+        } catch (err) {
+          console.error("Error forcing torch off:", err);
+        }
+      }
+    }
+
+    // 3. Agora sim pausamos o vídeo para mostrar o preview estático
+    if (video) {
+      video.pause();
+    }
+
+    // 4. Muda o estado da UI
+    setIsPreview(true);
   };
 
   const handleRetake = () => {
@@ -135,17 +163,19 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       try {
         videoRef.current.play();
       } catch (err) {
-        console.error('Error resuming video:', err);
+        console.error("Error resuming video:", err);
       }
     }
 
     // Turn off torch if active
     if (cameraTorchOn && videoTrackRef?.current) {
       try {
-        const constraints = { advanced: [{ torch: false } as any] } as MediaTrackConstraints;
+        const constraints = {
+          advanced: [{ torch: false } as any],
+        } as MediaTrackConstraints;
         videoTrackRef.current.applyConstraints(constraints);
       } catch (err) {
-        console.error('Error turning off torch:', err);
+        console.error("Error turning off torch:", err);
       }
     }
     setIsPreview(false);
@@ -183,7 +213,9 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             </button>
 
             {/* Title (Desktop only) */}
-            <h3 className="hidden md:block text-white font-bold text-lg">Câmera</h3>
+            <h3 className="hidden md:block text-white font-bold text-lg">
+              Câmera
+            </h3>
 
             {/* Placeholder for alignment */}
             <div className="w-12" />
@@ -197,10 +229,10 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 onClick={toggleTorch}
                 className={`p-3 rounded-full backdrop-blur-md transition-colors active:scale-95 ${
                   cameraTorchOn
-                    ? 'bg-amber-500/80 text-white hover:bg-amber-600'
-                    : 'bg-black/40 text-white hover:bg-black/60 md:bg-slate-900/60 md:hover:bg-slate-900/80'
+                    ? "bg-amber-500/80 text-white hover:bg-amber-600"
+                    : "bg-black/40 text-white hover:bg-black/60 md:bg-slate-900/60 md:hover:bg-slate-900/80"
                 }`}
-                title={cameraTorchOn ? 'Desligar Flash' : 'Ligar Flash'}
+                title={cameraTorchOn ? "Desligar Flash" : "Ligar Flash"}
               >
                 <Zap size={20} />
               </button>
@@ -218,7 +250,9 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   <ZoomIn size={16} />
                   <span>Zoom</span>
                 </div>
-                <span className="text-xs text-slate-400 font-mono">{cameraZoom.toFixed(1)}x</span>
+                <span className="text-xs text-slate-400 font-mono">
+                  {cameraZoom.toFixed(1)}x
+                </span>
               </div>
               <input
                 type="range"
@@ -325,9 +359,14 @@ export const CameraModal: React.FC<CameraModalProps> = ({
 
               {/* Status Text */}
               <p className="text-center text-xs text-slate-400">
-                {cameraTorchOn ? '💡 Flash ligado' : ''}
-                {cameraZoom > 1 ? (cameraTorchOn ? ` • ` : '') + `Zoom ${cameraZoom.toFixed(1)}x` : ''}
-                {!cameraTorchOn && cameraZoom <= 1 ? 'Pronto para fotografar' : ''}
+                {cameraTorchOn ? "💡 Flash ligado" : ""}
+                {cameraZoom > 1
+                  ? (cameraTorchOn ? ` • ` : "") +
+                    `Zoom ${cameraZoom.toFixed(1)}x`
+                  : ""}
+                {!cameraTorchOn && cameraZoom <= 1
+                  ? "Pronto para fotografar"
+                  : ""}
               </p>
             </>
           )}

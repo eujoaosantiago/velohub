@@ -61,6 +61,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
       onLogout();
   };
 
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
       {/* Mobile Header */}
