@@ -30,7 +30,7 @@ interface SupportRequest {
   isClient: boolean; // Se é usuário logado ou visitante da landing page
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
