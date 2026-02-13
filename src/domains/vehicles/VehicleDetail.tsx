@@ -27,6 +27,7 @@ import { VehicleSellTab } from './components/VehicleSellTab';
 // Import modals
 import { ShareModal } from '@/components/ShareModal';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { CameraModal } from './components/CameraModal';
 
 // Import hooks
 import { useFipeSearch } from './hooks/useFipeSearch';
@@ -150,6 +151,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     dragOverPhotoIndex,
     setDragOverPhotoIndex,
     recentlyMovedIndex,
+    cameraZoom,
+    cameraZoomRange,
+    cameraHasZoom,
+    cameraTorchOn,
+    cameraHasTorch,
+    toggleCameraTorch,
+    applyCameraZoom,
+    capturePhoto,
+    videoRef,
+    canvasRef,
   } = usePhotoManager({
     vehicle,
     formData,
@@ -542,6 +553,22 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           variant="danger"
       />
 
+      <CameraModal
+        isOpen={cameraState.isOpen}
+        onClose={() => setCameraState((prev) => ({ ...prev, isOpen: false }))}
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        onCapture={capturePhoto}
+        isUploading={cameraState.isUploading}
+        cameraZoom={cameraZoom}
+        cameraZoomRange={cameraZoomRange}
+        cameraHasZoom={cameraHasZoom}
+        cameraTorchOn={cameraTorchOn}
+        cameraHasTorch={cameraHasTorch}
+        toggleTorch={toggleCameraTorch}
+        applyCameraZoom={applyCameraZoom}
+      />
+
       {showUpgradeShareModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowUpgradeShareModal(false)}>
               <div className="bg-slate-900 border border-indigo-500/30 w-full max-w-md rounded-2xl shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -710,12 +737,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           {activeTab === 'photos' && (
             <VehiclePhotosTab
               formData={formData}
-              fileInputRef={fileInputRef}
+              fileInputRef={photoFileRef}
               isPhotoUploading={isPhotoUploading}
               uploadProgress={uploadProgress}
               photoIndex={photoIndex}
               setPhotoIndex={setPhotoIndex}
-              setCameraState={() => {}}
+              setCameraState={setCameraState}
               handlePhotoUpload={handlePhotoUpload}
               handlePhotoDelete={handlePhotoDelete}
               setFormData={setFormData}
