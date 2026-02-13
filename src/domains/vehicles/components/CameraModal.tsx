@@ -36,6 +36,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
 }) => {
   const [isPreview, setIsPreview] = useState(false);
   const [frozenImageDataUrl, setFrozenImageDataUrl] = useState<string | null>(null);
+  const [uploadStarted, setUploadStarted] = useState(false);
 
   // Turn off torch and cleanup when modal closes
   useEffect(() => {
@@ -57,19 +58,20 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     };
   }, [cameraTorchOn, videoTrackRef]);
 
-  // Close modal when upload completes
+  // Close modal when upload completes (only if upload was actually started)
   useEffect(() => {
-    if (isPreview && !isUploading && isUploading !== undefined) {
+    if (uploadStarted && isUploading === false) {
       // Upload just completed
       const timer = setTimeout(() => {
         onClose();
         setIsPreview(false);
         setFrozenImageDataUrl(null);
-      }, 800);
+        setUploadStarted(false);
+      }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [isPreview, isUploading, onClose]);
+  }, [uploadStarted, isUploading, onClose]);
 
   const handleCapture = async () => {
     // Capture current frame to frozen image
@@ -93,10 +95,12 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   const handleRetake = () => {
     setIsPreview(false);
     setFrozenImageDataUrl(null);
+    setUploadStarted(false);
   };
 
   const handleConfirmCapture = () => {
-    // Now actually trigger the upload
+    // Mark upload as started then trigger the actual upload
+    setUploadStarted(true);
     onCapture();
   };
 
@@ -110,6 +114,9 @@ export const CameraModal: React.FC<CameraModalProps> = ({
         console.error('Error turning off torch:', err);
       }
     }
+    setIsPreview(false);
+    setFrozenImageDataUrl(null);
+    setUploadStarted(false);
     onClose();
   };
 
@@ -126,7 +133,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             ref={videoRef}
             autoPlay
             playsInline
-            className={`w-full h-full object-cover transition-opacity duration-200 ${
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
               isPreview ? 'opacity-0' : 'opacity-100'
             }`}
           />
@@ -136,8 +143,20 @@ export const CameraModal: React.FC<CameraModalProps> = ({
             <img
               src={frozenImageDataUrl}
               alt="Preview"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover animate-fade-in"
+              onError={(e) => {
+                console.error('Error loading preview image');
+                // Fallback: show a lighter indicator
+                (e.currentTarget as HTMLImageElement).style.backgroundColor = '#1e293b';
+              }}
             />
+          )}
+
+          {/* Fallback loading state - shows while preview is being prepared */}
+          {isPreview && !frozenImageDataUrl && (
+            <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-900 flex items-center justify-center">
+              <Loader className="animate-spin text-indigo-400" size={32} />
+            </div>
           )}
 
           {/* Canvas for Capture (Hidden) */}
