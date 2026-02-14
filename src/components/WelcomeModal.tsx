@@ -67,24 +67,27 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ user }) => {
       setIsVisible(true);
       setIsLeaving(false);
       sessionStorage.setItem('velohub_welcome_shown', 'true');
+    }
+  }, [user]);
 
-      // Auto-close após 5 segundos
+  useEffect(() => {
+    if (isVisible) {
       const timer = setTimeout(() => dismiss(), 5000);
       return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
   return (
     <div className={`fixed top-6 right-6 z-[100] max-w-sm w-full ${isLeaving ? 'animate-fade-out' : 'animate-slide-in-right'}`}>
-      <div className="bg-slate-900/90 backdrop-blur-xl border border-indigo-500/30 p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
+      <div className="bg-white dark:bg-slate-900 backdrop-blur-xl border border-indigo-500/20 dark:border-indigo-500/30 p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
         {/* Background Glow */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all"></div>
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-all"></div>
         
         <button 
           onClick={dismiss}
-          className="absolute top-2 right-2 text-slate-500 hover:text-white transition-colors"
+          className="absolute top-2 right-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <X size={16} />
         </button>
@@ -94,8 +97,8 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ user }) => {
             <Sparkles size={24} />
           </div>
           <div>
-            <h3 className="text-white font-bold text-lg mb-1">Bem-vindo(a)!</h3>
-            <p className="text-slate-300 text-sm leading-relaxed font-medium">
+            <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">Bem-vindo(a)!</h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium">
               {message}
             </p>
           </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Mail, MessageSquare, ShieldCheck, FileText, Lock, User, Send, CheckCircle2, HelpCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -326,9 +325,9 @@ export const SupportPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                         required
                                         value={topic}
                                         onChange={(e) => setTopic(e.target.value)}
-                                        className="w-full select-premium pl-12 pr-10 py-3.5 cursor-pointer"
+                                        className="w-full bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none pl-12 pr-10 py-3.5 cursor-pointer placeholder:text-slate-700"
                                     >
-                                        <option value="" disabled>Selecione um tópico</option>
+                                        <option value="" disabled hidden>Selecione um tópico</option>
                                         <option value="planos">Dúvidas sobre Planos</option>
                                         <option value="suporte">Suporte Técnico</option>
                                         <option value="financeiro">Financeiro</option>

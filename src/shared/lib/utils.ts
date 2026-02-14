@@ -82,7 +82,9 @@ export const numberToMaskedCurrency = (value: number): string => {
 
 // Converte "R$ 1.500,00" → 1500
 export const parseCurrencyInput = (value: string): number => {
+  if (!value) return 0;
   const digits = value.replace(/\D/g, '');
+  if (!digits) return 0;
   return parseInt(digits, 10) / 100;
 };
 
@@ -129,6 +131,14 @@ export const maskRenavam = (value: string) => {
   return value
     .replace(/\D/g, '')
     .slice(0, 11);
+};
+
+// MÁSCARA DE PLACA (Mercosul ou antiga)
+export const maskPlate = (value: string) => {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 7);
 };
 
 // CHASSI: VIN com 17 caracteres (números e letras maiúsculas)
@@ -212,15 +222,15 @@ export const getStatusColor = (status: string) => {
 export const getStatusBorderColor = (status: string) => {
   switch (status) {
     case 'available':
-      return 'border-emerald-500/30 hover:border-emerald-500/50';
+      return 'border-l-emerald-500 dark:border-l-emerald-500';
     case 'sold':
-      return 'border-blue-500/30 hover:border-blue-500/50';
+      return 'border-l-blue-500 dark:border-l-blue-500';
     case 'reserved':
-      return 'border-amber-500/30 hover:border-amber-500/50';
+      return 'border-l-amber-500 dark:border-l-amber-500';
     case 'preparation':
-      return 'border-indigo-500/30 hover:border-indigo-500/50';
+      return 'border-l-indigo-500 dark:border-l-indigo-500';
     default:
-      return 'border-slate-800';
+      return 'border-l-slate-800 dark:border-l-slate-700';
   }
 };
 

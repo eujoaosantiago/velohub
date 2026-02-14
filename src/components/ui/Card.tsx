@@ -11,10 +11,10 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = '', title, action }) => {
   return (
-    <div className={`bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col ${className}`}>
+    <div className={`bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col ${className}`}>
       {(title || action) && (
-        <div className="px-4 md:px-6 py-4 border-b border-slate-800 flex justify-between items-center shrink-0">
-          {title && <h3 className="text-base md:text-lg font-semibold text-slate-100 truncate pr-2">{title}</h3>}
+        <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+          {title && <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{title}</h3>}
           {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
@@ -38,26 +38,26 @@ export const StatCard: React.FC<{
 
   return (
     <div
-      className="bg-gradient-to-br from-slate-900 to-slate-850 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-lg hover:border-slate-700 transition-colors relative group min-w-0"
+      className="bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-slate-850 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-lg hover:border-slate-300 dark:hover:border-slate-700 transition-colors relative group min-w-0"
       onMouseLeave={() => setShowTooltip(false)}
     >
       
       {/* Tooltip Overlay */}
       {showTooltip && (
-          <div className="absolute top-0 left-0 w-full h-full z-20 bg-slate-900/95 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-4 text-center animate-fade-in cursor-pointer" onClick={() => setShowTooltip(false)}>
-              <p className="text-sm text-slate-300">{helpText}</p>
-              <span className="text-[10px] text-indigo-400 mt-2 uppercase font-bold">Toque para fechar</span>
+          <div className="absolute top-0 left-0 w-full h-full z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-4 text-center animate-fade-in cursor-pointer" onClick={() => setShowTooltip(false)}>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{helpText}</p>
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-2 uppercase font-bold">Toque para fechar</span>
           </div>
       )}
 
       <div className="flex items-start justify-between mb-3 md:mb-4">
-        <div className="p-2.5 md:p-3 bg-slate-800/50 rounded-xl text-indigo-400 shrink-0">
+        <div className="p-2.5 md:p-3 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-indigo-600 dark:text-indigo-400 shrink-0">
           {icon}
         </div>
         {trend && (
           <span className={`text-[10px] md:text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2 ${
-            trend === 'up' ? 'text-emerald-400 bg-emerald-400/10' : 
-            trend === 'down' ? 'text-rose-400 bg-rose-400/10' : 'text-slate-400'
+            trend === 'up' ? 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-400/10' : 
+            trend === 'down' ? 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-400/10' : 'text-slate-600 dark:text-slate-400'
           }`}>
             {trend === 'up' ? '↗' : trend === 'down' ? '↘' : '-'}
           </span>
@@ -65,7 +65,7 @@ export const StatCard: React.FC<{
       </div>
         <div className="min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <p className="text-xs md:text-sm text-slate-400 font-medium truncate">{label}</p>
+          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 font-medium truncate">{label}</p>
           {helpText && (
             <button
               type="button"
@@ -76,7 +76,7 @@ export const StatCard: React.FC<{
             >
               <HelpCircle 
                 size={14} 
-                className="text-slate-600 dark:text-slate-500 cursor-pointer hover:text-indigo-400 transition-colors" 
+                className="text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" 
               />
             </button>
           )}
@@ -85,10 +85,10 @@ export const StatCard: React.FC<{
         <h4
           className={`text-xl sm:text-2xl font-bold tracking-tight truncate ${
             highlight === 'positive'
-              ? 'text-emerald-400'
+              ? 'text-emerald-600 dark:text-emerald-400'
               : highlight === 'negative'
-                ? 'text-rose-400'
-                : 'text-white'
+                ? 'text-rose-600 dark:text-rose-400'
+                : 'text-slate-900 dark:text-white'
           }`}
           title={value}
         >

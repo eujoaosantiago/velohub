@@ -3,6 +3,7 @@ import { Vehicle } from '@/shared/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Camera, Check, FileCheck, FileText, RefreshCw, Search, Tag, Wallet, X } from 'lucide-react';
+import { maskPlate, maskRenavam, maskChassis } from '@/shared/lib/utils';
 
 type UploadProgress = {
   total: number;
@@ -81,7 +82,7 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
       <div className="md:col-span-2 space-y-6">
         <Card title="Dados do Veículo">
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-white font-medium flex gap-2">
+            <span className="text-slate-900 dark:text-white font-medium flex gap-2">
               <Search size={16} className="text-indigo-400" /> FIPE
             </span>
             <button onClick={onToggleFipeSearch} className="text-xs text-indigo-400 underline">
@@ -104,13 +105,34 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
                 inputMode: 'numeric',
                 formatValue: (value: number) => (value ? String(value) : ''),
                 parseValue: (value: string) => {
-                  const parsed = parseIntegerFromInput(value);
+                  const cleaned = value.replace(/\D/g, '');
+                  const parsed = parseInt(cleaned, 10);
+                  if (isNaN(parsed)) return 0;
                   return parsed > 9999 ? parseInt(String(parsed).slice(0, 4), 10) : parsed;
                 },
               },
-              { label: 'Placa', field: 'plate', type: 'text', disabled: false, uppercase: true },
-              { label: 'RENAVAM', field: 'renavam', type: 'text', disabled: false, inputMode: 'numeric', uppercase: true },
-              { label: 'Chassi', field: 'chassis', type: 'text', disabled: false, uppercase: true },
+              { 
+                label: 'Placa', 
+                field: 'plate', 
+                type: 'text', 
+                disabled: false, 
+                parseValue: maskPlate 
+              },
+              { 
+                label: 'RENAVAM', 
+                field: 'renavam', 
+                type: 'text', 
+                disabled: false, 
+                inputMode: 'numeric', 
+                parseValue: maskRenavam 
+              },
+              { 
+                label: 'Chassi', 
+                field: 'chassis', 
+                type: 'text', 
+                disabled: false, 
+                parseValue: maskChassis 
+              },
               {
                 label: 'KM',
                 field: 'km',
@@ -134,11 +156,11 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
                 <input
                   type={item.type}
                   inputMode={item.inputMode}
-                  className={`w-full bg-slate-900 border ${
+                  className={`w-full bg-white dark:bg-slate-900 border ${
                     dirtyStateIsOverview && !safeCompare(formData[item.field as keyof Vehicle], vehicle[item.field as keyof Vehicle])
                       ? 'border-amber-500/50'
-                      : 'border-slate-700'
-                  } rounded p-2 text-white ${item.uppercase ? 'uppercase' : ''}`}
+                      : 'border-slate-200 dark:border-slate-700'
+                  } rounded p-2 text-slate-900 dark:text-white ${item.uppercase ? 'uppercase' : ''}`}
                   value={item.formatValue ? item.formatValue((formData as any)[item.field]) : (formData as any)[item.field]}
                   onChange={(e) => {
                     const rawValue = e.target.value;
@@ -151,8 +173,8 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
             ))}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-slate-800">
-            <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <Tag size={16} className="text-slate-400" /> Opcionais
               {optionalsDirty && <span className="h-2 w-2 rounded-full bg-amber-500" />}
             </h4>
@@ -167,7 +189,7 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                       active
                         ? 'bg-indigo-500 text-white border-indigo-400'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-500'
+                        : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
                     }`}
                   >
                     {opt}
@@ -180,7 +202,7 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
               <input
                 type="text"
                 placeholder="Adicionar opcional"
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm"
+                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-sm"
                 value={optionalInput}
                 onChange={(e) => setOptionalInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -200,10 +222,10 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
                 {(formData.optionals || []).map((opt) => (
                   <span
                     key={opt}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-slate-800 text-slate-200 border border-slate-700"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                   >
                     {opt}
-                    <button type="button" onClick={() => removeOptional(opt)} className="text-slate-400 hover:text-white" aria-label={`Remover ${opt}`}>
+                    <button type="button" onClick={() => removeOptional(opt)} className="text-slate-400 hover:text-red-500" aria-label={`Remover ${opt}`}>
                       <X size={12} />
                     </button>
                   </span>
@@ -212,23 +234,23 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
             )}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-slate-800">
-            <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <FileText size={16} className="text-slate-400" /> Documentação
               {docsDirty && <span className="h-2 w-2 rounded-full bg-amber-500" />}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label
                 className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                  formData.ipvaPaid ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-900 border-slate-700 hover:bg-slate-800'
+                  formData.ipvaPaid ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${formData.ipvaPaid ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                  <div className={`p-2 rounded-full ${formData.ipvaPaid ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
                     <FileCheck size={16} />
                   </div>
                   <div>
-                    <p className={`font-bold text-sm ${formData.ipvaPaid ? 'text-emerald-400' : 'text-slate-300'}`}>
+                    <p className={`font-bold text-sm ${formData.ipvaPaid ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
                       IPVA Pago
                       {isFieldDirty('ipvaPaid') && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-amber-500" />}
                     </p>
@@ -248,17 +270,17 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
                 className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                   formData.licensingPaid
                     ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-slate-900 border-slate-700 hover:bg-slate-800'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`p-2 rounded-full ${formData.licensingPaid ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}
+                    className={`p-2 rounded-full ${formData.licensingPaid ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}
                   >
                     <FileCheck size={16} />
                   </div>
                   <div>
-                    <p className={`font-bold text-sm ${formData.licensingPaid ? 'text-emerald-400' : 'text-slate-300'}`}>
+                    <p className={`font-bold text-sm ${formData.licensingPaid ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
                       Licenciamento
                       {isFieldDirty('licensingPaid') && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-amber-500" />}
                     </p>
@@ -287,8 +309,9 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
               <input
                 type="text"
                 inputMode="decimal"
-                className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums"
-                value={getMaskedValue(formData.fipePrice)}
+                className="w-40 md:w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-2 text-right text-slate-900 dark:text-white tabular-nums"
+                value={formData.fipePrice ? getMaskedValue(formData.fipePrice) : ''}
+                placeholder="R$ 0,00"
                 onChange={(e) => setFormData((prev) => ({ ...prev, fipePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))}
                 onFocus={(e) => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
               />
@@ -302,8 +325,9 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
               <input
                 type="text"
                 inputMode="decimal"
-                className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white tabular-nums"
-                value={getMaskedValue(formData.purchasePrice)}
+                className="w-40 md:w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-2 text-right text-slate-900 dark:text-white tabular-nums"
+                value={formData.purchasePrice ? getMaskedValue(formData.purchasePrice) : ''}
+                placeholder="R$ 0,00"
                 onChange={(e) => setFormData((prev) => ({ ...prev, purchasePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))}
                 onFocus={(e) => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
               />
@@ -317,8 +341,9 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
               <input
                 type="text"
                 inputMode="decimal"
-                className="w-40 md:w-52 bg-slate-900 border border-slate-700 rounded p-1 text-right text-white text-lg font-bold tabular-nums"
-                value={getMaskedValue(formData.expectedSalePrice)}
+                className="w-40 md:w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-2 text-right text-slate-900 dark:text-white text-lg font-bold tabular-nums"
+                value={formData.expectedSalePrice ? getMaskedValue(formData.expectedSalePrice) : ''}
+                placeholder="R$ 0,00"
                 onChange={(e) => setFormData((prev) => ({ ...prev, expectedSalePrice: parseCurrencyInput(maskCurrencyInput(e.target.value)) }))}
                 onFocus={(e) => setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0)}
               />

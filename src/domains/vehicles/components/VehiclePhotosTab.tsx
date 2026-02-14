@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Vehicle } from '@/shared/types';
 import { Camera, ChevronLeft, ChevronRight, RefreshCw, Star, Trash2, Upload } from 'lucide-react';
 
@@ -49,34 +49,86 @@ export const VehiclePhotosTab: React.FC<VehiclePhotosTabProps> = ({
   markPhotoMoved,
   recentlyMovedIndex,
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Detecção simplificada de mobile/tablet para decidir entre Câmera Nativa ou Webcam
+    const checkMobile = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      // Verifica Android, iOS ou se é dispositivo touch (fallback)
+      return /android|iphone|ipad|ipod/.test(ua) || (navigator.maxTouchPoints > 0 && /mobile|tablet/.test(ua));
+    };
+    setIsMobile(checkMobile());
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} className="hidden" multiple accept="image/*" />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isPhotoUploading}
-          className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* Carregar da Galeria (Funciona em ambos) */}
+        <label 
+          className={`flex-1 p-6 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group ${isPhotoUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          <Upload size={24} className="mb-2" /> <span className="font-medium">{isPhotoUploading ? 'Enviando...' : 'Carregar da Galeria'}</span>
-        </button>
-        <button
-          onClick={() => setCameraState((prev) => ({ ...prev, isOpen: true }))}
-          disabled={isPhotoUploading}
-          className="flex-1 p-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Camera size={24} className="mb-2" /> <span className="font-medium">{isPhotoUploading ? 'Aguard...' : 'Tirar Foto Agora'}</span>
-        </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handlePhotoUpload} 
+            className="hidden" 
+            multiple 
+            accept="image/*" 
+            disabled={isPhotoUploading}
+          />
+          <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-3 group-hover:scale-110 transition-transform">
+            <Upload size={24} className="text-indigo-500" />
+          </div>
+          <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+            {isPhotoUploading ? 'Enviando...' : 'Carregar da Galeria'}
+          </span>
+        </label>
+
+        {/* Câmera: Lógica Condicional (Nativa no Mobile, Webcam no Desktop) */}
+        {isMobile ? (
+          <label 
+            className={`flex-1 p-6 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group ${isPhotoUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <input 
+              type="file" 
+              onChange={handlePhotoUpload} 
+              className="hidden" 
+              capture="environment"
+              accept="image/*" 
+              disabled={isPhotoUploading}
+            />
+            <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-3 group-hover:scale-110 transition-transform">
+              <Camera size={24} className="text-indigo-500" />
+            </div>
+            <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+              {isPhotoUploading ? 'Aguarde...' : 'Tirar Foto (Nativo)'}
+            </span>
+          </label>
+        ) : (
+          <button
+            onClick={() => setCameraState((prev) => ({ ...prev, isOpen: true }))}
+            disabled={isPhotoUploading}
+            className={`flex-1 p-6 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group ${isPhotoUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-3 group-hover:scale-110 transition-transform">
+              <Camera size={24} className="text-indigo-500" />
+            </div>
+            <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+              {isPhotoUploading ? 'Aguarde...' : 'Usar Webcam'}
+            </span>
+          </button>
+        )}
       </div>
       {isPhotoUploading && (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mb-4">
+        <div className="bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-200">Enviando imagens...</span>
-            <span className="text-xs text-slate-400">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Enviando imagens...</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {uploadProgress.done}/{uploadProgress.total}
             </span>
           </div>
-          <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-slate-200 dark:bg-slate-700/50 rounded-full h-2 overflow-hidden">
             <div
               className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-full transition-all duration-300"
               style={{ width: `${uploadProgress.total > 0 ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%` }}
@@ -88,7 +140,7 @@ export const VehiclePhotosTab: React.FC<VehiclePhotosTabProps> = ({
       {formData.photos.length > 0 && (
         <div className="relative">
           <div
-            className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-slate-900 border border-slate-800"
+            className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
             onTouchStart={(e) => {
               const touch = e.touches[0];
               (e.currentTarget as any)._startX = touch.clientX;

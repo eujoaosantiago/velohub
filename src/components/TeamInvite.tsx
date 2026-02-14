@@ -290,8 +290,8 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
             )}
 
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold text-white">Gestão de Equipe</h1>
-                <p className="text-slate-400">Convide vendedores e defina exatamente o que eles podem ver.</p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestão de Equipe</h1>
+                <p className="text-slate-600 dark:text-slate-400">Convide vendedores e defina exatamente o que eles podem ver.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -299,15 +299,15 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
                 <Card title="Adicionar Membro">
                     <form onSubmit={handleInvite} className="space-y-4">
                         {!canAddMember ? (
-                             <div className="p-4 bg-slate-800 border border-rose-500/30 rounded-lg text-sm mb-4 flex items-center gap-3">
-                                <Lock size={20} className="text-rose-400 shrink-0" />
+                             <div className="p-4 bg-slate-100 dark:bg-slate-800 border border-rose-500/30 rounded-lg text-sm mb-4 flex items-center gap-3">
+                                <Lock size={20} className="text-rose-600 dark:text-rose-400 shrink-0" />
                                 <div>
-                                    <p className="font-bold text-white">Limite Atingido ({team.length}/{limits.maxTeamMembers})</p>
-                                    <p className="text-xs text-slate-400">Faça upgrade para o plano Pro ou Enterprise para adicionar mais vendedores.</p>
+                                    <p className="font-bold text-slate-900 dark:text-white">Limite Atingido ({team.length}/{limits.maxTeamMembers})</p>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400">Faça upgrade para o plano Pro ou Enterprise para adicionar mais vendedores.</p>
                                 </div>
                              </div>
                         ) : (
-                             <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm text-indigo-300 mb-4 flex gap-2">
+                             <div className="p-4 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-lg text-sm text-indigo-800 dark:text-indigo-300 mb-4 flex gap-2">
                                 <UserPlus size={16} className="shrink-0 mt-0.5" />
                                 <span>
                                     Preencha os dados abaixo. Enviaremos um email com o link de acesso.
@@ -316,26 +316,26 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
                         )}
                         
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Nome do Funcionário</label>
+                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Funcionário</label>
                             <input 
                                 type="text"
                                 required
                                 value={name}
                                 onChange={e => setName(e.target.value)}
                                 disabled={!canAddMember || isLoading}
-                                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-3 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-600 transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg p-3 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                                 placeholder="João Silva"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Email de Acesso</label>
+                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Email de Acesso</label>
                             <input 
                                 type="email"
                                 required
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 disabled={!canAddMember || isLoading}
-                                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-3 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-600 transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg p-3 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                                 placeholder="joao@sualoja.com"
                             />
                         </div>
@@ -361,7 +361,7 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
                 <Card title={`Equipe Ativa (${team.length}/${limits.maxTeamMembers})`}>
                     {team.length === 0 ? (
                         <div className="text-center py-12 text-slate-500 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
                                 <UserPlus size={32} className="opacity-30" />
                             </div>
                             <p>Nenhum funcionário cadastrado.</p>
@@ -369,20 +369,20 @@ export const TeamInvite: React.FC<TeamInviteProps> = ({ user }) => {
                     ) : (
                         <div className="space-y-3">
                             {team.map(member => (
-                                <div key={member.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors group">
+                                <div key={member.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-colors group">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-sm font-bold shadow-lg">
                                             {member.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <p className="text-white text-sm font-medium">{member.name}</p>
+                                            <p className="text-slate-900 dark:text-white text-sm font-medium">{member.name}</p>
                                             <p className="text-slate-500 text-xs">{member.email}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button 
                                             onClick={() => handleOpenPermissions(member)}
-                                            className="p-2 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors"
                                             title="Configurar Acessos"
                                         >
                                             <Settings size={18} />

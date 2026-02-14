@@ -49,10 +49,25 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   };
 
   const style = variantStyles[variant];
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const handleConfirm = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede propagação de evento que poderia reabrir modais se houver sobreposição
+    
+    // Evita múltiplos cliques
+    if (isLoading || isProcessing) return;
+
+    setIsProcessing(true);
+    
+    try {
+      // Suporta onConfirm síncrono ou assíncrono (Promise)
+      await Promise.resolve(onConfirm());
+    } catch (error) {
+      console.error("Erro na confirmacao:", error);
+    } finally {
+      setIsProcessing(false);
+      onClose();
+    }
   };
 
   return (
@@ -61,7 +76,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors z-10"
-          disabled={isLoading}
+          disabled={isLoading || isProcessing}
         >
           <X size={18} />
         </button>
@@ -83,7 +98,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               variant="ghost" 
               onClick={onClose} 
               className="flex-1"
-              disabled={isLoading}
+              disabled={isLoading || isProcessing}
             >
               {cancelText}
             </Button>
@@ -91,9 +106,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               type="button" 
               onClick={handleConfirm} 
               className={`flex-1 ${style.buttonClass}`}
-              disabled={isLoading}
+              disabled={isLoading || isProcessing}
             >
-              {isLoading ? 'Processando...' : confirmText}
+              {(isLoading || isProcessing) ? 'Processando...' : confirmText}
             </Button>
           </div>
         </div>

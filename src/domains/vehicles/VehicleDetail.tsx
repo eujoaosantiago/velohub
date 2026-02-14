@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Vehicle, Expense, ExpenseCategory, UserRole, checkPermission, User, PlanType } from '@/shared/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { ArrowLeft, AlertCircle, AlertTriangle, CheckCircle, Save, Share2, Trash2, Lock, Crown, X } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { AlertCircle, AlertTriangle, CheckCircle, Save, Share2, Trash2, Lock, Crown, X, RefreshCw, Tag, Check, RotateCcw, ChevronDown } from 'lucide-react';
 
 // Import formatting utilities
 import {
@@ -16,6 +17,8 @@ import {
   numberToMaskedCurrency,
   parseCurrencyInput,
   formatDateBR,
+  getStatusLabel,
+  getStatusColor,
 } from '@/shared/lib/utils';
 
 // Import tab components
@@ -53,6 +56,7 @@ export interface VehicleDetailProps {
   userRole: UserRole;
   userPlan?: PlanType;
   onCreateTradeIn?: (tradeInVehicle: Vehicle) => Promise<void>;
+  onShowToast?: (message: string, type: 'success' | 'error') => void;
 }
 
 type UploadProgress = {
@@ -71,6 +75,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   userRole,
   userPlan = 'free',
   onCreateTradeIn,
+  onShowToast,
 }) => {
   // ===== STATE MANAGEMENT =====
   const [formData, setFormData] = useState<Vehicle>(vehicle);
@@ -95,6 +100,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [showUpgradeShareModal, setShowUpgradeShareModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -379,12 +385,26 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       setError(null);
 
       await onUpdate(formData);
-      showToast('Alteracoes salvas com sucesso!', 'success');
-      // Reset optionalInput after successful save
-      setOptionalInput('');
+      
+      if (isNew) {
+        if (onShowToast) {
+          onShowToast('Veículo adicionado com sucesso!', 'success');
+        } else {
+          showToast('Veículo adicionado com sucesso!', 'success');
+        }
+        onBack();
+      } else {
+        showToast('Alterações salvas com sucesso!', 'success');
+        // Reset optionalInput after successful save
+        setOptionalInput('');
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao salvar veículo';
-      showToast(message, 'error');
+      if (isNew && onShowToast) {
+        onShowToast(message, 'error');
+      } else {
+        showToast(message, 'error');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -473,105 +493,158 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     }));
   };
 
+  // ===== PREPARE HEADER DATA =====
+  const tabs = [
+    {
+      id: 'overview',
+      label: 'Visão Geral',
+      isDirty: tabDirty.overview,
+      onClick: () => setActiveTab('overview'),
+    },
+    {
+      id: 'photos',
+      label: 'Fotos',
+      isDirty: tabDirty.photos,
+      onClick: () => setActiveTab('photos'),
+    },
+    ...(canViewCosts
+      ? [
+          {
+            id: 'expenses',
+            label: 'Gastos',
+            isDirty: tabDirty.expenses,
+            onClick: () => setActiveTab('expenses'),
+          },
+        ]
+      : []),
+    ...(canManageSales && !isNew
+      ? [
+          {
+            id: 'sell',
+            label: 'Fechar Venda',
+            isDirty: false,
+            onClick: () => setActiveTab('sell'),
+          },
+        ]
+      : []),
+  ];
+
+  const actions = [
+    ...(!isNew ? [
+        {
+            id: 'status',
+            label: getStatusLabel(formData.status),
+            icon: <ChevronDown size={14} className={`transition-transform duration-200 ${showStatusModal ? 'rotate-180' : ''}`} />,
+            onClick: () => setShowStatusModal(prev => !prev),
+            variant: 'primary' as const,
+            size: 'md' as const,
+            className: `flex-row-reverse justify-between min-w-[140px]`,
+            dropdownContent: showStatusModal && (
+              <>
+                <div className="fixed inset-0 z-[90] bg-transparent" onClick={() => setShowStatusModal(false)} />
+                <div 
+                    className="absolute top-full right-0 mt-2 z-[100] w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl overflow-hidden animate-fade-in flex flex-col"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {[
+                        { val: 'available', label: 'Em Estoque', color: 'text-emerald-500 dark:text-emerald-400' },
+                        { val: 'reserved', label: 'Reservado', color: 'text-amber-500 dark:text-amber-400' },
+                        { val: 'preparation', label: 'Preparação', color: 'text-indigo-500 dark:text-indigo-400' },
+                        { val: 'sold', label: 'Vendido', color: 'text-blue-500 dark:text-blue-400' },
+                    ].map(opt => (
+                        <button
+                            key={opt.val}
+                            onClick={() => {
+                                setFormData(prev => ({ ...prev, status: opt.val as any }));
+                                setShowStatusModal(false);
+                                showToast(`Status alterado para ${opt.label}. Salve para confirmar.`, 'success');
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm flex items-center justify-between border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            <span className={opt.color}>{opt.label}</span>
+                            {formData.status === opt.val && <Check size={14} className="text-emerald-500 dark:text-emerald-400"/>}
+                        </button>
+                    ))}
+                </div>
+              </>
+            )
+        }
+    ] : []),
+    ...(dirtyState.isDirty
+      ? [
+          {
+            id: 'revert',
+            label: 'Reverter',
+            icon: <RotateCcw size={16} />,
+            onClick: handleResetChanges,
+            variant: 'ghost' as const,
+            size: 'md' as const,
+            className: 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          },
+        ]
+      : []),
+    ...(dirtyState.isDirty || isNew
+      ? [
+          {
+            id: 'save',
+            label: isNew ? 'Adicionar Veículo' : 'Salvar Alterações',
+            icon: <Save size={16} />,
+            onClick: handleSave,
+            variant: 'primary' as const,
+            size: 'md' as const,
+            disabled: isSaving,
+          },
+        ]
+      : []),
+    ...(isNew || formData.status === 'preparation'
+      ? []
+      : [
+          {
+            id: 'share',
+            label: 'Compartilhar',
+            icon: canShare ? <Share2 size={16} /> : <Lock size={16} />,
+            onClick: () => {
+              if (canShare) {
+                setShareModalOpen(true);
+              } else {
+                setShowUpgradeShareModal(true);
+              }
+            },
+            variant: canShare ? ('secondary' as const) : ('ghost' as const),
+            size: 'md' as const,
+            disabled: !canShare,
+            hideLabel: false,
+          },
+        ]),
+    {
+      id: 'delete',
+      label: 'Excluir',
+      icon: <Trash2 size={16} />,
+      onClick: () => setConfirmDeleteOpen(true),
+      variant: 'ghost' as const,
+      size: 'md' as const,
+      hideLabel: true,
+      className: 'text-rose-500 hover:text-white hover:bg-rose-500/20',
+      title: 'Excluir Veículo'
+    },
+  ];
+
   // ===== RENDER =====
   return (
-    <div className="bg-slate-950 min-h-screen">
-      {/* Header - Back Button, Tabs & Actions */}
-      <div className="px-4 md:px-6 py-3 flex flex-col gap-3 border-b border-slate-800">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
-            <Button
-              onClick={onBack}
-              variant="ghost"
-              size="sm"
-              icon={<ArrowLeft size={18} />}
-              className="rounded-full w-10 h-10 p-0 flex items-center justify-center flex-shrink-0"
-              title="Voltar para Estoque"
-            />
-            
-            {/* Tabs Navigation */}
-            <div className="flex gap-4 md:gap-6 overflow-x-auto flex-shrink-0">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`whitespace-nowrap py-3 px-1 border-b-2 transition-colors text-xs sm:text-sm ${
-                  activeTab === 'overview'
-                    ? 'border-indigo-500 text-white'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <span className="inline-flex items-center gap-2">
-                  Visão Geral
-                  {tabDirty.overview && <span className="h-2 w-2 rounded-full bg-amber-500" />}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('photos')}
-                className={`whitespace-nowrap py-3 px-1 border-b-2 transition-colors text-xs sm:text-sm ${
-                  activeTab === 'photos'
-                    ? 'border-indigo-500 text-white'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <span className="inline-flex items-center gap-2">
-                  Fotos
-                  {tabDirty.photos && <span className="h-2 w-2 rounded-full bg-amber-500" />}
-                </span>
-              </button>
-              {canViewCosts && (
-                <button
-                  onClick={() => setActiveTab('expenses')}
-                  className={`whitespace-nowrap py-3 px-1 border-b-2 transition-colors text-xs sm:text-sm ${
-                    activeTab === 'expenses'
-                      ? 'border-indigo-500 text-white'
-                      : 'border-transparent text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    Gastos
-                    {tabDirty.expenses && <span className="h-2 w-2 rounded-full bg-amber-500" />}
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 justify-end flex-wrap">
-          {!isNew && (
-            <Button
-              onClick={() => {
-                if (canShare) {
-                  setShareModalOpen(true);
-                } else {
-                  setShowUpgradeShareModal(true);
-                }
-              }}
-              disabled={!canShare}
-              variant={canShare ? 'secondary' : 'ghost'}
-              size="md"
-              icon={canShare ? <Share2 size={16} /> : <Lock size={16} />}
-              title={canShare ? 'Compartilhar' : 'Funcionalidade Premium'}
-            >
-              <span className="hidden sm:inline">Compartilhar</span>
-            </Button>
-          )}
-          <Button
-            onClick={() => setConfirmDeleteOpen(true)}
-            variant="danger"
-            size="md"
-            icon={<Trash2 size={16} />}
-            title="Excluir Veículo"
-          >
-            <span className="hidden sm:inline">Excluir</span>
-          </Button>
-          {dirtyState.isDirty && (
-            <Button onClick={handleSave} disabled={isSaving} size="md" icon={<Save size={18} />}>
-              {isSaving ? 'Salvando...' : 'Salvar alterações'}
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="bg-gray-50 dark:bg-slate-950 min-h-screen">
+      <PageHeader
+        title={isNew ? 'Novo Veículo' : `${formData.make} ${formData.model}`}
+        description={isNew ? 'Preencha os dados do veículo' : `${formData.version ? formData.version + ' • ' : ''}${formData.year || ''} • ${formData.plate || 'Sem placa'}`}
+        onBack={onBack}
+        tabs={tabs}
+        activeTab={activeTab}
+        actions={actions}
+      >
+        {/* Status Badge - Optional injection into header area if PageHeader supported children for this, 
+            but for now title/desc covers the context. 
+            We can add a badge nearby if PageHeader layout allows customized title area or via children.
+        */}
+      </PageHeader>
 
       {shareModalOpen && (
           <ShareModal 
@@ -675,15 +748,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
               onToggleFipeSearch={() => setShowFipeSearch(!showFipeSearch)}
               fipeSearch={
                 showFipeSearch && (
-                  <div className="mb-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 space-y-3">
-                    <select value={fipeSelection.brand} onChange={(e) => handleFipeChange('brand', e.target.value)} className="w-full select-premium">
+                  <div className="mb-4 p-4 bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-3">
+                    <select value={fipeSelection.brand} onChange={(e) => handleFipeChange('brand', e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-colors appearance-none">
                       <option value="">Selecione a Marca</option>
                       {fipeData.brands.map((b) => (
                         <option key={b.codigo} value={b.codigo}>{b.nome}</option>
                       ))}
                     </select>
                     {fipeData.models.length > 0 && (
-                      <select value={fipeSelection.model} onChange={(e) => handleFipeChange('model', e.target.value)} className="w-full select-premium">
+                      <select value={fipeSelection.model} onChange={(e) => handleFipeChange('model', e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-colors appearance-none">
                         <option value="">Selecione o Modelo</option>
                         {fipeData.models.map((m) => (
                           <option key={m.codigo} value={m.codigo}>{m.nome}</option>
@@ -691,14 +764,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                       </select>
                     )}
                     {fipeData.years.length > 0 && (
-                      <select value={fipeSelection.year} onChange={(e) => handleFipeChange('year', e.target.value)} className="w-full select-premium">
+                      <select value={fipeSelection.year} onChange={(e) => handleFipeChange('year', e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-colors appearance-none">
                         <option value="">Selecione o Ano</option>
                         {fipeData.years.map((y) => (
                           <option key={y.codigo} value={y.codigo}>{y.nome}</option>
                         ))}
                       </select>
                     )}
-                    {isLoadingFipe && <p className="text-slate-400 text-sm">Carregando...</p>}
+                    {isLoadingFipe && <p className="text-slate-500 dark:text-slate-400 text-sm">Carregando...</p>}
                   </div>
                 )
               }

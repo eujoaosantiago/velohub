@@ -458,28 +458,28 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Central Financeira</h1>
-          <p className="text-slate-400">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Central Financeira</h1>
+          <p className="text-slate-600 dark:text-slate-400">
             Separação clara entre custos de estoque (CMV) e despesas da loja
             (OPEX).
           </p>
         </div>
-        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setActiveTab("vehicles")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "vehicles" ? "bg-slate-800 text-white shadow" : "text-slate-400 hover:text-white"}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "vehicles" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
           >
             Custos Veículos (CMV)
           </button>
           <button
             onClick={() => setActiveTab("opex")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "opex" ? "bg-slate-800 text-white shadow" : "text-slate-400 hover:text-white"}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "opex" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
           >
             Despesas Loja (OPEX)
           </button>
           <button
             onClick={() => setActiveTab("result")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "result" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "result" ? "bg-emerald-500 text-white shadow" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
           >
             Resultado Líquido
           </button>
@@ -493,11 +493,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <Card>
               <div className="flex items-center gap-3 mb-2">
                 <Wrench className="text-amber-400" />
-                <h3 className="text-sm font-medium text-slate-400">
+                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Total Gasto em Reformas
                 </h3>
               </div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {formatCurrency(
                   filteredVehicleExpenses.reduce(
                     (acc, e) => acc + (e.category !== "salary" ? e.amount : 0),
@@ -512,11 +512,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <Card>
               <div className="flex items-center gap-3 mb-2">
                 <User className="text-indigo-400" />
-                <h3 className="text-sm font-medium text-slate-400">
+                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Total em Comissões
                 </h3>
               </div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {formatCurrency(
                   filteredVehicleExpenses.reduce(
                     (acc, e) => acc + (e.category === "salary" ? e.amount : 0),
@@ -531,11 +531,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <Card>
               <div className="flex items-center gap-3 mb-2">
                 <DollarSign className="text-emerald-400" />
-                <h3 className="text-sm font-medium text-slate-400">
+                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Total Filtrado
                 </h3>
               </div>
-              <p className="text-2xl font-bold text-emerald-400">
+              <p className="text-2xl font-bold text-emerald-500 dark:text-emerald-400">
                 {formatCurrency(
                   filteredVehicleExpenses.reduce((acc, e) => acc + e.amount, 0)
                 )}
@@ -547,11 +547,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             <Card>
               <div className="flex items-center gap-3 mb-2">
                 <Car className="text-blue-400" />
-                <h3 className="text-sm font-medium text-slate-400">
+                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Veículos Únicos
                 </h3>
               </div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {new Set(filteredVehicleExpenses.map(e => e.vehicleId)).size}
               </p>
               <p className="text-xs text-slate-500 mt-1">
@@ -565,7 +565,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="relative flex-1">
                   <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
                     size={18}
                   />
                   <input
@@ -573,12 +573,12 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                     placeholder="Buscar por veículo, placa ou descrição..."
                     value={vehicleSearch}
                     onChange={(e) => setVehicleSearch(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg pl-10 p-2.5 outline-none focus:border-indigo-500"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg pl-10 p-2.5 outline-none focus:border-indigo-500"
                   />
                 </div>
                 <button
                   onClick={() => setShowVehicleFilters((prev) => !prev)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white whitespace-nowrap"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
                 >
                   <Filter size={16} />
                   {showVehicleFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
@@ -586,14 +586,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               </div>
 
               {showVehicleFilters && (
-                <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 space-y-3">
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                       <span className="font-medium">Categoria</span>
                       <select
                         value={vehicleCategoryFilter}
                         onChange={(e) => setVehicleCategoryFilter(e.target.value as ExpenseCategory | "all")}
-                        className="w-full select-premium text-sm"
+                        className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         {(["all", "maintenance", "bodywork", "tires", "document", "marketing", "salary", "other"] as (ExpenseCategory | "all")[]).map((cat) => (
                           <option key={cat} value={cat}>
@@ -603,12 +603,12 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       </select>
                     </label>
 
-                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                       <span className="font-medium">Status do Veículo</span>
                       <select
                         value={vehicleStatusFilter}
                         onChange={(e) => setVehicleStatusFilter(e.target.value as 'all' | 'available' | 'sold')}
-                        className="w-full select-premium text-sm"
+                        className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm"
                       >
                         <option value="all">Todos</option>
                         <option value="available">Em Estoque</option>
@@ -616,45 +616,45 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       </select>
                     </label>
 
-                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                       <span className="font-medium">Data Inicial</span>
                       <input
                         type="date"
                         value={vehicleDateStart}
                         onChange={(e) => setVehicleDateStart(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </label>
 
-                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                       <span className="font-medium">Data Final</span>
                       <input
                         type="date"
                         value={vehicleDateEnd}
                         onChange={(e) => setVehicleDateEnd(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </label>
 
-                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                       <span className="font-medium">Valor Mínimo</span>
                       <input
                         type="text"
                         value={vehicleMinAmount}
                         onChange={(e) => setVehicleMinAmount(maskCurrencyInput(e.target.value))}
                         placeholder="R$ 0,00"
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </label>
 
-                    <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                       <span className="font-medium">Valor Máximo</span>
                       <input
                         type="text"
                         value={vehicleMaxAmount}
                         onChange={(e) => setVehicleMaxAmount(maskCurrencyInput(e.target.value))}
                         placeholder="R$ 0,00"
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </label>
                   </div>
@@ -672,7 +672,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                         setVehicleMinAmount('');
                         setVehicleMaxAmount('');
                       }}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs py-1.5 px-3"
+                      className="bg-indigo-500 hover:bg-indigo-600 text-white border-transparent font-semibold text-xs py-1.5 px-3"
                     >
                       Limpar Filtros
                     </Button>
@@ -682,25 +682,25 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
             </div>
             <div className="max-h-[500px] overflow-y-auto">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-950 text-slate-400 text-sm sticky top-0">
+                <thead className="text-slate-600 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-950 z-10">
                   <tr>
-                    <th className="p-3">Data</th>
-                    <th className="p-3">Veículo</th>
-                    <th className="p-3">Descrição</th>
-                    <th className="p-3 text-right">Valor</th>
+                    <th className="p-3 whitespace-nowrap">Data</th>
+                    <th className="p-3 whitespace-nowrap">Veículo</th>
+                    <th className="p-3 whitespace-nowrap">Descrição</th>
+                    <th className="p-3 text-right whitespace-nowrap">Valor</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 text-sm">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                   {filteredVehicleExpenses.map((e, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/50">
-                      <td className="p-3 text-slate-400">
+                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="p-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {formatDateBR(e.date)}
                       </td>
-                      <td className="p-3 text-white font-medium">
+                      <td className="p-3">
                         <button
                           type="button"
                           onClick={() => onSelectVehicle(e.vehicleId)}
-                          className="text-white hover:text-indigo-300 transition-colors underline-offset-4 hover:underline"
+                          className="font-medium text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors underline-offset-4 hover:underline"
                         >
                           {e.vehicleName}
                         </button>{" "}
@@ -708,10 +708,10 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                           {e.vehiclePlate}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-300">
+                      <td className="p-3 text-slate-600 dark:text-slate-300">
                         {e.description}
                         {e.category === "salary" && (
-                          <span className="ml-2 text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">
+                          <span className="ml-2 text-[10px] bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/30">
                             Comissão
                           </span>
                         )}
@@ -721,7 +721,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                           </span>
                         )}
                       </td>
-                      <td className="p-3 text-right font-bold text-white">
+                      <td className="p-3 text-right font-bold text-slate-900 dark:text-white">
                         {formatCurrency(e.amount)}
                       </td>
                     </tr>
@@ -737,7 +737,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       {activeTab === "opex" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Building2 className="text-indigo-500" />
               Despesas Operacionais
             </h2>
@@ -855,9 +855,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       const term = opexSearch.toLowerCase();
                       const matchesSearch =
                         item.description.toLowerCase().includes(term) ||
-                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
-                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
-                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)
+                          ?.label.toLowerCase()
+                          .includes(term) ??
+                          false);
+                      const matchesCategory = opexCategoryFilter === "all" ||
+                        item.category === opexCategoryFilter;
+                      
+                      const matchesPaid = opexPaidFilter === 'all' || 
+                        (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
@@ -905,9 +912,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       const term = opexSearch.toLowerCase();
                       const matchesSearch =
                         item.description.toLowerCase().includes(term) ||
-                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
-                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
-                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)
+                          ?.label.toLowerCase()
+                          .includes(term) ??
+                          false);
+                      const matchesCategory = opexCategoryFilter === "all" ||
+                        item.category === opexCategoryFilter;
+                      
+                      const matchesPaid = opexPaidFilter === 'all' || 
+                        (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
@@ -955,9 +969,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       const term = opexSearch.toLowerCase();
                       const matchesSearch =
                         item.description.toLowerCase().includes(term) ||
-                        (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
-                      const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
-                      const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                        (OPEX_CATEGORIES.find((c) => c.id === item.category)
+                          ?.label.toLowerCase()
+                          .includes(term) ??
+                          false);
+                      const matchesCategory = opexCategoryFilter === "all" ||
+                        item.category === opexCategoryFilter;
+                      
+                      const matchesPaid = opexPaidFilter === 'all' || 
+                        (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+
                       let matchesDate = true;
                       if (opexDateStart || opexDateEnd) {
                         try {
@@ -999,7 +1020,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 <div className="flex flex-col md:flex-row gap-3">
                   <div className="relative flex-1">
                     <Search
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                       size={18}
                     />
                     <input
@@ -1007,12 +1028,12 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       placeholder="Buscar por descrição ou categoria..."
                       value={opexSearch}
                       onChange={(e) => setOpexSearch(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:focus:ring-indigo-500 shadow-sm dark:shadow-none"
                     />
                   </div>
                   <button
                     onClick={() => setShowOpexFilters((prev) => !prev)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-slate-900/50 text-slate-300 border-slate-800 hover:border-slate-600 hover:text-white whitespace-nowrap"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 bg-white dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 hover:border-slate-300 dark:hover:border-slate-600 dark:hover:text-white whitespace-nowrap shadow-sm dark:shadow-none"
                   >
                     <Filter size={16} />
                     {showOpexFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
@@ -1020,14 +1041,14 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 </div>
 
                 {showOpexFilters && (
-                  <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 space-y-3">
+                  <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3 shadow-inner dark:shadow-none">
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                         <span className="font-medium">Categoria</span>
                         <select
                           value={opexCategoryFilter}
                           onChange={(e) => setOpexCategoryFilter(e.target.value as OpexCategory | "all")}
-                          className="w-full select-premium text-sm"
+                          className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                           <option value="all">Todas</option>
                           {OPEX_CATEGORIES.map((c) => (
@@ -1038,12 +1059,12 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                         </select>
                       </label>
 
-                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                         <span className="font-medium">Status</span>
                         <select
                           value={opexPaidFilter}
                           onChange={(e) => setOpexPaidFilter(e.target.value as 'all' | 'paid' | 'pending')}
-                          className="w-full select-premium text-sm"
+                          className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm"
                         >
                           <option value="all">Todos</option>
                           <option value="paid">Pagos</option>
@@ -1051,59 +1072,64 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                         </select>
                       </label>
 
-                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                         <span className="font-medium">Data Inicial</span>
                         <input
                           type="date"
                           value={opexDateStart}
                           onChange={(e) => setOpexDateStart(e.target.value)}
-                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:focus:ring-indigo-500"
                         />
                       </label>
 
-                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                         <span className="font-medium">Data Final</span>
                         <input
                           type="date"
                           value={opexDateEnd}
                           onChange={(e) => setOpexDateEnd(e.target.value)}
-                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:focus:ring-indigo-500"
                         />
                       </label>
 
-                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                         <span className="font-medium">Valor Mínimo</span>
                         <input
                           type="text"
                           value={opexMinAmount}
                           onChange={(e) => setOpexMinAmount(maskCurrencyInput(e.target.value))}
                           placeholder="R$ 0,00"
-                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:focus:ring-indigo-500"
                         />
                       </label>
 
-                      <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1.5">
                         <span className="font-medium">Valor Máximo</span>
                         <input
                           type="text"
                           value={opexMaxAmount}
                           onChange={(e) => setOpexMaxAmount(maskCurrencyInput(e.target.value))}
                           placeholder="R$ 0,00"
-                          className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:focus:ring-indigo-500"
                         />
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
-                      <span className="text-sm text-slate-400">
-                        <span className="font-medium text-white">{
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800/50">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        <span className="font-medium text-slate-900 dark:text-white">{
                           storeExpenses.filter((item) => {
                             const term = opexSearch.toLowerCase();
                             const matchesSearch =
                               item.description.toLowerCase().includes(term) ||
-                              (OPEX_CATEGORIES.find((c) => c.id === item.category)?.label.toLowerCase().includes(term) ?? false);
-                            const matchesCategory = opexCategoryFilter === "all" || item.category === opexCategoryFilter;
-                            const matchesPaid = opexPaidFilter === 'all' || (opexPaidFilter === 'paid' ? item.paid : !item.paid);
+                              (OPEX_CATEGORIES.find((c) => c.id === item.category)
+                                ?.label.toLowerCase()
+                                .includes(term) ??
+                                false);
+                            const matchesCategory = opexCategoryFilter === "all" ||
+                              item.category === opexCategoryFilter;
+                            const matchesPaid = opexPaidFilter === 'all' ||
+                              (opexPaidFilter === 'paid' ? item.paid : !item.paid);
 
                             let matchesDate = true;
                             if (opexDateStart || opexDateEnd) {
@@ -1144,7 +1170,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                           setOpexMinAmount('');
                           setOpexMaxAmount('');
                         }}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs py-1.5 px-3"
+                        className="bg-indigo-500 hover:bg-indigo-600 text-white border-transparent font-semibold text-xs py-1.5 px-3"
                       >
                         Limpar Filtros
                       </Button>
@@ -1154,7 +1180,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               </div>
               <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
                 <table className="w-full min-w-[640px] text-left border-collapse">
-                  <thead className="text-slate-400 text-sm border-b border-slate-800">
+                  <thead className="text-slate-600 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">
                     <tr>
                       <th className="p-3 whitespace-nowrap">Data</th>
                       <th className="p-3">Descrição</th>
@@ -1163,7 +1189,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       <th className="p-3 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800 text-sm">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                     {storeExpenses
                     .filter((item) => {
                       const term = opexSearch.toLowerCase();
@@ -1173,8 +1199,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                           ?.label.toLowerCase()
                           .includes(term) ??
                           false);
-                      const matchesCategory =
-                        opexCategoryFilter === "all" ||
+                      const matchesCategory = opexCategoryFilter === "all" ||
                         item.category === opexCategoryFilter;
                       
                       const matchesPaid = opexPaidFilter === 'all' || 
@@ -1201,7 +1226,6 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                           }
                         } catch { matchesDate = false; }
                       }
-
                       const matchesAmount = 
                         (!opexMinAmount || item.amount >= parseCurrencyInput(opexMinAmount)) &&
                         (!opexMaxAmount || item.amount <= parseCurrencyInput(opexMaxAmount));
@@ -1209,33 +1233,33 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                       return matchesSearch && matchesCategory && matchesPaid && matchesDate && matchesAmount;
                     })
                       .map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-800/30 group">
-                          <td className="p-3 text-slate-400 whitespace-nowrap">
+                        <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 group transition-colors">
+                          <td className="p-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {formatDateBR(item.date)}
                           </td>
-                          <td className="p-3 text-white max-w-[280px] break-words">
+                          <td className="p-3 text-slate-900 dark:text-white max-w-[280px] break-words font-medium">
                             {item.description}
                           </td>
                           <td className="p-3 whitespace-nowrap">
-                            <span className="px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap border transition-colors bg-slate-900/50 text-slate-300 border-slate-800">
+                            <span className="px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap border transition-colors bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800">
                               {OPEX_CATEGORIES.find((c) => c.id === item.category)?.label}
                             </span>
                           </td>
-                          <td className="p-3 text-right text-white font-bold whitespace-nowrap">
+                          <td className="p-3 text-right text-slate-900 dark:text-white font-bold whitespace-nowrap">
                             {formatCurrency(item.amount)}
                           </td>
                           <td className="p-3 text-right whitespace-nowrap">
                             <div className="flex gap-2 justify-end md:opacity-0 md:group-hover:opacity-100 transition-all">
                               <button
                                 onClick={() => handleEditOpex(item)}
-                                className="text-slate-600 hover:text-indigo-400 transition-colors p-2 hover:bg-slate-800/50 rounded-lg flex-shrink-0"
+                                className="text-slate-500 hover:text-amber-600 dark:text-slate-600 dark:hover:text-indigo-400 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg flex-shrink-0"
                                 title="Editar despesa"
                               >
                                 <Edit2 size={18} />
                               </button>
                               <button
                                 onClick={() => handleDeleteOpex(item.id)}
-                                className="text-slate-600 hover:text-rose-500 transition-colors p-2 hover:bg-slate-800/50 rounded-lg flex-shrink-0"
+                                className="text-slate-500 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-500 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg flex-shrink-0"
                                 title="Deletar despesa"
                               >
                                 <Trash2 size={18} />
@@ -1259,7 +1283,7 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               </div>
             </Card>
             <Card>
-              <h3 className="text-sm font-bold text-white mb-4">Resumo OPEX</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Resumo OPEX</h3>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -1296,8 +1320,8 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
                 </ResponsiveContainer>
               </div>
               <div className="text-center mt-2">
-                <p className="text-slate-400 text-xs uppercase">Total OPEX</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-slate-500 dark:text-slate-400 text-xs uppercase">Total OPEX</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(
                     filteredOpexForChart.reduce((acc, e) => acc + e.amount, 0),
                   )}
@@ -1312,11 +1336,11 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
       {activeTab === "result" && (
         <div className="space-y-8 animate-slide-in-right">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-              <p className="text-slate-400 text-sm uppercase font-bold mb-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm dark:shadow-none">
+              <p className="text-slate-500 dark:text-slate-400 text-sm uppercase font-bold mb-2">
                 Lucro Bruto (Veículos)
               </p>
-              <p className="text-3xl font-bold text-emerald-400">
+              <p className="text-3xl font-bold text-emerald-500 dark:text-emerald-400">
                 {formatCurrency(financialResult.grossProfit)}
               </p>
               <p className="text-xs text-slate-500 mt-2">
@@ -1324,15 +1348,15 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
               </p>
             </div>
             <div className="flex items-center justify-center">
-              <div className="bg-slate-800 p-3 rounded-full">
-                <TrendingDown size={24} className="text-rose-400" />
+              <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-full">
+                <TrendingDown size={24} className="text-rose-500 dark:text-rose-400" />
               </div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-              <p className="text-slate-400 text-sm uppercase font-bold mb-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm dark:shadow-none">
+              <p className="text-slate-500 dark:text-slate-400 text-sm uppercase font-bold mb-2">
                 Despesas Loja (OPEX)
               </p>
-              <p className="text-3xl font-bold text-rose-400">
+              <p className="text-3xl font-bold text-rose-500 dark:text-rose-400">
                 {formatCurrency(financialResult.totalOpex)}
               </p>
               <p className="text-xs text-slate-500 mt-2">
@@ -1342,16 +1366,16 @@ export const ExpensesList: React.FC<ExpensesListProps> = ({
           </div>
 
           <div
-            className={`p-8 rounded-3xl border-2 text-center transform hover:scale-[1.01] transition-transform ${financialResult.netResult >= 0 ? "bg-emerald-900/20 border-emerald-500/50" : "bg-rose-900/20 border-rose-500/50"}`}
+            className={`p-8 rounded-3xl border-2 text-center transform hover:scale-[1.01] transition-transform ${financialResult.netResult >= 0 ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-500/50" : "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-500/50"}`}
           >
-            <h3 className="text-xl font-bold text-white uppercase tracking-widest mb-2">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-widest mb-2">
               Resultado Operacional Líquido
             </h3>
-            <div className="text-5xl md:text-7xl font-black text-white tracking-tighter my-4">
+            <div className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter my-4">
               {formatCurrency(financialResult.netResult)}
             </div>
             <p
-              className={`text-sm font-medium ${financialResult.netResult >= 0 ? "text-emerald-400" : "text-rose-400"}`}
+              className={`text-sm font-medium ${financialResult.netResult >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
             >
               {financialResult.netResult >= 0
                 ? "Lucro Real no Bolso"

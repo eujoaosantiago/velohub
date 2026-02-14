@@ -182,8 +182,8 @@ export const usePhotoManager = ({
       setUploadProgress({ total: files.length, done: 0 });
 
       for (const f of files) {
-        const compressedFile = await compressImage(f);
-        const url = await StorageService.uploadPhoto(compressedFile, vehicle.storeId);
+        // Envia diretamente para o StorageService que já realiza compressão e resize
+        const url = await StorageService.uploadPhoto(f, vehicle.storeId);
         newUrls.push(url);
         setUploadProgress((prev) => ({ ...prev, done: prev.done + 1 }));
       }

@@ -69,7 +69,11 @@ export const StorageService = {
     if (isSupabaseConfigured() && supabase) {
         try {
             // SECURITY FIX: Usar UUID para evitar enumeração de arquivos
-            const fileName = `${storeId}/${crypto.randomUUID()}.${extension}`;
+            const uuid = typeof crypto.randomUUID === 'function' 
+              ? crypto.randomUUID() 
+              : `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+              
+            const fileName = `${storeId}/${uuid}.${extension}`;
             
             const { data, error } = await supabase.storage
                 .from('vehicles')

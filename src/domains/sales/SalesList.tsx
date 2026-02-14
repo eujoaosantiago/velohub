@@ -145,10 +145,10 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
         { label: string; color: string; type: 'currency' | 'percent' }
     > = {
         revenue: { label: 'Faturamento', color: 'rgb(var(--velo-orange))', type: 'currency' },
-        profit: { label: 'Lucro', color: 'rgb(var(--velo-platinum))', type: 'currency' },
-        ticket: { label: 'Ticket médio', color: 'rgb(var(--velo-jet))', type: 'currency' },
-        roi_stock: { label: 'ROI estoque', color: 'rgb(var(--velo-black))', type: 'percent' },
-        roi_business: { label: 'ROI negócio', color: 'rgb(var(--velo-orange))', type: 'percent' },
+        profit: { label: 'Lucro', color: 'rgb(59, 130, 246)', type: 'currency' }, // Blue-500 equivalent
+        ticket: { label: 'Ticket médio', color: 'rgb(107, 114, 128)', type: 'currency' }, // Gray-500
+        roi_stock: { label: 'ROI estoque', color: 'rgb(16, 185, 129)', type: 'percent' }, // Emerald-500
+        roi_business: { label: 'ROI negócio', color: 'rgb(245, 158, 11)', type: 'percent' }, // Amber-500
     };
 
     const toggleMetric = (metric: ChartMetricKey) => {
@@ -470,12 +470,12 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
       };
 
   const LockedOverlay = ({ title }: { title: string }) => (
-      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-6 border border-slate-700/50 rounded-2xl">
+      <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-6 border border-slate-200 dark:border-slate-700/50 rounded-2xl">
           <div className="bg-indigo-500/10 p-4 rounded-full mb-3 border border-indigo-500/20">
-              <Lock size={24} className="text-indigo-400" />
+              <Lock size={24} className="text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
-          <p className="text-slate-400 text-sm max-w-xs mb-4">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{title}</h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xs mb-4">
               Disponível nos planos <strong>Pro</strong> e <strong>Enterprise</strong>.
           </p>
           <button 
@@ -501,8 +501,8 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                 isLoading={isDeletingSale}
             />
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Inteligência Comercial</h1>
-        <p className="text-slate-400 text-sm md:text-base">Métricas de performance para escalar sua operação.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Inteligência Comercial</h1>
+        <p className="text-slate-600 dark:text-slate-400 text-sm md:text-base">Métricas de performance para escalar sua operação.</p>
       </div>
 
       {/* Strategic KPIs */}
@@ -549,22 +549,22 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
       </div>
 
       {/* Chart Filters */}
-      <Card className="bg-slate-900/50 border-slate-800">
+      <Card className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                  <Filter size={18} className="text-indigo-400" />
-                  <h3 className="text-white font-semibold">Filtros Avançados de Análise</h3>
+                  <Filter size={18} className="text-indigo-600 dark:text-indigo-400" />
+                  <h3 className="text-slate-900 dark:text-white font-semibold">Filtros Avançados de Análise</h3>
               </div>
               <button
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium transition-colors"
               >
                   {showAdvancedFilters ? 'Ocultar' : 'Expandir'}
               </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+              <label className="text-xs text-slate-600 dark:text-slate-400 flex flex-col gap-1.5">
                   <span className="font-medium">Período</span>
                   <select
                       value={chartPeriod}
@@ -576,7 +576,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                               setCustomEndDate('');
                           }
                       }}
-                      className="select-premium text-sm"
+                      className="w-full bg-white dark:bg-slate-950 border border-indigo-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                       {periodOptions.map((value) => (
                           <option key={value} value={value}>
@@ -586,12 +586,12 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                   </select>
               </label>
 
-              <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+              <label className="text-xs text-slate-600 dark:text-slate-400 flex flex-col gap-1.5">
                   <span className="font-medium">Marca</span>
                   <select
                       value={chartBrand}
                       onChange={(e) => setChartBrand(e.target.value)}
-                      className="select-premium text-sm"
+                      className="w-full bg-white dark:bg-slate-950 border border-indigo-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                       {chartBrands.map((brand) => (
                           <option key={brand} value={brand}>
@@ -603,25 +603,25 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
           </div>
 
           {showAdvancedFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                   {chartPeriod === 'custom' && (
                       <>
-                          <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                          <label className="text-xs text-slate-600 dark:text-slate-400 flex flex-col gap-1.5">
                               <span className="font-medium">Data Inicial</span>
                               <input
                                   type="date"
                                   value={customStartDate}
                                   onChange={(e) => setCustomStartDate(e.target.value)}
-                                  className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="bg-white dark:bg-slate-950 border border-indigo-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                           </label>
-                          <label className="text-xs text-slate-400 flex flex-col gap-1.5">
+                          <label className="text-xs text-slate-600 dark:text-slate-400 flex flex-col gap-1.5">
                               <span className="font-medium">Data Final</span>
                               <input
                                   type="date"
                                   value={customEndDate}
                                   onChange={(e) => setCustomEndDate(e.target.value)}
-                                  className="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="bg-white dark:bg-slate-950 border border-indigo-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                           </label>
                       </>
@@ -638,8 +638,8 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                                       onClick={() => toggleMetric(metric)}
                                       className={`px-4 py-2 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-200 border ${
                                           isChecked
-                                              ? 'bg-slate-100 text-slate-900 border-slate-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                              : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+                                              ? 'bg-indigo-500 text-white border-indigo-500 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100 dark:shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                                              : 'bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:text-indigo-600 dark:hover:border-slate-600 dark:hover:text-white'
                                       }`}
                                   >
                                       {config.label}
@@ -654,8 +654,8 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                           onClick={() => setComparePrevPeriod((prev) => !prev)}
                           className={`px-4 py-2 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-200 border ${
                               comparePrevPeriod
-                                  ? 'bg-amber-400 text-slate-900 border-amber-400'
-                                  : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+                                  ? 'bg-indigo-500 text-white border-indigo-500 dark:bg-amber-400 dark:text-slate-900 dark:border-amber-400'
+                                  : 'bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:text-indigo-600 dark:hover:border-slate-600 dark:hover:text-white'
                           }`}
                       >
                           Comparar período anterior
@@ -669,7 +669,7 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                               setCustomStartDate('');
                               setCustomEndDate('');
                           }}
-                          className="px-4 py-2 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-200 border bg-slate-900/50 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white"
+                          className="px-4 py-2 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-200 border bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:text-indigo-600 dark:hover:border-slate-600 dark:hover:text-white"
                       >
                           Limpar filtros
                       </button>
@@ -769,35 +769,34 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
 
       {/* SALES TABLE */}
       <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-              <h2 className="text-xl font-bold text-white">Histórico de Vendas</h2>
-              <div className="relative w-full md:w-80">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar (Marca, Cor, Valor, Cliente...)" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 text-white rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+          <Card title="Histórico de Vendas" className="overflow-visible">
+              <div className="mb-6">
+                  <div className="relative w-full">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
+                      <input 
+                        type="text" 
+                        placeholder="Buscar (Marca, Cor, Valor, Cliente...)" 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm dark:shadow-none transition-all"
+                      />
+                  </div>
               </div>
-          </div>
 
-          <Card className="p-0 overflow-hidden">
-              <div className="overflow-x-auto custom-scrollbar -mx-4 md:mx-0 px-4 md:px-0">
-                <table className="w-full text-left min-w-[800px]">
-                    <thead>
-                        <tr className="border-b border-slate-800 text-slate-400 text-sm bg-slate-900/50">
-                            <th className="px-6 py-4 font-medium pl-6">Data</th>
-                            <th className="px-6 py-4 font-medium">Veículo</th>
-                            <th className="px-6 py-4 font-medium">Cliente</th>
-                            <th className="px-6 py-4 font-medium text-right">Valor Venda</th>
-                            <th className="px-6 py-4 font-medium text-right">ROI</th>
-                            <th className="px-6 py-4 font-medium text-right">Lucro</th>
-                            <th className="px-6 py-4 font-medium text-center pr-6">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800">
+              <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto scrollbar-hide">
+                <div className="min-w-[1000px]">
+                    {/* Header */}
+                    <div className="grid grid-cols-7 bg-indigo-500 text-white text-sm font-medium">
+                        <div className="px-6 py-4">Data</div>
+                        <div className="px-6 py-4">Veículo</div>
+                        <div className="px-6 py-4">Cliente</div>
+                        <div className="px-6 py-4 text-right">Valor Venda</div>
+                        <div className="px-6 py-4 text-right">ROI</div>
+                        <div className="px-6 py-4 text-right">Lucro</div>
+                        <div className="px-6 py-4 text-center">Ação</div>
+                    </div>
+
+                    <div className="divide-y divide-slate-200 dark:divide-slate-800">
                         {filteredSales.length > 0 ? filteredSales.map(sale => {
                             const profit = calculateRealProfit(sale);
                             const invested = sale.purchasePrice + calculateTotalExpenses(sale);
@@ -805,79 +804,81 @@ export const SalesList: React.FC<SalesListProps> = ({ vehicles, onSelectVehicle 
                             const isProfitPositive = profit > 0;
 
                             return (
-                                <tr key={sale.id} className="text-sm hover:bg-slate-800/30 transition-colors group">
-                                    <td className="px-6 py-4 text-slate-300 whitespace-nowrap pl-6">
+                                <div key={sale.id} className="grid grid-cols-7 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group items-center">
+                                    <div className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                         <div className="flex items-center gap-2">
-                                            <Calendar size={14} className="text-slate-500" />
+                                            <Calendar size={14} className="text-slate-400" />
                                             {sale.soldDate
                                                 ? (formatDateBR(sale.soldDate, 'Data invalida') || 'Data invalida')
                                                 : 'Data não informada'}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <button
-                                                type="button"
-                                                onClick={() => onSelectVehicle(sale.id)}
-                                                className="text-white font-medium text-left hover:text-indigo-300 transition-colors underline-offset-4 hover:underline"
-                                            >
-                                                {sale.make} {sale.model}
-                                            </button>
-                                            <span className="text-xs text-slate-500">{sale.version} • {sale.color}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-300">
+                                    </div>
+
+                                    <div className="px-6 py-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => onSelectVehicle(sale.id)}
+                                            className="text-slate-900 dark:text-white font-medium text-left hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors underline-offset-4 hover:underline"
+                                        >
+                                            {sale.make} {sale.model}
+                                        </button>
+                                        <span className="text-xs text-slate-500 block">{sale.version} • {sale.color}</span>
+                                    </div>
+
+                                    <div className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                         <div className="flex items-center gap-2">
-                                            <User size={14} className="text-slate-500" />
-                                            {sale.buyer?.name}
+                                            <User size={14} className="text-slate-400" />
+                                            {sale.buyer?.name || 'N/A'}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 font-bold text-white text-right">
-                                        {formatCurrency(sale.soldPrice!)}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <span className={`text-xs font-bold ${roi >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    </div>
+
+                                    <div className="px-6 py-4 text-right">
+                                        <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(sale.soldPrice!)}</span>
+                                    </div>
+
+                                    <div className="px-6 py-4 text-right">
+                                        <span className={`text-xs font-bold ${roi >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
                                             {roi.toFixed(1)}%
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
+                                    </div>
+
+                                    <div className="px-6 py-4 text-right">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                                             isProfitPositive 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' 
+                                            : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
                                         }`}>
                                             {formatCurrency(profit)}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center pr-6">
-                                        <div className="flex items-center justify-center gap-2">
+                                    </div>
+
+                                    <div className="px-6 py-4 text-center">
+                                        <div className="flex justify-center gap-2">
                                             <button 
                                                 onClick={() => onSelectVehicle(sale.id)}
-                                                className="text-indigo-400 hover:text-indigo-300 font-bold text-xs flex items-center justify-center gap-1 bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20"
+                                                className="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
+                                                title="Ver Detalhes"
                                             >
-                                                <Eye size={12} />
-                                                Ver Ficha
+                                                <Eye size={14} />
                                             </button>
                                             <button
                                                 onClick={() => setConfirmDeleteSale({ open: true, sale })}
-                                                className="text-rose-400 hover:text-rose-300 font-bold text-xs flex items-center justify-center gap-1 bg-rose-500/10 px-3 py-1.5 rounded-full border border-rose-500/20"
+                                                className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1"
+                                                title="Excluir Venda"
                                             >
-                                                <Trash2 size={12} />
-                                                Excluir
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
-                                    </td>
-                                </tr>
+                                    </div>
+                                </div>
                             );
                         }) : (
-                            <tr>
-                                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                                    Nenhuma venda encontrada para os filtros aplicados.
-                                </td>
-                            </tr>
+                            <div className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                Nenhuma venda encontrada para os filtros aplicados.
+                            </div>
                         )}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
               </div>
           </Card>
       </div>

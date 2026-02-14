@@ -73,7 +73,7 @@ export const VehicleExpensesTab: React.FC<VehicleExpensesTabProps> = ({
               type="text"
               inputMode="decimal"
               placeholder="Valor (R$)"
-              className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-sm font-bold"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-sm font-bold"
               value={expenseData.amount}
               onChange={(e) => setExpenseData({ ...expenseData, amount: maskCurrencyInput(e.target.value) })}
             />
@@ -85,7 +85,7 @@ export const VehicleExpensesTab: React.FC<VehicleExpensesTabProps> = ({
               <input
                 type="text"
                 placeholder="Ex: João Silva"
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white"
                 value={expenseData.employeeName}
                 onChange={(e) => setExpenseData({ ...expenseData, employeeName: e.target.value })}
               />
@@ -95,7 +95,7 @@ export const VehicleExpensesTab: React.FC<VehicleExpensesTabProps> = ({
           <input
             type="text"
             placeholder="Descrição (ex: Troca de óleo)"
-            className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white"
             value={expenseData.desc}
             onChange={(e) => setExpenseData({ ...expenseData, desc: e.target.value })}
           />

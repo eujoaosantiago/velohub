@@ -25,7 +25,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { CookieConsent } from '@/components/CookieConsent';
 import { isSupabaseConfigured } from '@/services/supabaseClient';
 import { Button } from '@/components/ui/Button';
-import { Database, Loader2 } from 'lucide-react';
+import { Database, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Wrapper component to use the hook
 const AppContent: React.FC = () => {
@@ -34,21 +34,21 @@ const AppContent: React.FC = () => {
   // --- SETUP CHECK ---
   if (!isSupabaseConfigured()) {
       return (
-          <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 animate-fade-in">
-              <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden">
+          <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 animate-fade-in">
+              <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-orange-500"></div>
                   
                   <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
                       <Database size={32} />
                   </div>
                   
-                  <h1 className="text-2xl font-bold text-white mb-2">Conexão Necessária</h1>
-                  <p className="text-slate-400 mb-6 text-sm leading-relaxed">
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Conexão Necessária</h1>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed">
                       O Velohub precisa se conectar ao Supabase para funcionar com segurança. As chaves de API não foram detectadas.
                   </p>
                   
-                  <div className="bg-slate-950 rounded-lg p-4 text-left border border-slate-800 mb-6 font-mono text-xs text-slate-300">
-                      <p className="text-slate-500 mb-2 border-b border-slate-800 pb-2">Configure seu arquivo .env:</p>
+                  <div className="bg-slate-50 dark:bg-slate-950 rounded-lg p-4 text-left border border-slate-200 dark:border-slate-800 mb-6 font-mono text-xs text-slate-600 dark:text-slate-300">
+                      <p className="text-slate-500 mb-2 border-b border-slate-200 dark:border-slate-800 pb-2">Configure seu arquivo .env:</p>
                       <p className="text-emerald-400">VITE_SUPABASE_URL</p>
                       <p className="truncate text-slate-600 mb-2">https://seu-projeto.supabase.co</p>
                       <p className="text-emerald-400">VITE_SUPABASE_ANON_KEY</p>
@@ -74,6 +74,7 @@ const AppContent: React.FC = () => {
   const [publicVehicleId, setPublicVehicleId] = useState<string | null>(null);
   const [publicVehicle, setPublicVehicle] = useState<Vehicle | null>(null);
   const [loadingPublicVehicle, setLoadingPublicVehicle] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -189,12 +190,19 @@ const AppContent: React.FC = () => {
       }
   };
 
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
   const deleteVehicle = async (id: string) => {
     if (!user) return;
 
     try {
       await vehicleService.deleteVehicle(id, user.storeId);
       await refreshData();
+      showToast("Veículo excluído com sucesso!", "success");
+      
       if (currentPage === Page.VEHICLE_DETAIL) {
         const targetPage =
           returnPage && returnPage !== Page.VEHICLE_DETAIL
@@ -204,7 +212,7 @@ const AppContent: React.FC = () => {
         navigateTo(targetPage);
       }
     } catch (e) {
-      alert("Erro ao excluir veículo.");
+      showToast("Erro ao excluir veículo.", "error");
     }
   };
 
@@ -268,7 +276,7 @@ const AppContent: React.FC = () => {
   // --- TELA DE CARREGAMENTO (SÓ APARECE SE TIVER SESSÃO) ---
   if (isLoading && !user) {
       return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white flex-col gap-4">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white flex-col gap-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center animate-pulse shadow-lg shadow-indigo-500/20">
                 <span className="font-bold text-white text-xl">V</span>
             </div>
@@ -278,7 +286,7 @@ const AppContent: React.FC = () => {
 
   if (currentPage === Page.PUBLIC_SHARE && publicVehicleId) {
       if (loadingPublicVehicle) {
-          return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500">
+          return <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center text-slate-500">
               <div className="flex flex-col items-center gap-2">
                   <Loader2 className="animate-spin text-slate-400" size={24} />
                   <span className="text-sm">Carregando ficha...</span>
@@ -288,17 +296,17 @@ const AppContent: React.FC = () => {
       }
       
       if (!publicVehicle) {
-          return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500 p-4">
+          return <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center text-slate-500 dark:text-slate-400 p-4">
               <div className="flex flex-col items-center gap-4 text-center max-w-md">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                       <span className="text-3xl">🚗</span>
                   </div>
                   <div>
-                      <h2 className="text-lg font-semibold text-slate-900 mb-1">Veículo não encontrado</h2>
-                      <p className="text-sm text-slate-500 mb-4">Este link pode estar desatualizado ou o veículo foi removido.</p>
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-left">
+                      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Veículo não encontrado</h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Este link pode estar desatualizado ou o veículo foi removido.</p>
+                      <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs text-left">
                           <p className="text-slate-400 mb-1">ID do veículo:</p>
-                          <p className="font-mono text-slate-700 break-all">{publicVehicleId}</p>
+                          <p className="font-mono text-slate-700 dark:text-slate-300 break-all">{publicVehicleId}</p>
                       </div>
                   </div>
                   <button 
@@ -373,6 +381,7 @@ const AppContent: React.FC = () => {
             userRole={user.role}
             userPlan={user.plan}
             onCreateTradeIn={handleCreateTradeIn} 
+            onShowToast={showToast}
           />
         );
       case Page.SALES: return <SalesList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />;
@@ -392,6 +401,14 @@ const AppContent: React.FC = () => {
     <Layout currentPage={currentPage} onNavigate={navigateTo} onAddVehicle={handleAddVehicle} user={user} onLogout={logout}>
       <WelcomeModal user={user} />
       <CookieConsent />
+      
+      {notification && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-slide-in-top pointer-events-none ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+          {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span className="font-medium text-sm">{notification.message}</span>
+        </div>
+      )}
+
       <ConfirmModal 
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}

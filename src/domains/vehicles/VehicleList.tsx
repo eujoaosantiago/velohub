@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Vehicle, UserRole, VehicleStatus, checkPermission } from '@/shared/types';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency, getStatusLabel, getStatusBorderColor, getStatusColor, formatDateBR, parseISODate } from '@/shared/lib/utils';
-import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, ChevronRight, Fuel, Calendar, AlertTriangle, Clock, EyeOff, Image as ImageIcon, ChevronDown, Lock, DollarSign, Share2, FileCheck, FileX, X, Crown, Rocket, Check, Trash2, AlertCircle, CheckCircle2, Edit2 } from 'lucide-react';
 import { QuickSaleModal } from '@/components/QuickSaleModal';
 import { ReservationModal } from '@/components/ReservationModal';
 import { ShareModal } from '@/components/ShareModal';
@@ -33,9 +33,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
   const [reservationVehicle, setReservationVehicle] = useState<Vehicle | null>(null);
   const [shareVehicle, setShareVehicle] = useState<Vehicle | null>(null); 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; vehicle?: Vehicle }>({
-            open: false,
-    });
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const canViewCosts = checkPermission(currentUser || null, 'view_costs');
@@ -134,21 +131,8 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
       setTimeout(() => setNotification(null), 4000);
   };
 
-  const handleConfirmDelete = async () => {
-      if (!confirmDelete.vehicle || !onDeleteVehicle) return;
-      try {
-          await Promise.resolve(onDeleteVehicle(confirmDelete.vehicle.id));
-          showToast('Veiculo excluido com sucesso!', 'success');
-      } catch (error) {
-          console.error(error);
-          showToast('Erro ao excluir veiculo.', 'error');
-      } finally {
-          setConfirmDelete({ open: false });
-      }
-  };
-
   return (
-    <div className="space-y-6" onClick={() => setOpenStatusId(null)}>
+    <div className="space-y-6">
       {quickSaleVehicle && (
           <QuickSaleModal 
               vehicle={quickSaleVehicle}
@@ -165,17 +149,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
               onConfirm={handleConfirmReservation}
           />
       )}
-
-      <ConfirmModal
-          isOpen={confirmDelete.open}
-          onClose={() => setConfirmDelete({ open: false })}
-          onConfirm={handleConfirmDelete}
-          title="Excluir veiculo?"
-          message="Esta acao remove o veiculo do estoque. Essa operacao nao pode ser desfeita."
-          confirmText="Excluir veiculo"
-          cancelText="Cancelar"
-          variant="danger"
-      />
 
       {shareVehicle && (
           <ShareModal 
@@ -234,8 +207,8 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Meu Estoque</h1>
-          <p className="text-slate-400 text-sm md:text-base">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Meu Estoque</h1>
+          <p className="text-slate-600 dark:text-slate-400 text-sm md:text-base">
              {userRole === 'owner' ? 'Gerencie custos e margens do seu estoque.' : 'Catálogo de veículos disponíveis para venda.'}
           </p>
         </div>
@@ -261,13 +234,13 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
 
       <div className="flex flex-col gap-4">
         <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
             <input 
                 type="text" 
                 placeholder="Buscar por nome, marca ou placa..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm dark:shadow-none transition-all"
             />
         </div>
 
@@ -286,8 +259,8 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                         onClick={() => setFilterStatus(status)}
                         className={`px-5 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all duration-200 border ${
                             filterStatus === status 
-                            ? 'bg-slate-100 text-slate-900 border-slate-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]' 
-                            : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-white'
+                            ? 'bg-indigo-500 text-white shadow-md dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100 dark:shadow-[0_0_15px_rgba(255,255,255,0.1)]' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-900/50 dark:text-slate-400 dark:border-slate-800 dark:hover:border-slate-600 dark:hover:text-white'
                         }`}
                     >
                         {label}
@@ -319,11 +292,11 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
               <div 
                 key={vehicle.id} 
                 onClick={() => onSelectVehicle(vehicle.id)}
-                className={`group bg-slate-900/40 backdrop-blur-sm border-l-4 ${borderColorClass} border-y border-r border-slate-800/60 rounded-2xl p-4 hover:bg-slate-800/60 transition-all cursor-pointer flex flex-col gap-4 relative overflow-hidden ${isStale && userRole === 'owner' ? 'shadow-[0_0_15px_-5px_rgba(245,158,11,0.2)]' : ''}`}
+                className={`group bg-white dark:bg-slate-900/40 backdrop-blur-sm border-l-4 border-y border-r border-slate-200 dark:border-slate-800/60 ${borderColorClass} rounded-2xl p-4 shadow-sm hover:shadow-md dark:shadow-none hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer flex flex-col gap-4 relative ${isStale && userRole === 'owner' ? 'shadow-[0_0_15px_-5px_rgba(245,158,11,0.2)]' : ''} ${isDropdownOpen ? 'z-40' : ''}`}
               >
                 <div className="flex flex-col md:flex-row gap-4">
                     {/* Imagem: Topo no Mobile, Esquerda no Desktop */}
-                    <div className="w-full h-48 md:w-64 md:h-44 rounded-xl bg-slate-800 flex-shrink-0 overflow-hidden relative border border-slate-800">
+                    <div className="w-full h-48 md:w-64 md:h-44 rounded-xl bg-slate-100 dark:bg-slate-800 flex-shrink-0 overflow-hidden relative border border-slate-200 dark:border-slate-800">
                     {vehicle.photos.length > 0 ? (
                         <img 
                             src={vehicle.photos[0]} 
@@ -337,10 +310,36 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                         </div>
                     )}
                         {/* Mobile Status Badge Overlay */}
-                        <div className="absolute top-2 right-2 md:hidden">
-                                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full shadow-md uppercase tracking-wide border ${getStatusColor(vehicle.status)}`}>
+                        <div className="absolute top-2 right-2 md:hidden z-20" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                                onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
+                                className={`text-[10px] font-bold px-2 py-1 rounded-full shadow-md uppercase tracking-wide border ${getStatusColor(vehicle.status)} bg-slate-900/90 backdrop-blur-md flex items-center gap-1`}
+                            >
                                 {getStatusLabel(vehicle.status)}
-                             </span>
+                                {vehicle.status !== 'sold' && <ChevronDown size={10} className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />}
+                            </button>
+
+                            {isDropdownOpen && vehicle.status !== 'sold' && (
+                                <div className="absolute top-full right-0 mt-2 w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl overflow-hidden animate-fade-in flex flex-col z-30">
+                                    {[
+                                        { val: 'available', label: 'Em Estoque', color: 'text-emerald-500 dark:text-emerald-400' },
+                                        { val: 'reserved', label: 'Reservado', color: 'text-amber-500 dark:text-amber-400' },
+                                        { val: 'preparation', label: 'Preparação', color: 'text-indigo-500 dark:text-indigo-400' },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.val}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleStatusUpdate(vehicle, opt.val as VehicleStatus);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-xs dropdown-item flex items-center justify-between border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                        >
+                                            <span className={opt.color}>{opt.label}</span>
+                                            {vehicle.status === opt.val && <Check size={12} className="text-emerald-500 dark:text-emerald-400"/>}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -349,17 +348,17 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-2 mb-2">
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="text-lg md:text-xl font-bold text-white truncate">{vehicle.make} {vehicle.model}</h3>
+                                        <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white truncate">{vehicle.make} {vehicle.model}</h3>
                                         {isStale && userRole === 'owner' && (
-                                            <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full animate-pulse shrink-0">
+                                            <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-500 text-white dark:text-slate-950 px-2 py-0.5 rounded-full animate-pulse shrink-0">
                                                 <Clock size={10} />
                                                 +60 Dias
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-slate-300 font-medium text-sm md:text-base truncate">{versionLabel}</p>
-                                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                                        <Calendar size={12} className="text-slate-500" />
+                                    <p className="text-slate-600 dark:text-slate-300 font-medium text-sm md:text-base truncate">{versionLabel}</p>
+                                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-500">
+                                        <Calendar size={12} className="text-slate-400 dark:text-slate-500" />
                                         <span>Entrada: {addedDate}</span>
                                     </div>
                                 </div>
@@ -368,20 +367,20 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                 <div className="relative group min-w-[140px] hidden md:block" onClick={(e) => e.stopPropagation()}>
                                     <button 
                                         onClick={() => setOpenStatusId(isDropdownOpen ? null : vehicle.id)}
-                                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded-full shadow-lg transition-all cursor-pointer border ${getStatusColor(vehicle.status)}`}
+                                        className={`w-full flex items-center flex-row-reverse justify-between gap-2 px-5 py-2.5 rounded-full shadow-lg transition-all cursor-pointer bg-indigo-500 hover:bg-indigo-600 text-white border border-transparent focus:ring-indigo-500 text-sm font-medium`}
                                     >
-                                        <span className="text-xs font-bold uppercase tracking-wide truncate">
+                                        <span className="truncate">
                                             {getStatusLabel(vehicle.status)}
                                         </span>
-                                        {vehicle.status !== 'sold' && <ChevronDown size={14} className={`opacity-80 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />}
+                                        {vehicle.status !== 'sold' && <ChevronDown size={14} className={`shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />}
                                     </button>
                                     
                                     {isDropdownOpen && vehicle.status !== 'sold' && (
-                                        <div className="absolute top-full right-0 mt-2 w-48 dropdown-panel overflow-hidden z-20 animate-fade-in origin-top-right">
+                                        <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl dropdown-panel overflow-hidden z-[50] animate-fade-in origin-top-right">
                                             {[
-                                                { val: 'available', label: 'Em Estoque', color: 'text-emerald-400' },
-                                                { val: 'reserved', label: 'Reservado', color: 'text-amber-400' },
-                                                { val: 'preparation', label: 'Preparação', color: 'text-indigo-400' },
+                                                { val: 'available', label: 'Em Estoque', color: 'text-emerald-500 dark:text-emerald-400' },
+                                                { val: 'reserved', label: 'Reservado', color: 'text-amber-500 dark:text-amber-400' },
+                                                { val: 'preparation', label: 'Preparação', color: 'text-indigo-500 dark:text-indigo-400' },
                                             ].map(opt => (
                                                 <button
                                                     key={opt.val}
@@ -389,10 +388,10 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                                         e.stopPropagation();
                                                         handleStatusUpdate(vehicle, opt.val as VehicleStatus);
                                                     }}
-                                                    className="w-full text-left px-4 py-3 text-sm dropdown-item flex items-center justify-between"
+                                                    className="w-full text-left px-4 py-3 text-sm dropdown-item flex items-center justify-between border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                                 >
                                                     <span className={opt.color.includes('text') ? opt.color : ''}>{opt.label}</span>
-                                                    {vehicle.status === opt.val && <Check size={14} className="text-emerald-400"/>}
+                                                    {vehicle.status === opt.val && <Check size={14} className="text-emerald-500 dark:text-emerald-400"/>}
                                                 </button>
                                             ))}
                                         </div>
@@ -401,7 +400,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                             </div>
                             
                             {vehicle.status === 'reserved' && vehicle.reservationDetails && (
-                                <div className="mb-3 flex flex-col gap-1 text-xs bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded text-amber-200">
+                                <div className="mb-3 flex flex-col gap-1 text-xs bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-200 px-3 py-2 rounded">
                                     <div className="flex items-center gap-2">
                                         <Lock size={12} />
                                         <span className="truncate">Reservado para <strong>{vehicle.reservationDetails.reservedBy}</strong></span>
@@ -411,41 +410,41 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                             )}
 
                             <div className="flex flex-wrap items-center gap-2 mb-3">
-                                <span className="text-slate-500 text-xs bg-slate-800/50 px-2 py-0.5 rounded border border-slate-800 uppercase font-mono">{plateLabel}</span>
+                                <span className="text-slate-600 dark:text-slate-500 text-xs bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 uppercase font-mono">{plateLabel}</span>
                                 
-                                <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.ipvaPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.ipvaPaid ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'}`}>
                                     {vehicle.ipvaPaid ? <FileCheck size={10} /> : <FileX size={10} />} IPVA
                                 </span>
-                                <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.licensingPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-semibold ${vehicle.licensingPaid ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'}`}>
                                     {vehicle.licensingPaid ? <FileCheck size={10} /> : <FileX size={10} />} Licenciamento
                                 </span>
                             </div>
                             
-                            <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                                <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
-                                    <Calendar size={12} className="text-indigo-400" /> {yearLabel}
+                            <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                    <Calendar size={12} className="text-indigo-600 dark:text-indigo-400" /> {yearLabel}
                                 </div>
-                                <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
-                                    <Fuel size={12} className="text-indigo-400" /> {fuelLabel}
+                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                    <Fuel size={12} className="text-indigo-600 dark:text-indigo-400" /> {fuelLabel}
                                 </div>
-                                <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded">
-                                    <span className="font-bold text-indigo-400 text-[10px]">KM</span> {kmLabel}
+                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                    <span className="font-bold text-indigo-600 dark:text-indigo-400 text-[10px]">KM</span> {kmLabel}
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* ACTIONS - DESKTOP VIEW */}
-                    <div className="hidden md:flex flex-col items-end justify-between min-w-[160px] pl-6 border-l border-slate-800">
+                    <div className="hidden md:flex flex-col items-end justify-between min-w-[160px] pl-6 border-l border-slate-200 dark:border-slate-800">
                         <div className="text-right w-full">
                             <p className="text-xs text-slate-500 mb-1">Preço de Venda</p>
-                            <p className="text-2xl font-bold text-white tracking-tight truncate">{formatCurrency(vehicle.expectedSalePrice)}</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">{formatCurrency(vehicle.expectedSalePrice)}</p>
                             
                             {canViewCosts ? (
                                 <>
                                     {vehicle.status === 'available' && (
                                     <p className="text-xs text-slate-500 mt-1">
-                                        Margem: <span className="text-emerald-400 font-bold">
+                                        Margem: <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                                         {Math.round(((vehicle.expectedSalePrice - vehicle.purchasePrice) / vehicle.purchasePrice) * 100)}%
                                         </span>
                                     </p>
@@ -474,29 +473,60 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                             )}
                             
                             <div className="flex gap-2">
-                                <Button variant="secondary" size="sm" className="flex-1" icon={<ChevronRight size={16} />}>
-                                    Ver
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={(e) => handleShareClick(e, vehicle)}
-                                    className={`flex-1 ${canShare ? 'text-slate-300' : 'text-slate-500'}`}
-                                    icon={canShare ? <Share2 size={16} /> : <Lock size={14} />}
-                                >
-                                    Compartilhar
-                                </Button>
-                                {userRole === 'owner' && onDeleteVehicle && (
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setConfirmDelete({ open: true, vehicle });
-                                        }} 
-                                        className="px-3 border border-slate-800 bg-slate-900 text-rose-500 hover:bg-rose-500 hover:text-white rounded-full transition-colors flex items-center justify-center"
-                                        title="Excluir Veículo"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                {vehicle.status === 'preparation' ? (
+                                    <>
+                                        <Button
+                                            variant="secondary"
+                                            className="flex-1 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                                            icon={<Edit2 size={16} />}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onSelectVehicle(vehicle.id);
+                                            }}
+                                        >
+                                            Editar
+                                        </Button>
+                                        {userRole === 'owner' && onDeleteVehicle && (
+                                            <Button
+                                                variant="ghost"
+                                                className="px-4 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-slate-200 dark:border-slate-800"
+                                                icon={<Trash2 size={16} />}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDeleteVehicle(vehicle.id);
+                                                }}
+                                            >
+                                                Excluir
+                                            </Button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button variant="secondary" size="sm" className="flex-1" icon={<ChevronRight size={16} />}>
+                                            Ver
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={(e) => handleShareClick(e, vehicle)}
+                                            className={`flex-1 ${canShare ? 'text-slate-300' : 'text-slate-500'}`}
+                                            icon={canShare ? <Share2 size={16} /> : <Lock size={14} />}
+                                        >
+                                            Compartilhar
+                                        </Button>
+                                        {userRole === 'owner' && onDeleteVehicle && (
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDeleteVehicle(vehicle.id);
+                                                }} 
+                                                className="px-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-rose-500 hover:bg-rose-500 hover:text-white rounded-full transition-colors flex items-center justify-center"
+                                                title="Excluir Veículo"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -504,10 +534,10 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                 </div>
 
                 {/* ACTIONS - MOBILE VIEW (Bottom Bar) */}
-                <div className="flex flex-col md:hidden gap-3 mt-2 pt-3 border-t border-slate-800/50">
+                <div className="flex flex-col md:hidden gap-3 mt-2 pt-3 border-t border-slate-200 dark:border-slate-800/50">
                     <div className="flex justify-between items-center">
                         <p className="text-xs text-slate-500">Valor</p>
-                        <p className="text-xl font-bold text-white">{formatCurrency(vehicle.expectedSalePrice)}</p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(vehicle.expectedSalePrice)}</p>
                     </div>
                     
                     {vehicle.status !== 'sold' && (
@@ -524,24 +554,51 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
                                     VENDER
                                 </button>
                             )}
-                            <button 
-                                onClick={(e) => handleShareClick(e, vehicle)}
-                                className={`flex-1 px-4 rounded-xl border flex items-center justify-center gap-2 active:bg-slate-700 transition-colors ${
-                                    canShare
-                                    ? 'bg-slate-800 text-white border-slate-700'
-                                    : 'bg-slate-900 text-slate-600 border-slate-800'
-                                }`}
-                            >
-                                {canShare ? <Share2 size={18} /> : <Lock size={18} />}
-                                <span className="text-sm font-semibold">Compartilhar</span>
-                            </button>
-                            {userRole === 'owner' && onDeleteVehicle && (
+                            {vehicle.status === 'preparation' ? (
+                                <div className="flex gap-2 w-full">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onSelectVehicle(vehicle.id);
+                                        }}
+                                        className="flex-1 px-4 py-3 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                    >
+                                        <Edit2 size={18} />
+                                        <span className="text-sm">Editar</span>
+                                    </button>
+                                    {userRole === 'owner' && onDeleteVehicle && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteVehicle(vehicle.id);
+                                            }} 
+                                            className="flex-1 px-4 py-3 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                        >
+                                            <Trash2 size={18} />
+                                            <span className="text-sm">Excluir</span>
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <button 
+                                    onClick={(e) => handleShareClick(e, vehicle)}
+                                    className={`flex-1 px-4 rounded-full border flex items-center justify-center gap-2 active:scale-95 transition-all ${
+                                        canShare
+                                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700'
+                                        : 'bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800'
+                                    }`}
+                                >
+                                    {canShare ? <Share2 size={18} /> : <Lock size={18} />}
+                                    <span className="text-sm font-semibold">Compartilhar</span>
+                                </button>
+                            )}
+                            {userRole === 'owner' && onDeleteVehicle && vehicle.status !== 'preparation' && (
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setConfirmDelete({ open: true, vehicle });
+                                        onDeleteVehicle(vehicle.id);
                                     }} 
-                                    className="px-4 rounded-xl border border-slate-800 bg-slate-900 text-rose-500 flex items-center justify-center active:bg-rose-500 active:text-white transition-colors"
+                                    className="px-4 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-rose-500 flex items-center justify-center active:bg-rose-500 active:text-white transition-colors"
                                 >
                                     <Trash2 size={18} />
                                 </button>
@@ -553,14 +610,22 @@ export const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onSelectVehi
             );
         }) : (
           <div className="text-center py-16">
-            <div className="bg-slate-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="text-slate-600" />
+            <div className="bg-slate-100 dark:bg-slate-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="text-slate-400 dark:text-slate-600" />
             </div>
-            <h3 className="text-white font-medium">Nenhum veículo encontrado</h3>
+            <h3 className="text-slate-900 dark:text-white font-medium">Nenhum veículo encontrado</h3>
             <p className="text-slate-500 text-sm">Tente ajustar seus filtros de busca ou adicione um novo carro.</p>
           </div>
         )}
       </div>
+
+      {/* Backdrop for Status Dropdown */}
+      {openStatusId && (
+        <div 
+            className="fixed inset-0 z-30 bg-transparent" 
+            onClick={() => setOpenStatusId(null)} 
+        />
+      )}
     </div>
   );
 };

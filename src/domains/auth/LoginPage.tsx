@@ -137,7 +137,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
                                 autoFocus
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                                 placeholder="seu@email.com"
                             />
                         </div>
@@ -162,36 +162,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
   return (
     <AuthLayout title="Bem-vindo de volta" subtitle="Acesse o painel de gestão da sua loja.">
       {/* Botão Voltar para Home */}
-      <button onClick={onNavigateHome} className="absolute top-6 left-6 text-slate-400 hover:text-white transition-colors" title="Voltar para o site">
+      <button onClick={onNavigateHome} className="absolute top-6 left-6 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" title="Voltar para o site">
           <Home size={20} />
       </button>
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Email Profissional</label>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5 ml-1">Email Profissional</label>
             <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
                 <input 
                     type="email" 
                     required
                     autoFocus
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                     placeholder="seu@email.com"
                 />
             </div>
         </div>
         <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Senha</label>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5 ml-1">Senha</label>
             <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
                 <input 
                     type="password" 
                     required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                     placeholder="••••••••"
                 />
             </div>
@@ -199,7 +199,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
                 <button 
                     type="button" 
                     onClick={() => { setError(''); setIsResetting(true); }} 
-                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors font-medium"
                 >
                     Esqueci minha senha
                 </button>
@@ -207,7 +207,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
         </div>
 
         {error && (
-            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-3 rounded-lg text-center animate-shake">
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm p-3 rounded-lg text-center animate-shake">
                 {error}
             </div>
         )}
@@ -221,10 +221,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
         </Button>
       </form>
       
-      <div className="mt-8 text-center pt-6 border-t border-slate-800/50">
+      <div className="mt-8 text-center pt-6 border-t border-slate-200 dark:border-slate-800/50">
           <p className="text-slate-500 text-sm">
               É proprietário e não tem conta?{' '}
-              <button onClick={onNavigateRegister} className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+              <button onClick={onNavigateRegister} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium transition-colors">
                   Criar conta da Loja
               </button>
           </p>

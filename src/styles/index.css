@@ -5,26 +5,27 @@
 
 /* --- DEFINIÇÃO DAS CORES (RGB) --- */
 :root {
-  /* MODO CLARO (LIGHT) - Padrão se .dark não estiver presente */
-  --color-slate-50: 30 30 30;    /* Invertido */
-  --color-slate-100: 43 42 42;   /* Texto vira escuro */
-  --color-slate-200: 70 70 70;
-  --color-slate-300: 100 116 139; /* Muted text */
-  --color-slate-400: 100 116 139;
-  --color-slate-500: 117 116 116;
-  --color-slate-600: 148 163 184;
-  --color-slate-700: 203 213 225; /* Bordas */
-  --color-slate-800: 226 232 240; /* Elementos secundários */
-  --color-slate-850: 241 245 249;
-  --color-slate-900: 255 255 255; /* Cards viram brancos */
-  --color-slate-950: 248 250 252; /* Fundo vira off-white */
+  /* MODO CLARO (LIGHT) - Refined Enterprise Palette */
+  /* colors corrected to standard scale for legibility and contrast */
   
-  --color-text-main: 26 25 25;    /* text-white vira Velo Black */
+  --color-slate-50: 248 249 250;  /* #f8f9fa - Main Background */
+  --color-slate-100: 241 245 249; /* #f1f5f9 - Secondary Backgrounds */
+  --color-slate-200: 226 232 240; /* #e2e8f0 - Borders (Subtle) */
+  --color-slate-300: 203 213 225; /* #cbd5e1 - Borders (Deep) */
+  --color-slate-400: 148 163 184; /* #94a3b8 - Placeholders */
+  --color-slate-500: 100 116 139; /* #64748b - Secondary Text */
+  --color-slate-600: 71 85 105;   /* #475569 - Text */
+  --color-slate-700: 51 65 85;    /* #334155 - Text (Strong) */
+  --color-slate-800: 30 41 59;    /* #1e293b - Headings */
+  --color-slate-900: 15 23 42;    /* #0f172a - Deep Dark */
+  --color-slate-950: 2 6 23;      /* #020617 - Absolute Dark */
+  
+  --color-text-main: 15 23 42;    /* Dark Text */
 
   --velo-orange: 255 96 53;
-  --velo-platinum: 236 232 232;
-  --velo-jet: 117 116 116;
-  --velo-black: 43 42 42;
+  --velo-platinum: 241 245 249;
+  --velo-jet: 71 85 105;
+  --velo-black: 15 23 42;
 }
 
 .dark {
@@ -51,10 +52,15 @@
 }
 
 body {
-  background-color: rgb(var(--color-slate-950));
-  color: rgb(var(--color-slate-100));
+  background-color: rgb(var(--color-slate-50));
+  color: rgb(var(--color-slate-900));
   transition: background-color 0.3s ease, color 0.3s ease;
   overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+}
+
+.dark body {
+  background-color: rgb(var(--color-slate-950));
+  color: rgb(var(--color-slate-100));
 }
 
 /* Custom Scrollbar */
