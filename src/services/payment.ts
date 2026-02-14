@@ -14,7 +14,7 @@ import { PLAN_CONFIG } from '@/shared/lib/plans';
 // E cola o link gerado abaixo.
 // ==============================================================================
 
-const STRIPE_CUSTOMER_PORTAL_URL: string = ''; // <--- COLE SEU LINK DO PORTAL STRIPE AQUI (ex: https://billing.stripe.com/p/login/...)
+const STRIPE_CUSTOMER_PORTAL_URL: string = 'https://billing.stripe.com/p/login/test_dRmaEX05Ee1BenRfmpaIM00'; // <--- COLE SEU LINK DO PORTAL STRIPE AQUI (ex: https://billing.stripe.com/p/login/...)
 
 export const PaymentService = {
   /**
